@@ -1,0 +1,469 @@
+import React, { useState, useEffect } from "react";
+import { Plus, Search, Edit, Trash2, X, CheckCircle2, XCircle } from "lucide-react";
+import api from "../../services/api";
+
+interface TransIndikatorDetail {
+  ID: number;
+  INDIKATOR_BIDANG_ID: number;
+  JENIS_KEGIATAN: string;
+  TARGET: number;
+  FLAG_ACTIVE: boolean;
+  // Optional fields if the API returns related data or we map it manually
+  NAMA_BIDANG?: string;
+  NAMA_INDIKATOR?: string;
+  NAMA_PROGRAM?: string;
+}
+
+interface TransIndikatorBidang {
+  ID: number;
+  NAMA_BIDANG?: string;
+  NAMA_INDIKATOR?: string;
+  NAMA_PROGRAM?: string;
+  NAMA_PERIODE?: string;
+}
+
+export default function TransaksiIndikatorDetail() {
+  const [data, setData] = useState<TransIndikatorDetail[]>([]);
+  const [bidangMappingList, setBidangMappingList] = useState<TransIndikatorBidang[]>([]);
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
+  const [currentId, setCurrentId] = useState<number | null>(null);
+  const [formData, setFormData] = useState({
+    INDIKATOR_BIDANG_ID: "",
+    JENIS_KEGIATAN: "",
+    TARGET: "",
+    FLAG_ACTIVE: true,
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Delete modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [resDetail, resBidang] = await Promise.all([
+        api.get("/api/trans-indikator-detail"),
+        api.get("/api/trans-indikator-bidang")
+      ]);
+      
+      const detailData = resDetail.data.data || resDetail.data || [];
+      const bidangData = resBidang.data.data || resBidang.data || [];
+      
+      setBidangMappingList(Array.isArray(bidangData) ? bidangData : []);
+      
+      // Map related data if not provided by API
+      const mappedData = (Array.isArray(detailData) ? detailData : []).map((item: any) => {
+        const relatedBidang = (Array.isArray(bidangData) ? bidangData : []).find((b: any) => b.ID === item.INDIKATOR_BIDANG_ID);
+        return {
+          ...item,
+          NAMA_BIDANG: item.NAMA_BIDANG || relatedBidang?.NAMA_BIDANG,
+          NAMA_INDIKATOR: item.NAMA_INDIKATOR || relatedBidang?.NAMA_INDIKATOR,
+          NAMA_PROGRAM: item.NAMA_PROGRAM || relatedBidang?.NAMA_PROGRAM,
+        };
+      });
+      
+      setData(mappedData);
+      setError("");
+    } catch (err: any) {
+      console.error("Gagal mengambil data:", err);
+      setError("Gagal memuat data transaksi indikator detail.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleOpenModal = async (mode: "add" | "edit", item?: TransIndikatorDetail) => {
+    setModalMode(mode);
+    if (mode === "edit" && item) {
+      setCurrentId(item.ID);
+      
+      try {
+        const response = await api.get(`/api/trans-indikator-detail/${item.ID}`);
+        const detail = response.data.data || response.data;
+        
+        setFormData({
+          INDIKATOR_BIDANG_ID: detail.INDIKATOR_BIDANG_ID ? detail.INDIKATOR_BIDANG_ID.toString() : "",
+          JENIS_KEGIATAN: detail.JENIS_KEGIATAN || "",
+          TARGET: detail.TARGET !== undefined && detail.TARGET !== null ? detail.TARGET.toString() : "",
+          FLAG_ACTIVE: detail.FLAG_ACTIVE === undefined ? true : Boolean(detail.FLAG_ACTIVE),
+        });
+        setIsModalOpen(true);
+      } catch (err) {
+        console.error("Gagal mengambil detail data:", err);
+        alert("Gagal mengambil detail data untuk diedit.");
+      }
+    } else {
+      setCurrentId(null);
+      setFormData({
+        INDIKATOR_BIDANG_ID: "",
+        JENIS_KEGIATAN: "",
+        TARGET: "",
+        FLAG_ACTIVE: true,
+      });
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setFormData({ INDIKATOR_BIDANG_ID: "", JENIS_KEGIATAN: "", TARGET: "", FLAG_ACTIVE: true });
+    setCurrentId(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const payload = {
+        INDIKATOR_BIDANG_ID: parseInt(formData.INDIKATOR_BIDANG_ID),
+        JENIS_KEGIATAN: formData.JENIS_KEGIATAN,
+        TARGET: parseFloat(formData.TARGET),
+        FLAG_ACTIVE: formData.FLAG_ACTIVE
+      };
+
+      if (modalMode === "add") {
+        await api.post("/api/trans-indikator-detail", payload);
+      } else if (modalMode === "edit" && currentId) {
+        await api.put(`/api/trans-indikator-detail/${currentId}`, payload);
+      }
+      handleCloseModal();
+      fetchData(); // Refresh data
+    } catch (err: any) {
+      console.error("Gagal menyimpan data:", err);
+      alert(err.response?.data?.message || "Terjadi kesalahan saat menyimpan data.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const confirmDelete = (id: number) => {
+    setDeleteId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const cancelDelete = () => {
+    setIsDeleteModalOpen(false);
+    setDeleteId(null);
+  };
+
+  const executeDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/trans-indikator-detail/${deleteId}`);
+      fetchData(); // Refresh data
+      cancelDelete();
+    } catch (err: any) {
+      console.error("Gagal menghapus data:", err);
+      alert(err.response?.data?.message || "Terjadi kesalahan saat menghapus data.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const filteredData = data.filter((item) => {
+    const searchLower = search.toLowerCase();
+    return (
+      (item.JENIS_KEGIATAN?.toLowerCase() || "").includes(searchLower) ||
+      (item.NAMA_BIDANG?.toLowerCase() || "").includes(searchLower) ||
+      (item.NAMA_INDIKATOR?.toLowerCase() || "").includes(searchLower) ||
+      (item.NAMA_PROGRAM?.toLowerCase() || "").includes(searchLower)
+    );
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Transaksi Indikator Detail</h1>
+          <p className="text-sm text-slate-500 mt-1">Kelola detail kegiatan dan target</p>
+        </div>
+        <button 
+          onClick={() => handleOpenModal("add")}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-medium flex items-center gap-2 transition-colors shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Tambah Detail
+        </button>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <div className="relative w-full max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-slate-400" />
+            </div>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-colors"
+              placeholder="Cari detail kegiatan..."
+            />
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-16">
+                  No.
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Bidang & Indikator
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Jenis Kegiatan
+                </th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Target
+                </th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider w-28">
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-slate-200">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                    <div className="flex justify-center items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                      Memuat data...
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredData.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                    Tidak ada data detail kegiatan ditemukan.
+                  </td>
+                </tr>
+              ) : (
+                filteredData.map((item, index) => (
+                  <tr key={item.ID} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                      {index + 1}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      <div className="font-medium text-slate-800">{item.NAMA_BIDANG || "-"}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">{item.NAMA_INDIKATOR || "-"}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-slate-800">
+                      {item.JENIS_KEGIATAN}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-emerald-600">
+                      {item.TARGET}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {item.FLAG_ACTIVE ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                          <CheckCircle2 className="w-3 h-3" /> Aktif
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <XCircle className="w-3 h-3" /> Nonaktif
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => handleOpenModal("edit", item)}
+                          className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => confirmDelete(item.ID)}
+                          className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors"
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        
+        {!loading && (
+          <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between sm:px-6">
+            <div className="text-sm text-slate-500">
+              Menampilkan <span className="font-medium">{filteredData.length}</span> data
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Form Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
+              <h2 className="text-lg font-bold text-slate-900">
+                {modalMode === "add" ? "Tambah Detail Kegiatan" : "Edit Detail Kegiatan"}
+              </h2>
+              <button 
+                onClick={handleCloseModal}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4">
+              <form id="detail-form" onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="INDIKATOR_BIDANG_ID" className="block text-sm font-medium text-slate-700 mb-1">
+                    Mapping Bidang & Indikator <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="INDIKATOR_BIDANG_ID"
+                    required
+                    value={formData.INDIKATOR_BIDANG_ID}
+                    onChange={(e) => setFormData({ ...formData, INDIKATOR_BIDANG_ID: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                  >
+                    <option value="">-- Pilih Mapping --</option>
+                    {bidangMappingList.map((m) => (
+                      <option key={m.ID} value={m.ID}>
+                        {m.NAMA_BIDANG} - {m.NAMA_INDIKATOR} ({m.NAMA_PERIODE})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="JENIS_KEGIATAN" className="block text-sm font-medium text-slate-700 mb-1">
+                    Jenis Kegiatan <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="JENIS_KEGIATAN"
+                    required
+                    maxLength={255}
+                    value={formData.JENIS_KEGIATAN}
+                    onChange={(e) => setFormData({ ...formData, JENIS_KEGIATAN: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Masukkan jenis kegiatan"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="TARGET" className="block text-sm font-medium text-slate-700 mb-1">
+                    Target Capaian <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id="TARGET"
+                    required
+                    step="0.01"
+                    min="0"
+                    value={formData.TARGET}
+                    onChange={(e) => setFormData({ ...formData, TARGET: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Contoh: 100"
+                  />
+                </div>
+
+                <div className="flex items-center pt-2">
+                  <input
+                    type="checkbox"
+                    id="FLAG_ACTIVE"
+                    checked={formData.FLAG_ACTIVE}
+                    onChange={(e) => setFormData({ ...formData, FLAG_ACTIVE: e.target.checked })}
+                    className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+                  />
+                  <label htmlFor="FLAG_ACTIVE" className="ml-2 block text-sm text-slate-700">
+                    Detail Aktif
+                  </label>
+                </div>
+              </form>
+            </div>
+            <div className="p-4 border-t border-slate-100 flex justify-end gap-2 shrink-0 bg-slate-50">
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                form="detail-form"
+                disabled={isSubmitting}
+                className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-70 flex items-center gap-2"
+              >
+                {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Hapus Detail?</h2>
+              <p className="text-sm text-slate-500 mb-6">
+                Apakah Anda yakin ingin menghapus detail kegiatan ini? Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={cancelDelete}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors w-full"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={executeDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-70 flex items-center justify-center gap-2 w-full"
+                >
+                  {isDeleting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

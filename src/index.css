@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "tw-animate-css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ================= THEME ================= */
+@theme inline {
+    --font-sans: 'Geist Variable', sans-serif;
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --radius: 0.75rem;
+}
+
+/* ================= ROOT ================= */
+:root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+
+    --primary: oklch(0.55 0.15 140); /* hijau */
+    --primary-foreground: oklch(0.98 0 0);
+
+    --secondary: oklch(0.9 0.15 90); /* kuning */
+    --secondary-foreground: oklch(0.2 0 0);
+
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.5 0 0);
+
+    --accent: oklch(0.9 0.15 90);
+    --accent-foreground: oklch(0.2 0 0);
+
+    --destructive: oklch(0.6 0.25 30);
+
+    --border: oklch(0.9 0 0);
+    --input: oklch(0.9 0 0);
+    --ring: oklch(0.55 0.15 140);
+}
+
+/* ================= DARK ================= */
+.dark {
+    --background: oklch(0.15 0 0);
+    --foreground: oklch(0.98 0 0);
+
+    --card: oklch(0.2 0 0);
+    --card-foreground: oklch(0.98 0 0);
+
+    --primary: oklch(0.7 0.2 140);
+    --secondary: oklch(0.7 0.2 90);
+
+    --border: oklch(1 0 0 / 10%);
+}
+
+/* ================= BASE ================= */
+@layer base {
+  * {
+    /* 🔥 FIX: jangan pakai border-border langsung */
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html {
+    font-family: 'Geist Variable', sans-serif;
+  }
+}
