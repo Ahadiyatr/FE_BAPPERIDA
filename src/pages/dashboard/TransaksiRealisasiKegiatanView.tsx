@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft, Plus, Image as ImageIcon, FileText, ChevronDown, ChevronRight, Download, Eye, X, Edit, Trash2 } from "lucide-react";
 import api from "../../services/api";
+import Swal from "sweetalert2";
+import { Toast } from "../../utils/toast";
 
 interface ViewProps {
   mode: "detail" | "edit";
@@ -138,20 +140,50 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
       }
       setIsFormOpen(false);
       fetchData();
+      Toast.fire({
+        icon: 'success',
+        title: 'Data berhasil disimpan'
+      });
     } catch (err: any) {
-      alert(err.response?.data?.message || "Terjadi kesalahan saat menyimpan.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: err.response?.data?.message || "Terjadi kesalahan saat menyimpan.",
+        confirmButtonColor: '#059669'
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Hapus realisasi ini?")) return;
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin ingin menghapus data?',
+      text: "Data realisasi yang dihapus tidak bisa dikembalikan.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       await api.delete(`/api/realisasi-kegiatan/${id}`);
       fetchData();
-    } catch (e) {
-      alert("Gagal menghapus.");
+      Toast.fire({
+        icon: 'success',
+        title: 'Data berhasil dihapus'
+      });
+    } catch (err: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: err.response?.data?.message || "Gagal menghapus data.",
+        confirmButtonColor: '#059669'
+      });
     }
   };
 

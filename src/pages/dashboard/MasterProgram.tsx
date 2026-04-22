@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Search, Edit, Trash2, X, CheckCircle2, XCircle } from "lucide-react";
+import Swal from "sweetalert2";
+import { Toast } from "../../utils/toast";
+import Pagination from "../../components/Pagination";
 import api from "../../services/api";
 
 interface Program {
@@ -14,6 +17,8 @@ export default function MasterProgram() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -87,37 +92,47 @@ export default function MasterProgram() {
         await api.put(`/api/master-program/${currentId}`, formData);
       }
       handleCloseModal();
-      fetchData(); // Refresh data
+      fetchData();
+      Toast.fire({ icon: 'success', title: 'Data berhasil disimpan' });
     } catch (err: any) {
       console.error("Gagal menyimpan data:", err);
-      alert(err.response?.data?.message || "Terjadi kesalahan saat menyimpan data.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: err.response?.data?.message || "Terjadi kesalahan saat menyimpan data.",
+        confirmButtonColor: '#059669'
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const confirmDelete = (id: number) => {
-    setDeleteId(id);
-    setIsDeleteModalOpen(true);
-  };
+  const executeDelete = async (id: number) => {
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin ingin menghapus data?',
+      text: "Data yang dihapus tidak bisa dikembalikan.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal'
+    });
 
-  const cancelDelete = () => {
-    setIsDeleteModalOpen(false);
-    setDeleteId(null);
-  };
-
-  const executeDelete = async () => {
-    if (!deleteId) return;
-    setIsDeleting(true);
-    try {
-      await api.delete(`/api/master-program/${deleteId}`);
-      fetchData(); // Refresh data
-      cancelDelete();
-    } catch (err: any) {
-      console.error("Gagal menghapus data:", err);
-      alert(err.response?.data?.message || "Terjadi kesalahan saat menghapus data.");
-    } finally {
-      setIsDeleting(false);
+    if (result.isConfirmed) {
+      try {
+        await api.delete(`/api/master-program/${id}`);
+        fetchData();
+        Toast.fire({ icon: 'success', title: 'Data berhasil dihapus' });
+      } catch (err: any) {
+        console.error("Gagal menghapus data:", err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: err.response?.data?.message || "Terjadi kesalahan saat menghapus data.",
+          confirmButtonColor: '#059669'
+        });
+      }
     }
   };
 
@@ -125,6 +140,13 @@ export default function MasterProgram() {
     (item.NAMA_PROGRAM?.toLowerCase() || "").includes(search.toLowerCase()) ||
     (item.KODE_PROGRAM?.toLowerCase() || "").includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   return (
     <div className="space-y-6">
@@ -195,17 +217,17 @@ export default function MasterProgram() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredData.length === 0 ? (
+              ) : paginatedData.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
                     Tidak ada data program ditemukan.
                   </td>
                 </tr>
               ) : (
-                filteredData.map((item, index) => (
+                paginatedData.map((item, index) => (
                   <tr key={item.ID} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                      {index + 1}
+                      {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
                       {item.KODE_PROGRAM}
@@ -234,7 +256,7 @@ export default function MasterProgram() {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button 
-                          onClick={() => confirmDelete(item.ID)}
+                          onClick={() => executeDelete(item.ID)}
                           className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors"
                           title="Hapus"
                         >
@@ -249,12 +271,12 @@ export default function MasterProgram() {
           </table>
         </div>
         
-        {!loading && (
-          <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between sm:px-6">
-            <div className="text-sm text-slate-500">
-              Menampilkan <span className="font-medium">{filteredData.length}</span> data
-            </div>
-          </div>
+        {!loading && filteredData.length > 0 && (
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 

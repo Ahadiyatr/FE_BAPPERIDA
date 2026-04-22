@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Search, Eye, Edit, Trash2, Plus, X, Minus } from "lucide-react";
 import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+import { Toast } from "../../utils/toast";
+import Pagination from "../../components/Pagination";
 
 interface Rencana {
   CAPAIAN_ID: number;
@@ -54,6 +57,10 @@ export default function RencanaKegiatan() {
   const [details, setDetails] = useState<{ JENIS_KEGIATAN: string, TARGET: string, isCustom?: boolean }>([{ JENIS_KEGIATAN: "", TARGET: "" }]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchData();
@@ -109,6 +116,7 @@ export default function RencanaKegiatan() {
     if (filterSubIndikator) result = result.filter(d => d.INDIKATOR_ID.toString() === filterSubIndikator);
 
     setFilteredData(result);
+    setCurrentPage(1); // Reset to page 1 when filter changes
   }, [search, filterBidang, filterProgram, filterIndikatorUtama, filterSubIndikator, data]);
 
   const handleOpenForm = (openMode: "add" | "edit", item?: any) => {
@@ -181,22 +189,55 @@ export default function RencanaKegiatan() {
       }
       setIsFormOpen(false);
       fetchData();
+      Toast.fire({
+        icon: 'success',
+        title: 'Data berhasil disimpan'
+      });
     } catch (err: any) {
-      alert(err.response?.data?.message || err.response?.data?.error || "Terjadi kesalahan.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: err.response?.data?.message || err.response?.data?.error || "Terjadi kesalahan.",
+        confirmButtonColor: '#059669'
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-     if (!confirm("Hapus Rencana Kegiatan ini? Tindakan ini tidak bisa dibatalkan jika belum ada relasi.")) return;
+     const result = await Swal.fire({
+       title: 'Apakah Anda yakin ingin menghapus data?',
+       text: "Tindakan ini tidak bisa dibatalkan jika belum ada relasi.",
+       icon: 'warning',
+       showCancelButton: true,
+       confirmButtonColor: '#ef4444',
+       cancelButtonColor: '#94a3b8',
+       confirmButtonText: 'Ya, hapus!',
+       cancelButtonText: 'Batal'
+     });
+
+     if (!result.isConfirmed) return;
+
      try {
        await api.delete(`/api/rencana-kegiatan/${id}`);
        fetchData();
+       Toast.fire({
+         icon: 'success',
+         title: 'Data berhasil dihapus'
+       });
      } catch (err: any) {
-       alert(err.response?.data?.message || "Gagal menghapus data.");
+       Swal.fire({
+         icon: 'error',
+         title: 'Gagal',
+         text: err.response?.data?.message || "Gagal menghapus data.",
+         confirmButtonColor: '#059669'
+       });
      }
   };
+
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <div className="space-y-6">
@@ -272,17 +313,17 @@ export default function RencanaKegiatan() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredData.length === 0 ? (
+              ) : paginatedData.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-medium">
                     Tidak ada data ditemukan.
                   </td>
                 </tr>
               ) : (
-                filteredData.map((item, index) => (
+                paginatedData.map((item, index) => (
                   <tr key={item.CAPAIAN_ID} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 text-center text-sm font-bold text-slate-900">
-                      {index + 1}
+                      {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
@@ -333,7 +374,14 @@ export default function RencanaKegiatan() {
                         </button>
                         */}
                         <button 
-                          onClick={() => alert("Hapus ditekan (Parent ID ini terhubung dengan realisasi)") }
+                          onClick={() => {
+                             Swal.fire({
+                               title: 'Hapus data diblokir',
+                               text: 'Hapus data utama dinonaktifkan sementara dari UI. Parent ID ini terhubung dengan realisasi.',
+                               icon: 'info',
+                               confirmButtonColor: '#059669'
+                             })
+                          }}
                           className="bg-white hover:bg-red-50 text-red-500 border border-red-200 p-2 rounded-lg shadow-sm transition-colors"
                           title="Hapus"
                         >
@@ -347,6 +395,15 @@ export default function RencanaKegiatan() {
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination Rendering */}
+        {!loading && filteredData.length > 0 && (
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       {/* Form Modal (Edit Periode, Bidang, Indikator) */}

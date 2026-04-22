@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Search, Eye, Edit, Trash2 } from "lucide-react";
 import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
+import Pagination from "../../components/Pagination";
 
 export default function RealisasiKegiatan() {
   const [data, setData] = useState<any[]>([]);
@@ -16,6 +17,10 @@ export default function RealisasiKegiatan() {
   const [filterProgram, setFilterProgram] = useState("");
   const [filterIndikatorUtama, setFilterIndikatorUtama] = useState("");
   const [filterSubIndikator, setFilterSubIndikator] = useState("");
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const fetchData = async () => {
     setLoading(true);
@@ -54,12 +59,16 @@ export default function RealisasiKegiatan() {
     if (filterSubIndikator) filtered = filtered.filter(item => item.NAMA_INDIKATOR === filterSubIndikator);
 
     setFilteredData(filtered);
+    setCurrentPage(1); // Reset to page 1 when filter changes
   }, [search, filterBidang, filterProgram, filterIndikatorUtama, filterSubIndikator, data]);
 
   const uniqueBidang = Array.from(new Set(data.map(d => d.NAMA_BIDANG).filter(Boolean)));
   const uniqueProgram = Array.from(new Set(data.map(d => d.NAMA_PROGRAM).filter(Boolean)));
   const uniqueIndikatorUtama = Array.from(new Set(data.map(d => d.NAMA_INDIKATOR_UTAMA).filter(Boolean)));
   const uniqueSubIndikator = Array.from(new Set(data.map(d => d.NAMA_INDIKATOR).filter(Boolean)));
+
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <div className="space-y-6">
@@ -134,14 +143,14 @@ export default function RealisasiKegiatan() {
                      </div>
                    </td>
                  </tr>
-               ) : filteredData.length === 0 ? (
+               ) : paginatedData.length === 0 ? (
                  <tr>
                    <td colSpan={8} className="px-6 py-8 text-center text-slate-500">Tidak ada data ditemukan.</td>
                  </tr>
                ) : (
-                 filteredData.map((item, index) => (
+                 paginatedData.map((item, index) => (
                     <tr key={item.CAPAIAN_ID} className="hover:bg-slate-50/50 transition-colors">
-                       <td className="px-6 py-4 text-center text-sm font-medium text-slate-900">{index + 1}</td>
+                       <td className="px-6 py-4 text-center text-sm font-medium text-slate-900">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                        <td className="px-6 py-4 text-sm font-medium text-slate-900">{item.NAMA_PERIODE || "2026"}</td>
                        <td className="px-6 py-4">
                          <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-0.5">{item.NAMA_BIDANG}</div>
@@ -178,10 +187,12 @@ export default function RealisasiKegiatan() {
              </tbody>
           </table>
         </div>
-        {!loading && (
-          <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between text-sm text-slate-500">
-            Menampilkan <span className="font-medium">{filteredData.length}</span> data
-          </div>
+        {!loading && filteredData.length > 0 && (
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
     </div>
