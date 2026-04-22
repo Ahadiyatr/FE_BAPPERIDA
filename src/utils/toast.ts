@@ -2,7 +2,7 @@ import Swal from "sweetalert2";
 
 export const Toast = Swal.mixin({
   toast: true,
-  position: "bottom", // muncul di bawah layar
+  position: "top-end", // muncul di pojok kanan atas
   showConfirmButton: false,
   timer: 3000,
   timerProgressBar: true,
