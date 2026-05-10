@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api from '../services/api.js';
 import {
   LayoutDashboard,
   Database,
@@ -15,32 +15,61 @@ import {
   Menu,
   X,
   Activity,
-  Heading,
+  PanelLeftClose,
+  PanelLeftOpen,
+  BookType,
+  LibraryBig,
 } from 'lucide-react';
 
-const sidebarLinks = [
+const sidebarLinks: any[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { Heading: 'Master Data' },
-  { name: 'Master Program', href: '/dashboard/master-program', icon: Database },
+  { name: 'Periode', href: '/master/periode', icon: Calendar },
+  { name: 'Program', href: '/master/program', icon: Database },
+  { name: 'Bidang', href: '/master/bidang', icon: Layers },
   {
-    name: 'Master Indikator Utama',
-    href: '/dashboard/master-indikator-utama',
-    icon: Target,
+    name: 'User',
+    href: '/master/user',
+    icon: Database,
   },
   {
-    name: 'Master Indikator',
-    href: '/dashboard/master-indikator',
+    name: 'Indikator Utama',
+    href: '/master/indikator-utama',
+    icon: LibraryBig,
+  },
+  {
+    name: 'Indikator Sub',
+    href: '/master/indikator',
     icon: BarChart2,
   },
-  { name: 'Master Bidang', href: '/dashboard/master-bidang', icon: Layers },
-  { name: 'Master Periode', href: '/dashboard/master-periode', icon: Calendar },
+  {
+    name: 'Aktifitas Utama',
+    href: '/master/aktifitas-utama',
+    icon: Activity,
+  },
+  {
+    name: 'Jenis Kegiatan',
+    href: '/master/jenis-kegiatan',
+    icon: BookType,
+  },
+  { Heading: 'Transaksi' },
+  {
+    name: 'Indikator Bidang',
+    href: '/dashboard/transaksi-indikator-bidang',
+    icon: LinkIcon,
+  },
+  {
+    name: 'Aktifitas Utama',
+    href: '/dashboard/transaksi-aktifitas-utama',
+    icon: LinkIcon,
+  },
+  {
+    name: 'Indikator Detail',
+    href: '/dashboard/transaksi-indikator-detail',
+    icon: ListTodo,
+  },
+
   { Heading: 'Renacana & Realisasi' },
-  // {
-  //   name: 'Transaksi Indikator Bidang',
-  //   href: '/dashboard/transaksi-indikator-bidang',
-  //   icon: LinkIcon,
-  // },
-  // { name: "Transaksi Indikator Detail", href: "/dashboard/transaksi-indikator-detail", icon: ListTodo },
   {
     name: 'Rencana & Capaian Kegiatan',
     href: '/dashboard/rencana-kegiatan',
@@ -55,6 +84,7 @@ const sidebarLinks = [
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [user, setUser] = useState<any>(null);
   const location = useLocation();
@@ -138,33 +168,51 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <div
         className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col
+        fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        ${collapsed ? 'lg:w-16' : 'lg:w-72'}
+        w-72
       `}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-slate-100 lg:justify-center">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-emerald-500 to-yellow-400 p-1.5 rounded-lg shadow-sm">
+        {/* Sidebar header */}
+        <div
+          className={`flex items-center h-16 px-4 border-b border-slate-100 ${collapsed ? 'justify-center' : 'justify-between'}`}
+        >
+          <Link to="/" className="flex items-center min-w-0 gap-3">
+            <div className="shrink-0 bg-gradient-to-br from-emerald-500 to-yellow-400 p-1.5 rounded-lg shadow-sm">
               <Activity className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold tracking-tight text-slate-800">
-              OPERA-INK
-            </span>
+            {!collapsed && (
+              <span className="font-bold tracking-tight truncate text-slate-800">
+                OPERA-INK
+              </span>
+            )}
           </Link>
+          {/* Mobile close */}
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-slate-500"
+            className="lg:hidden text-slate-500 shrink-0"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <div
+          className={`flex-1 py-4 space-y-1 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}
+        >
           {sidebarLinks.map((link, idx) => {
             if (link.Heading) {
+              if (collapsed) {
+                return (
+                  <div
+                    key={`divider-${idx}`}
+                    className="my-1 border-t border-slate-100"
+                  />
+                );
+              }
               return (
                 <div
-                  key={'heading-' + link.Heading + idx}
+                  key={`heading-${idx}`}
                   className="px-3 pt-4 pb-1 text-xs font-bold tracking-wider uppercase select-none text-slate-400"
                 >
                   {link.Heading}
@@ -175,34 +223,35 @@ export default function DashboardLayout() {
             const Icon = link.icon;
             return (
               <Link
-                key={link.name}
+                key={link.href || `link-${idx}`}
                 to={link.href}
                 onClick={() => setSidebarOpen(false)}
+                title={collapsed ? link.name : undefined}
                 className={`
                   flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
-                  ${
-                    isActive
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }
+                  ${collapsed ? 'justify-center' : ''}
+                  ${isActive ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
                 `}
               >
                 <Icon
-                  className={`w-5 h-5 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`}
+                  className={`w-5 h-5 shrink-0 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`}
                 />
-                {link.name}
+                {!collapsed && link.name}
               </Link>
             );
           })}
         </div>
 
-        <div className="p-4 border-t border-slate-100">
+        <div
+          className={`border-t border-slate-100 ${collapsed ? 'p-2' : 'p-4'}`}
+        >
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 w-full transition-colors"
+            title={collapsed ? 'Logout' : undefined}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 w-full transition-colors ${collapsed ? 'justify-center' : ''}`}
           >
-            <LogOut className="w-5 h-5" />
-            Logout
+            <LogOut className="w-5 h-5 shrink-0" />
+            {!collapsed && 'Logout'}
           </button>
         </div>
       </div>
@@ -218,13 +267,24 @@ export default function DashboardLayout() {
             <Menu className="w-6 h-6" />
           </button>
 
-          <div className="flex items-center justify-end flex-1 gap-4">
+          <div className="flex items-center justify-end flex-1 gap-3">
             <div className="hidden text-sm font-medium text-slate-700 sm:block">
               {user?.name || 'Admin Bapperrida'}
             </div>
             <div className="flex items-center justify-center w-8 h-8 font-bold uppercase rounded-full bg-emerald-100 text-emerald-700">
               {user?.name ? user.name.charAt(0) : 'A'}
             </div>
+            <button
+              onClick={() => setCollapsed(prev => !prev)}
+              className="items-center justify-center hidden w-8 h-8 transition-colors rounded-lg lg:flex text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              title={collapsed ? 'Buka sidebar' : 'Tutup sidebar'}
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="w-5 h-5" />
+              ) : (
+                <PanelLeftClose className="w-5 h-5" />
+              )}
+            </button>
           </div>
         </header>
 

@@ -257,24 +257,24 @@ export default function RencanaKegiatan() {
 
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         {/* Filters and Search */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-slate-400" />
+        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-slate-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Cari program / indikator..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-colors shadow-sm"
+              />
             </div>
-            <input
-              type="text"
-              placeholder="Cari program / indikator..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-colors shadow-sm"
-            />
-          </div>
-          <div className="flex gap-2 flex-wrap flex-1">
             <select
               value={filterBidang}
               onChange={(e) => setFilterBidang(e.target.value)}
-              className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 min-w-[140px]"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500"
             >
               <option value="">Semua Bidang</option>
               {dropdowns.bidang?.map((b: any) => <option key={b.value} value={b.value}>{b.label}</option>)}
@@ -282,7 +282,7 @@ export default function RencanaKegiatan() {
             <select
               value={filterProgram}
               onChange={(e) => setFilterProgram(e.target.value)}
-              className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 min-w-[140px]"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500"
             >
               <option value="">Semua Program</option>
               {dropdowns.program?.map((p: any) => <option key={p.value} value={p.value}>{p.label}</option>)}
