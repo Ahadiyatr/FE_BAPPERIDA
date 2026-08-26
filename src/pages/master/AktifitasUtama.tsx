@@ -15,13 +15,8 @@ import Pagination from '../../components/Pagination';
 
 interface AktivitasUtama {
   ID: number;
-  INDIKATOR_UTAMA_ID?: number;
-  NAMA_AKTIFITAS: string;
-  BOBOT_TARGET?: string;
-  URUTAN?: number;
+  NAMA_AKTIFITAS_UTAMA: string;
   FLAG_ACTIVE: boolean;
-  LOG_ENTRY_NAME?: string;
-  LOG_ENTRY_DATE?: string;
 }
 
 export default function MasterAktifitasUtama() {
@@ -31,14 +26,14 @@ export default function MasterAktifitasUtama() {
   const [search, setSearch] = useState('');
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    NAMA_AKTIFITAS: '',
+    NAMA_AKTIFITAS_UTAMA: '',
     FLAG_ACTIVE: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,7 +41,7 @@ export default function MasterAktifitasUtama() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/master-aktifitas-utama');
+      const response = await api.get('/api/master-list-aktifitas-utama');
       const responseData = response.data?.data || response.data;
       const normalized = Array.isArray(responseData)
         ? responseData.map((item: any) => ({
@@ -73,14 +68,14 @@ export default function MasterAktifitasUtama() {
     if (mode === 'edit' && item) {
       setCurrentId(item.ID);
       setFormData({
-        NAMA_AKTIFITAS: item.NAMA_AKTIFITAS || '',
+        NAMA_AKTIFITAS_UTAMA: item.NAMA_AKTIFITAS_UTAMA || '',
         FLAG_ACTIVE:
           item.FLAG_ACTIVE === undefined ? true : Boolean(item.FLAG_ACTIVE),
       });
     } else {
       setCurrentId(null);
       setFormData({
-        NAMA_AKTIFITAS: '',
+        NAMA_AKTIFITAS_UTAMA: '',
         FLAG_ACTIVE: true,
       });
     }
@@ -89,7 +84,10 @@ export default function MasterAktifitasUtama() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setFormData({ NAMA_AKTIFITAS: '', FLAG_ACTIVE: true });
+    setFormData({
+      NAMA_AKTIFITAS_UTAMA: '',
+      FLAG_ACTIVE: true,
+    });
     setCurrentId(null);
   };
 
@@ -98,11 +96,25 @@ export default function MasterAktifitasUtama() {
     setIsSubmitting(true);
 
     try {
+      let response;
       if (modalMode === 'add') {
-        await api.post('/api/master-aktifitas-utama', formData);
+        response = await api.post('/api/master-list-aktifitas-utama', formData);
       } else if (modalMode === 'edit' && currentId) {
-        await api.put(`/api/master-aktifitas-utama/${currentId}`, formData);
+        response = await api.put(
+          `/api/master-list-aktifitas-utama/${currentId}`,
+          formData,
+        );
       }
+
+      Toast.fire({
+        icon: 'success',
+        title:
+          response?.data?.message ||
+          (modalMode === 'add'
+            ? 'Data berhasil dibuat.'
+            : 'Data berhasil diperbarui.'),
+      });
+
       handleCloseModal();
       fetchData(); // Refresh data
     } catch (err: any) {
@@ -129,7 +141,7 @@ export default function MasterAktifitasUtama() {
 
     if (result.isConfirmed) {
       try {
-        await api.delete(`/api/master-aktifitas-utama/${id}`);
+        await api.delete(`/api/master-list-aktifitas-utama/${id}`);
         fetchData(); // Refresh data
         Toast.fire({
           icon: 'success',
@@ -150,18 +162,20 @@ export default function MasterAktifitasUtama() {
   };
 
   const filteredData = data.filter(item =>
-    (item.NAMA_AKTIFITAS?.toLowerCase() || '').includes(search.toLowerCase()),
+    (item.NAMA_AKTIFITAS_UTAMA?.toLowerCase() || '').includes(
+      search.toLowerCase(),
+    ),
   );
 
-  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
   const paginatedData = filteredData.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage,
   );
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, rowsPerPage]);
 
   return (
     <div className="space-y-6">
@@ -190,7 +204,7 @@ export default function MasterAktifitasUtama() {
       )}
 
       <div className="overflow-hidden bg-white border shadow-sm border-slate-200 rounded-2xl">
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex flex-col gap-3 p-4 border-b sm:flex-row sm:items-center sm:justify-between border-slate-100 bg-slate-50/50">
           <div className="relative w-full max-w-md">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Search className="w-4 h-4 text-slate-400" />
@@ -202,6 +216,25 @@ export default function MasterAktifitasUtama() {
               className="block w-full py-2 pl-10 pr-3 leading-5 transition-colors bg-white border rounded-lg border-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
               placeholder="Cari aktifitas..."
             />
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <label
+              htmlFor="rowsPerPage"
+              className="font-medium whitespace-nowrap"
+            >
+              Show
+            </label>
+            <select
+              id="rowsPerPage"
+              value={rowsPerPage}
+              onChange={e => setRowsPerPage(Number(e.target.value))}
+              className="px-2 py-2 bg-white border rounded-lg border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
           </div>
         </div>
 
@@ -264,10 +297,10 @@ export default function MasterAktifitasUtama() {
                     className="transition-colors hover:bg-slate-50"
                   >
                     <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-slate-900">
-                      {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                      {(currentPage - 1) * rowsPerPage + index + 1}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-slate-800">
-                      {item.NAMA_AKTIFITAS}
+                      {item.NAMA_AKTIFITAS_UTAMA}
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
                       {item.FLAG_ACTIVE ? (
@@ -339,21 +372,21 @@ export default function MasterAktifitasUtama() {
               >
                 <div>
                   <label
-                    htmlFor="NAMA_AKTIFITAS"
+                    htmlFor="NAMA_AKTIFITAS_UTAMA"
                     className="block mb-1 text-sm font-medium text-slate-700"
                   >
                     Nama Aktifitas <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    id="NAMA_AKTIFITAS"
+                    id="NAMA_AKTIFITAS_UTAMA"
                     required
                     maxLength={150}
-                    value={formData.NAMA_AKTIFITAS}
+                    value={formData.NAMA_AKTIFITAS_UTAMA}
                     onChange={e =>
                       setFormData({
                         ...formData,
-                        NAMA_AKTIFITAS: e.target.value,
+                        NAMA_AKTIFITAS_UTAMA: e.target.value,
                       })
                     }
                     className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"

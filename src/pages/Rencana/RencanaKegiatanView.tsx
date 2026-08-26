@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import api from '../../services/api';
+import { AuthedImage, DocumentPreview, downloadAuthedFile } from '../../components/AuthedMedia';
 
 export default function RencanaKegiatanView() {
   const { id } = useParams();
@@ -23,10 +24,47 @@ export default function RencanaKegiatanView() {
   const [expandedDetail, setExpandedDetail] = useState<number | null>(null);
 
   // Media Modal
-  const [mediaToView, setMediaToView] = useState<{
-    type: 'foto' | 'document';
-    urls: string[];
-  } | null>(null);
+  const [mediaToView, setMediaToView] = useState<
+    { type: 'foto'; ids: number[] } | { type: 'document'; id: number; ext: string } | null
+  >(null);
+
+  // Data sumber kadang punya beberapa baris TRANS_INDIKATOR_DETAIL dengan nama
+  // aktivitas yang sama (duplikat input rencana) — gabungkan jadi satu baris
+  // agar target/realisasi/bobot ditampilkan terakumulasi (mis. "3/3"), bukan
+  // berulang per baris duplikat.
+  const groupedRekap = useMemo(() => {
+    const map = new Map<string, any>();
+
+    rekap.forEach(d => {
+      const key = `${d.TIPE_AKTIFITAS}-${d.JENIS_KEGIATAN}`;
+      const target = parseFloat(d.TARGET) || 0;
+      const realCount = parseFloat(d.REALISASI) || 0;
+      const bobot = parseFloat(d.BOBOT) || 0;
+      const bobotRealisasi = ((parseFloat(d.PERSENTASE) || 0) / 100) * bobot;
+
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, {
+          ...d,
+          DETAIL_ID: d.DETAIL_ID,
+          TARGET: target,
+          REALISASI: realCount,
+          BOBOT: bobot,
+          _bobotRealisasi: bobotRealisasi,
+        });
+      } else {
+        existing.TARGET += target;
+        existing.REALISASI += realCount;
+        existing.BOBOT += bobot;
+        existing._bobotRealisasi += bobotRealisasi;
+      }
+    });
+
+    return Array.from(map.values()).map(d => ({
+      ...d,
+      PERSENTASE: d.BOBOT > 0 ? (d._bobotRealisasi / d.BOBOT) * 100 : 0,
+    }));
+  }, [rekap]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -38,15 +76,12 @@ export default function RencanaKegiatanView() {
 
       const allRealisasi = res.data.data.realisasi || [];
       const parsedRealisasi = allRealisasi.map((r: any) => {
-        let parsedFoto = r.FILE_FOTO;
-        if (typeof parsedFoto === 'string') {
-          try {
-            parsedFoto = JSON.parse(parsedFoto);
-          } catch {
-            parsedFoto = parsedFoto ? [parsedFoto] : [];
-          }
-        }
-        return { ...r, FILE_FOTO: Array.isArray(parsedFoto) ? parsedFoto : [] };
+        const FILE_FOTO = (r.FOTO || [])
+          .sort((a: any, b: any) => a.URUTAN - b.URUTAN)
+          .map((f: any) => f.ID as number);
+        const dokItem = (r.DOKUMEN || [])[0];
+        const FILE_DOCUMENT = dokItem ? { id: dokItem.ID as number, ext: (dokItem.EXT || '') as string } : null;
+        return { ...r, FILE_FOTO, FILE_DOCUMENT };
       });
       setRealisasi(parsedRealisasi);
     } catch (err) {
@@ -63,16 +98,6 @@ export default function RencanaKegiatanView() {
 
   const toggleAccordion = (detailId: number) => {
     setExpandedDetail(expandedDetail === detailId ? null : detailId);
-  };
-
-  const getMediaUrl = (path: string) => {
-    if (!path) return '';
-    if (path.startsWith('http') || path.startsWith('data:')) return path;
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    return `${baseUrl}/storage${path.startsWith('/') ? path : `/${path}`}`.replace(
-      '/storage/storage',
-      '/storage',
-    );
   };
 
   if (loading)
@@ -134,7 +159,7 @@ export default function RencanaKegiatanView() {
           </div>
         </div>
         <div className="divide-y divide-slate-100">
-          {rekap.length > 0 && (
+          {groupedRekap.length > 0 && (
             <div className="flex items-center gap-4 px-6 py-2 border-b bg-slate-50 border-slate-200">
               <span className="w-24 shrink-0 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Jenis
@@ -145,28 +170,27 @@ export default function RencanaKegiatanView() {
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider w-28 text-right">
                 Realisasi/Target
               </span>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider w-32 text-right">
-                Bobot Real/Target
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider w-24 text-right">
+                Bobot
               </span>
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider w-24 text-right">
                 Persentase
               </span>
             </div>
           )}
-          {rekap.length === 0 ? (
+          {groupedRekap.length === 0 ? (
             <p className="px-6 py-8 text-sm text-center text-slate-500">
               Belum ada rincian rekap data
             </p>
           ) : (
             [
-              ...rekap.filter(d => d.TIPE_AKTIFITAS === 'UTAMA'),
-              ...rekap.filter(d => d.TIPE_AKTIFITAS === 'PENDUKUNG'),
+              ...groupedRekap.filter(d => d.TIPE_AKTIFITAS === 'UTAMA'),
+              ...groupedRekap.filter(d => d.TIPE_AKTIFITAS === 'PENDUKUNG'),
             ].map(d => {
               const isUtama = d.TIPE_AKTIFITAS === 'UTAMA';
               const target = parseFloat(d.TARGET) || 0;
               const realCount = parseFloat(d.REALISASI) || 0;
-              const bobotTarget = parseFloat(d.BOBOT_TARGET) || 0;
-              const bobotRealisasi = parseFloat(d.BOBOT_REALISASI) || 0;
+              const bobot = parseFloat(d.BOBOT) || 0;
               const persentase = parseFloat(d.PERSENTASE) || 0;
               const isComplete = persentase >= 100;
               return (
@@ -188,11 +212,8 @@ export default function RencanaKegiatanView() {
                     </span>
                     /{target}
                   </span>
-                  <span className="w-32 text-sm text-right tabular-nums text-slate-500 shrink-0">
-                    <span className="font-bold text-slate-700">
-                      {bobotRealisasi.toFixed(2)}
-                    </span>
-                    /{bobotTarget.toFixed(2)}
+                  <span className="w-24 text-sm text-right tabular-nums font-bold text-slate-700 shrink-0">
+                    {bobot.toFixed(4)}
                   </span>
                   <span
                     className={`w-24 text-right text-sm font-bold tabular-nums shrink-0 ${isComplete ? 'text-emerald-600' : 'text-slate-700'}`}
@@ -212,7 +233,7 @@ export default function RencanaKegiatanView() {
         </h3>
         <div className="space-y-6">
           {(['UTAMA', 'PENDUKUNG'] as const).map(tipe => {
-            const grouped = rekap.filter(d => d.TIPE_AKTIFITAS === tipe);
+            const grouped = groupedRekap.filter(d => d.TIPE_AKTIFITAS === tipe);
             if (grouped.length === 0) return null;
             return (
               <div key={tipe}>
@@ -228,8 +249,8 @@ export default function RencanaKegiatanView() {
                     const isExpanded = expandedDetail === d.DETAIL_ID;
                     const myRealisasi = realisasi.filter(
                       r =>
-                        r.JENIS_KEGIATAN === d.JENIS_KEGIATAN ||
-                        String(r.INDIKATOR_DETAIL_ID) === String(d.DETAIL_ID),
+                        r.NAMA_KEGIATAN === d.JENIS_KEGIATAN ||
+                        r.NAMA_AKTIFITAS === d.JENIS_KEGIATAN,
                     );
 
                     return (
@@ -303,7 +324,7 @@ export default function RencanaKegiatanView() {
                                           ) {
                                             setMediaToView({
                                               type: 'foto',
-                                              urls: r.FILE_FOTO,
+                                              ids: r.FILE_FOTO,
                                             });
                                           }
                                         }}
@@ -311,24 +332,16 @@ export default function RencanaKegiatanView() {
                                       >
                                         {r.FILE_FOTO &&
                                         r.FILE_FOTO.length > 0 ? (
-                                          <div className="relative w-full h-full">
-                                            <img
-                                              src={getMediaUrl(r.FILE_FOTO[0])}
-                                              className="object-cover w-full h-full"
-                                              alt="Foto"
-                                              onError={e => {
-                                                (
-                                                  e.target as HTMLImageElement
-                                                ).src =
-                                                  'data:image/svg+xml;utf8,<svg .../>';
-                                              }}
-                                            />
-                                            {r.FILE_FOTO.length > 1 && (
+                                          <AuthedImage
+                                            lampiranId={r.FILE_FOTO[0]}
+                                            className="object-cover w-full h-full"
+                                            alt="Foto"
+                                            badge={r.FILE_FOTO.length > 1 ? (
                                               <div className="absolute px-2 py-1 text-xs font-bold text-white rounded-lg bottom-2 right-2 bg-black/60">
                                                 +{r.FILE_FOTO.length - 1}
                                               </div>
-                                            )}
-                                          </div>
+                                            ) : undefined}
+                                          />
                                         ) : (
                                           <div className="flex flex-col items-center justify-center text-slate-400 group-hover:text-slate-500">
                                             <ImageIcon className="w-6 h-6 mb-1 opacity-50" />
@@ -343,7 +356,8 @@ export default function RencanaKegiatanView() {
                                           onClick={() =>
                                             setMediaToView({
                                               type: 'document',
-                                              urls: [r.FILE_DOCUMENT],
+                                              id: r.FILE_DOCUMENT.id,
+                                              ext: r.FILE_DOCUMENT.ext,
                                             })
                                           }
                                           className="w-full text-xs font-bold text-center py-2.5 bg-white border border-slate-200 text-blue-600 hover:bg-blue-50 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-colors"
@@ -388,14 +402,18 @@ export default function RencanaKegiatanView() {
                 )}
               </h3>
               <div className="flex items-center gap-2">
-                <a
-                  href={getMediaUrl(mediaToView.urls[0])}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => {
+                    if (mediaToView.type === 'foto') {
+                      downloadAuthedFile(`/api/realisasi-lampiran/${mediaToView.ids[0]}/preview`, `foto-${mediaToView.ids[0]}`);
+                    } else {
+                      downloadAuthedFile(`/api/realisasi-lampiran/${mediaToView.id}/preview`, `dokumen-${mediaToView.id}${mediaToView.ext ? `.${mediaToView.ext}` : ''}`);
+                    }
+                  }}
                   className="p-2 border rounded-full shadow-sm bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200"
                 >
                   <Download className="w-4 h-4" />
-                </a>
+                </button>
                 <button
                   onClick={() => setMediaToView(null)}
                   className="p-2 text-red-600 border border-red-100 rounded-full shadow-sm bg-red-50 hover:bg-red-100"
@@ -407,39 +425,17 @@ export default function RencanaKegiatanView() {
             <div className="flex-1 overflow-auto p-6 flex flex-col items-center justify-center bg-slate-50 relative min-h-[50vh]">
               {mediaToView.type === 'foto' ? (
                 <div className="flex flex-col w-full max-w-2xl gap-6 mx-auto">
-                  {mediaToView.urls.map((u, i) => (
-                    <img
-                      key={i}
-                      src={getMediaUrl(u)}
+                  {mediaToView.ids.map((lampiranId) => (
+                    <AuthedImage
+                      key={lampiranId}
+                      lampiranId={lampiranId}
                       className="max-w-full max-h-[70vh] rounded-2xl shadow-md border-4 border-white object-contain"
                       alt="Foto"
                     />
                   ))}
                 </div>
-              ) : mediaToView.urls[0].toLowerCase().endsWith('.pdf') ? (
-                <iframe
-                  src={getMediaUrl(mediaToView.urls[0])}
-                  className="w-full h-full min-h-[60vh] rounded-xl border-0 shadow-inner bg-white"
-                />
               ) : (
-                <div className="w-full max-w-md p-12 text-center bg-white border shadow-sm rounded-3xl border-slate-200">
-                  <FileText className="w-16 h-16 mx-auto mb-4 text-blue-500" />
-                  <div className="mb-2 text-lg font-bold text-slate-800">
-                    Preview Tidak Tersedia
-                  </div>
-                  <p className="mb-6 text-sm text-slate-500">
-                    Format dokumen ini tidak dapat langsung ditampilkan di
-                    layar.
-                  </p>
-                  <a
-                    href={getMediaUrl(mediaToView.urls[0])}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center w-full gap-2 px-6 py-3 font-bold text-white transition-colors bg-blue-600 shadow-sm rounded-xl hover:bg-blue-700"
-                  >
-                    Unduh Dokumen <Download className="w-4 h-4" />
-                  </a>
-                </div>
+                <DocumentPreview id={mediaToView.id} ext={mediaToView.ext} />
               )}
             </div>
           </div>

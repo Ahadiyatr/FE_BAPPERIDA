@@ -7,28 +7,31 @@ import api from "../../services/api";
 
 interface TransIndikatorDetail {
   ID: number;
-  INDIKATOR_BIDANG_ID: number;
-  JENIS_KEGIATAN: string;
-  TARGET: number;
-  FLAG_ACTIVE: boolean;
-  // Optional fields if the API returns related data or we map it manually
-  NAMA_BIDANG?: string;
-  NAMA_INDIKATOR?: string;
-  NAMA_PROGRAM?: string;
+  TRANS_INDIKATOR_BIDANG_ID: number;
+  TIPE_AKTIFITAS: string;
+  LIST_AKTIFITAS_UTAMA_ID: number | null;
+  LIST_AKTIFITAS_PENDUKUNG_ID: number | null;
+  NAMA_AKTIFITAS?: string;
+  TARGET: string;
+  BOBOT_TARGET: string;
+  FLAG_ACTIVE: number | boolean;
+  LOG_ENTRY_NAME?: string | null;
+  LOG_ENTRY_DATE?: string | null;
+  LOG_UPDATE_NAME?: string | null;
+  LOG_UPDATE_DATE?: string | null;
 }
 
 interface TransIndikatorBidang {
   ID: number;
   NAMA_BIDANG?: string;
-  NAMA_INDIKATOR?: string;
-  NAMA_PROGRAM?: string;
+  NAMA_INDIKATOR_SUB?: string;
   NAMA_PERIODE?: string;
 }
 
 export default function TransaksiIndikatorDetail() {
   const [data, setData] = useState<TransIndikatorDetail[]>([]);
   const [bidangMappingList, setBidangMappingList] = useState<TransIndikatorBidang[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -40,43 +43,27 @@ export default function TransaksiIndikatorDetail() {
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    INDIKATOR_BIDANG_ID: "",
-    JENIS_KEGIATAN: "",
+    TRANS_INDIKATOR_BIDANG_ID: "",
+    TIPE_AKTIFITAS: "UTAMA",
     TARGET: "",
+    BOBOT_TARGET: "",
     FLAG_ACTIVE: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Delete modal state
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [resDetail, resBidang] = await Promise.all([
         api.get("/api/trans-indikator-detail"),
-        api.get("/api/trans-indikator-bidang")
+        api.get("/api/trans-indikator-bidang"),
       ]);
-      
+
       const detailData = resDetail.data.data || resDetail.data || [];
       const bidangData = resBidang.data.data || resBidang.data || [];
-      
+
       setBidangMappingList(Array.isArray(bidangData) ? bidangData : []);
-      
-      // Map related data if not provided by API
-      const mappedData = (Array.isArray(detailData) ? detailData : []).map((item: any) => {
-        const relatedBidang = (Array.isArray(bidangData) ? bidangData : []).find((b: any) => b.ID === item.INDIKATOR_BIDANG_ID);
-        return {
-          ...item,
-          NAMA_BIDANG: item.NAMA_BIDANG || relatedBidang?.NAMA_BIDANG,
-          NAMA_INDIKATOR: item.NAMA_INDIKATOR || relatedBidang?.NAMA_INDIKATOR,
-          NAMA_PROGRAM: item.NAMA_PROGRAM || relatedBidang?.NAMA_PROGRAM,
-        };
-      });
-      
-      setData(mappedData);
+      setData(Array.isArray(detailData) ? detailData : []);
       setError("");
     } catch (err: any) {
       console.error("Gagal mengambil data:", err);
@@ -94,15 +81,19 @@ export default function TransaksiIndikatorDetail() {
     setModalMode(mode);
     if (mode === "edit" && item) {
       setCurrentId(item.ID);
-      
       try {
         const response = await api.get(`/api/trans-indikator-detail/${item.ID}`);
         const detail = response.data.data || response.data;
-        
+
         setFormData({
-          INDIKATOR_BIDANG_ID: detail.INDIKATOR_BIDANG_ID ? detail.INDIKATOR_BIDANG_ID.toString() : "",
-          JENIS_KEGIATAN: detail.JENIS_KEGIATAN || "",
+          TRANS_INDIKATOR_BIDANG_ID: detail.TRANS_INDIKATOR_BIDANG_ID
+            ? detail.TRANS_INDIKATOR_BIDANG_ID.toString()
+            : "",
+          TIPE_AKTIFITAS: detail.TIPE_AKTIFITAS || "UTAMA",
           TARGET: detail.TARGET !== undefined && detail.TARGET !== null ? detail.TARGET.toString() : "",
+          BOBOT_TARGET: detail.BOBOT_TARGET !== undefined && detail.BOBOT_TARGET !== null
+            ? detail.BOBOT_TARGET.toString()
+            : "",
           FLAG_ACTIVE: detail.FLAG_ACTIVE === undefined ? true : Boolean(detail.FLAG_ACTIVE),
         });
         setIsModalOpen(true);
@@ -113,9 +104,10 @@ export default function TransaksiIndikatorDetail() {
     } else {
       setCurrentId(null);
       setFormData({
-        INDIKATOR_BIDANG_ID: "",
-        JENIS_KEGIATAN: "",
+        TRANS_INDIKATOR_BIDANG_ID: "",
+        TIPE_AKTIFITAS: "UTAMA",
         TARGET: "",
+        BOBOT_TARGET: "",
         FLAG_ACTIVE: true,
       });
       setIsModalOpen(true);
@@ -124,20 +116,27 @@ export default function TransaksiIndikatorDetail() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setFormData({ INDIKATOR_BIDANG_ID: "", JENIS_KEGIATAN: "", TARGET: "", FLAG_ACTIVE: true });
+    setFormData({
+      TRANS_INDIKATOR_BIDANG_ID: "",
+      TIPE_AKTIFITAS: "UTAMA",
+      TARGET: "",
+      BOBOT_TARGET: "",
+      FLAG_ACTIVE: true,
+    });
     setCurrentId(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       const payload = {
-        INDIKATOR_BIDANG_ID: parseInt(formData.INDIKATOR_BIDANG_ID),
-        JENIS_KEGIATAN: formData.JENIS_KEGIATAN,
+        TRANS_INDIKATOR_BIDANG_ID: parseInt(formData.TRANS_INDIKATOR_BIDANG_ID),
+        TIPE_AKTIFITAS: formData.TIPE_AKTIFITAS,
         TARGET: parseFloat(formData.TARGET),
-        FLAG_ACTIVE: formData.FLAG_ACTIVE
+        BOBOT_TARGET: parseFloat(formData.BOBOT_TARGET),
+        FLAG_ACTIVE: formData.FLAG_ACTIVE,
       };
 
       if (modalMode === "add") {
@@ -147,14 +146,14 @@ export default function TransaksiIndikatorDetail() {
       }
       handleCloseModal();
       fetchData();
-      Toast.fire({ icon: 'success', title: 'Data berhasil disimpan' }); // Refresh data
+      Toast.fire({ icon: "success", title: "Data berhasil disimpan" });
     } catch (err: any) {
       console.error("Gagal menyimpan data:", err);
       Swal.fire({
-        icon: 'error',
-        title: 'Gagal',
+        icon: "error",
+        title: "Gagal",
         text: err.response?.data?.message || "Terjadi kesalahan.",
-        confirmButtonColor: '#059669'
+        confirmButtonColor: "#059669",
       });
     } finally {
       setIsSubmitting(false);
@@ -163,28 +162,28 @@ export default function TransaksiIndikatorDetail() {
 
   const executeDelete = async (id: number) => {
     const result = await Swal.fire({
-      title: 'Apakah Anda yakin ingin menghapus data?',
+      title: "Apakah Anda yakin ingin menghapus data?",
       text: "Data yang dihapus tidak bisa dikembalikan.",
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#94a3b8',
-      confirmButtonText: 'Ya, hapus!',
-      cancelButtonText: 'Batal'
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#94a3b8",
+      confirmButtonText: "Ya, hapus!",
+      cancelButtonText: "Batal",
     });
 
     if (result.isConfirmed) {
       try {
         await api.delete(`/api/trans-indikator-detail/${id}`);
         fetchData();
-        Toast.fire({ icon: 'success', title: 'Data berhasil dihapus' });
+        Toast.fire({ icon: "success", title: "Data berhasil dihapus" });
       } catch (err: any) {
         console.error("Gagal menghapus data:", err);
         Swal.fire({
-          icon: 'error',
-          title: 'Gagal',
+          icon: "error",
+          title: "Gagal",
           text: err.response?.data?.message || "Terjadi kesalahan saat menghapus data.",
-          confirmButtonColor: '#059669'
+          confirmButtonColor: "#059669",
         });
       }
     }
@@ -193,15 +192,16 @@ export default function TransaksiIndikatorDetail() {
   const filteredData = data.filter((item) => {
     const searchLower = search.toLowerCase();
     return (
-      (item.JENIS_KEGIATAN?.toLowerCase() || "").includes(searchLower) ||
-      (item.NAMA_BIDANG?.toLowerCase() || "").includes(searchLower) ||
-      (item.NAMA_INDIKATOR?.toLowerCase() || "").includes(searchLower) ||
-      (item.NAMA_PROGRAM?.toLowerCase() || "").includes(searchLower)
+      (item.NAMA_AKTIFITAS?.toLowerCase() || "").includes(searchLower) ||
+      (item.TIPE_AKTIFITAS?.toLowerCase() || "").includes(searchLower)
     );
   });
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-  const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   useEffect(() => {
     setCurrentPage(1);
@@ -212,9 +212,9 @@ export default function TransaksiIndikatorDetail() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Transaksi Indikator Detail</h1>
-          <p className="text-sm text-slate-500 mt-1">Kelola detail kegiatan dan target</p>
+          <p className="text-sm text-slate-500 mt-1">Kelola detail aktifitas dan target</p>
         </div>
-        <button 
+        <button
           onClick={() => handleOpenModal("add")}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-medium flex items-center gap-2 transition-colors shadow-sm"
         >
@@ -224,9 +224,7 @@ export default function TransaksiIndikatorDetail() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100">
-          {error}
-        </div>
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100">{error}</div>
       )}
 
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
@@ -240,11 +238,11 @@ export default function TransaksiIndikatorDetail() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-colors"
-              placeholder="Cari detail kegiatan..."
+              placeholder="Cari aktifitas..."
             />
           </div>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
@@ -253,13 +251,16 @@ export default function TransaksiIndikatorDetail() {
                   No.
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Bidang & Indikator
+                  Nama Aktifitas
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Jenis Kegiatan
+                  Tipe
                 </th>
                 <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Target
+                </th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Bobot Target
                 </th>
                 <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Status
@@ -272,7 +273,7 @@ export default function TransaksiIndikatorDetail() {
             <tbody className="bg-white divide-y divide-slate-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
                     <div className="flex justify-center items-center gap-2">
                       <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
                       Memuat data...
@@ -281,8 +282,8 @@ export default function TransaksiIndikatorDetail() {
                 </tr>
               ) : paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                    Tidak ada data detail kegiatan ditemukan.
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                    Tidak ada data detail aktifitas ditemukan.
                   </td>
                 </tr>
               ) : (
@@ -292,14 +293,22 @@ export default function TransaksiIndikatorDetail() {
                       {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      <div className="font-medium text-slate-800">{item.NAMA_BIDANG || "-"}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">{item.NAMA_INDIKATOR || "-"}</div>
+                      {item.NAMA_AKTIFITAS || "-"}
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-slate-800">
-                      {item.JENIS_KEGIATAN}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                      <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        item.TIPE_AKTIFITAS === "UTAMA"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}>
+                        {item.TIPE_AKTIFITAS}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-emerald-600">
                       {item.TARGET}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-600">
+                      {item.BOBOT_TARGET}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       {item.FLAG_ACTIVE ? (
@@ -314,14 +323,14 @@ export default function TransaksiIndikatorDetail() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        <button 
+                        <button
                           onClick={() => handleOpenModal("edit", item)}
                           className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors"
                           title="Edit"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => executeDelete(item.ID)}
                           className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors"
                           title="Hapus"
@@ -336,9 +345,9 @@ export default function TransaksiIndikatorDetail() {
             </tbody>
           </table>
         </div>
-        
+
         {!loading && filteredData.length > 0 && (
-          <Pagination 
+          <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
@@ -352,56 +361,53 @@ export default function TransaksiIndikatorDetail() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
               <h2 className="text-lg font-bold text-slate-900">
-                {modalMode === "add" ? "Tambah Detail Kegiatan" : "Edit Detail Kegiatan"}
+                {modalMode === "add" ? "Tambah Detail Aktifitas" : "Edit Detail Aktifitas"}
               </h2>
-              <button 
-                onClick={handleCloseModal}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
-              >
+              <button onClick={handleCloseModal} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="overflow-y-auto p-4">
               <form id="detail-form" onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="INDIKATOR_BIDANG_ID" className="block text-sm font-medium text-slate-700 mb-1">
-                    Mapping Bidang & Indikator <span className="text-red-500">*</span>
+                  <label htmlFor="TRANS_INDIKATOR_BIDANG_ID" className="block text-sm font-medium text-slate-700 mb-1">
+                    Mapping Indikator Bidang <span className="text-red-500">*</span>
                   </label>
                   <select
-                    id="INDIKATOR_BIDANG_ID"
+                    id="TRANS_INDIKATOR_BIDANG_ID"
                     required
-                    value={formData.INDIKATOR_BIDANG_ID}
-                    onChange={(e) => setFormData({ ...formData, INDIKATOR_BIDANG_ID: e.target.value })}
+                    value={formData.TRANS_INDIKATOR_BIDANG_ID}
+                    onChange={(e) => setFormData({ ...formData, TRANS_INDIKATOR_BIDANG_ID: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
                   >
                     <option value="">-- Pilih Mapping --</option>
                     {bidangMappingList.map((m) => (
                       <option key={m.ID} value={m.ID}>
-                        {m.NAMA_BIDANG} - {m.NAMA_INDIKATOR} ({m.NAMA_PERIODE})
+                        {m.NAMA_BIDANG} - {m.NAMA_INDIKATOR_SUB} ({m.NAMA_PERIODE})
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label htmlFor="JENIS_KEGIATAN" className="block text-sm font-medium text-slate-700 mb-1">
-                    Jenis Kegiatan <span className="text-red-500">*</span>
+                  <label htmlFor="TIPE_AKTIFITAS" className="block text-sm font-medium text-slate-700 mb-1">
+                    Tipe Aktifitas <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    id="JENIS_KEGIATAN"
+                  <select
+                    id="TIPE_AKTIFITAS"
                     required
-                    maxLength={255}
-                    value={formData.JENIS_KEGIATAN}
-                    onChange={(e) => setFormData({ ...formData, JENIS_KEGIATAN: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="Masukkan jenis kegiatan"
-                  />
+                    value={formData.TIPE_AKTIFITAS}
+                    onChange={(e) => setFormData({ ...formData, TIPE_AKTIFITAS: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                  >
+                    <option value="UTAMA">UTAMA</option>
+                    <option value="PENDUKUNG">PENDUKUNG</option>
+                  </select>
                 </div>
 
                 <div>
                   <label htmlFor="TARGET" className="block text-sm font-medium text-slate-700 mb-1">
-                    Target Capaian <span className="text-red-500">*</span>
+                    Target <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -412,7 +418,25 @@ export default function TransaksiIndikatorDetail() {
                     value={formData.TARGET}
                     onChange={(e) => setFormData({ ...formData, TARGET: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="Contoh: 100"
+                    placeholder="Contoh: 10"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="BOBOT_TARGET" className="block text-sm font-medium text-slate-700 mb-1">
+                    Bobot Target <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id="BOBOT_TARGET"
+                    required
+                    step="0.0001"
+                    min="0"
+                    max="1"
+                    value={formData.BOBOT_TARGET}
+                    onChange={(e) => setFormData({ ...formData, BOBOT_TARGET: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Contoh: 0.0750"
                   />
                 </div>
 
@@ -425,7 +449,7 @@ export default function TransaksiIndikatorDetail() {
                     className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
                   />
                   <label htmlFor="FLAG_ACTIVE" className="ml-2 block text-sm text-slate-700">
-                    Detail Aktif
+                    Aktif
                   </label>
                 </div>
               </form>
@@ -444,44 +468,11 @@ export default function TransaksiIndikatorDetail() {
                 disabled={isSubmitting}
                 className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-70 flex items-center gap-2"
               >
-                {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                {isSubmitting && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                )}
                 Simpan
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8 text-red-600" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">Hapus Detail?</h2>
-              <p className="text-sm text-slate-500 mb-6">
-                Apakah Anda yakin ingin menghapus detail kegiatan ini? Tindakan ini tidak dapat dibatalkan.
-              </p>
-              <div className="flex justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={cancelDelete}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors w-full"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={executeDelete}
-                  disabled={isDeleting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-70 flex items-center justify-center gap-2 w-full"
-                >
-                  {isDeleting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-                  Hapus
-                </button>
-              </div>
             </div>
           </div>
         </div>

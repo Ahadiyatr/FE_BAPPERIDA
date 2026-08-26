@@ -161,7 +161,12 @@ export default function RealisasiKegiatan() {
                          <div className="text-sm font-medium text-slate-900">{item.NAMA_INDIKATOR}</div>
                        </td>
                        <td className="px-6 py-4 text-center text-base font-bold text-slate-800">{Number(item.TARGET) || 0}</td>
-                       <td className="px-6 py-4 text-center text-base font-bold text-emerald-600">{Number(item.TOTAL_KEGIATAN) || Number(item.REALISASI) || 0}</td>
+                       <td className="px-6 py-4 text-center">
+                         <div className="text-base font-bold text-emerald-600">{Number(item.REALISASI) || 0}</div>
+                         <div className="text-[10px] text-slate-400 mt-0.5">
+                           U: {item.TOTAL_KEGIATAN_UTAMA ?? 0} &nbsp;|&nbsp; P: {item.TOTAL_KEGIATAN_PENDUKUNG ?? 0}
+                         </div>
+                       </td>
                        <td className="px-6 py-4 w-48">
                          <div className="flex justify-between text-xs mb-1 font-semibold text-slate-600">
                            <span>CAPAIAN</span>

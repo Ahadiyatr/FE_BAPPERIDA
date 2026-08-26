@@ -8,155 +8,110 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
+import api from '../../services/api';
 import Swal from 'sweetalert2';
 import { Toast } from '../../utils/toast';
 import Pagination from '../../components/Pagination';
-import api from '../../services/api';
 
-interface TransIndikatorBidang {
+interface AktivitasUtama {
   ID: number;
-  NAMA_PROGRAM?: string;
-  NAMA_INDIKATOR_UTAMA?: string;
-  NAMA_INDIKATOR?: string;
-  NAMA_BIDANG?: string;
-  NAMA_PERIODE?: string;
+  MSTR_INDIKATOR_SUB_ID: number;
+  NAMA_AKTIFITAS_UTAMA: string;
   FLAG_ACTIVE: boolean;
-  LOG_ENTRY_NAME?: string;
-  LOG_ENTRY_DATE?: string;
-  LOG_UPDATE_NAME?: string;
-  LOG_UPDATE_DATE?: string;
+  indikator_sub?: {
+    ID: number;
+    NAMA_INDIKATOR_SUB: string;
+  };
 }
 
-interface Periode {
-  ID: number;
-  NAMA_PERIODE: string;
-}
-
-interface Bidang {
-  ID: number;
-  NAMA_BIDANG: string;
-}
-
-interface Indikator {
+interface IndikatorSub {
   ID: number;
   NAMA_INDIKATOR_SUB: string;
-  KODE_INDIKATOR_SUB: string;
 }
 
-export default function TransaksiIndikatorBidang() {
-  const [data, setData] = useState<TransIndikatorBidang[]>([]);
-  const [periodeList, setPeriodeList] = useState<Periode[]>([]);
-  const [bidangList, setBidangList] = useState<Bidang[]>([]);
-  const [indikatorList, setIndikatorList] = useState<Indikator[]>([]);
-
+export default function MasterAktifitasUtama() {
+  const [data, setData] = useState<AktivitasUtama[]>([]);
+  const [indikatorSubList, setIndikatorSubList] = useState<IndikatorSub[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    PERIODE_ID: '',
-    BIDANG_ID: '',
-    INDIKATOR_SUB_ID: '',
+    MSTR_INDIKATOR_SUB_ID: '',
+    NAMA_AKTIFITAS_UTAMA: '',
     FLAG_ACTIVE: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Delete modal state
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/trans-indikator-bidang');
-      const responseData = response.data.data || response.data;
-      setData(Array.isArray(responseData) ? responseData : []);
+      const response = await api.get('/api/master-list-aktifitas-utama');
+      const responseData = response.data?.data || response.data;
+      const normalized = Array.isArray(responseData)
+        ? responseData.map((item: any) => ({
+            ...item,
+            FLAG_ACTIVE: Boolean(item.FLAG_ACTIVE),
+          }))
+        : [];
+      setData(normalized);
       setError('');
     } catch (err: any) {
       console.error('Gagal mengambil data:', err);
-      setError('Gagal memuat data transaksi indikator bidang.');
+      setError('Gagal memuat data aktifitas utama.');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchOptions = async () => {
-    try {
-      const [resPeriode, resBidang, resIndikator] = await Promise.all([
-        api.get('/api/master-periode'),
-        api.get('/api/master-bidang'),
-        api.get('/api/master-indikator-sub'),
-      ]);
+  useEffect(() => {
+    fetchData();
+    fetchIndikatorSub();
+  }, []);
 
-      setPeriodeList(resPeriode.data.data || resPeriode.data || []);
-      setBidangList(resBidang.data.data || resBidang.data || []);
-      setIndikatorList(resIndikator.data.data || resIndikator.data || []);
-    } catch (err) {
-      console.error('Gagal mengambil data referensi:', err);
+  const fetchIndikatorSub = async () => {
+    try {
+      const response = await api.get('/api/master-indikator-sub');
+      const responseData = response.data?.data || response.data;
+      setIndikatorSubList(Array.isArray(responseData) ? responseData : []);
+    } catch (err: any) {
+      console.error('Gagal mengambil data indikator sub:', err);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-    fetchOptions();
-  }, []);
-
-  const handleOpenModal = async (
-    mode: 'add' | 'edit',
-    item?: TransIndikatorBidang,
-  ) => {
+  const handleOpenModal = (mode: 'add' | 'edit', item?: AktivitasUtama) => {
     setModalMode(mode);
     if (mode === 'edit' && item) {
       setCurrentId(item.ID);
-
-      try {
-        // Fetch detail data because the list view might not contain the foreign keys
-        const response = await api.get(
-          `/api/trans-indikator-bidang/${item.ID}`,
-        );
-        const detail = response.data.data || response.data;
-
-        setFormData({
-          PERIODE_ID: detail.PERIODE_ID ? detail.PERIODE_ID.toString() : '',
-          BIDANG_ID: detail.BIDANG_ID ? detail.BIDANG_ID.toString() : '',
-          INDIKATOR_SUB_ID: detail.INDIKATOR_SUB_ID
-            ? detail.INDIKATOR_SUB_ID.toString()
-            : '',
-          FLAG_ACTIVE:
-            detail.FLAG_ACTIVE === undefined
-              ? true
-              : Boolean(detail.FLAG_ACTIVE),
-        });
-        setIsModalOpen(true);
-      } catch (err) {
-        console.error('Gagal mengambil detail data:', err);
-        alert('Gagal mengambil detail data untuk diedit.');
-      }
+      setFormData({
+        MSTR_INDIKATOR_SUB_ID: item.MSTR_INDIKATOR_SUB_ID.toString(),
+        NAMA_AKTIFITAS_UTAMA: item.NAMA_AKTIFITAS_UTAMA || '',
+        FLAG_ACTIVE:
+          item.FLAG_ACTIVE === undefined ? true : Boolean(item.FLAG_ACTIVE),
+      });
     } else {
       setCurrentId(null);
       setFormData({
-        PERIODE_ID: '',
-        BIDANG_ID: '',
-        INDIKATOR_SUB_ID: '',
+        MSTR_INDIKATOR_SUB_ID: '',
+        NAMA_AKTIFITAS_UTAMA: '',
         FLAG_ACTIVE: true,
       });
-      setIsModalOpen(true);
     }
+    setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setFormData({
-      PERIODE_ID: '',
-      BIDANG_ID: '',
-      INDIKATOR_SUB_ID: '',
+      MSTR_INDIKATOR_SUB_ID: '',
+      NAMA_AKTIFITAS_UTAMA: '',
       FLAG_ACTIVE: true,
     });
     setCurrentId(null);
@@ -166,36 +121,44 @@ export default function TransaksiIndikatorBidang() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    try {
-      const payload = {
-        PERIODE_ID: parseInt(formData.PERIODE_ID),
-        BIDANG_ID: parseInt(formData.BIDANG_ID),
-        INDIKATOR_SUB_ID: parseInt(formData.INDIKATOR_SUB_ID),
-        FLAG_ACTIVE: formData.FLAG_ACTIVE,
-      };
+    const payload = {
+      ...formData,
+      MSTR_INDIKATOR_SUB_ID: parseInt(formData.MSTR_INDIKATOR_SUB_ID),
+    };
 
+    try {
+      let response;
       if (modalMode === 'add') {
-        await api.post('/api/trans-indikator-bidang', payload);
+        response = await api.post('/api/master-aktifitas-utama', payload);
       } else if (modalMode === 'edit' && currentId) {
-        await api.put(`/api/trans-indikator-bidang/${currentId}`, payload);
+        response = await api.put(
+          `/api/master-aktifitas-utama/${currentId}`,
+          payload,
+        );
       }
+
+      Toast.fire({
+        icon: 'success',
+        title:
+          response?.data?.message ||
+          (modalMode === 'add'
+            ? 'Data berhasil dibuat.'
+            : 'Data berhasil diperbarui.'),
+      });
+
       handleCloseModal();
-      fetchData();
-      Toast.fire({ icon: 'success', title: 'Data berhasil disimpan' }); // Refresh data
+      fetchData(); // Refresh data
     } catch (err: any) {
       console.error('Gagal menyimpan data:', err);
-      Swal.fire({
-        icon: 'error',
-        title: 'Gagal',
-        text: err.response?.data?.message || 'Terjadi kesalahan.',
-        confirmButtonColor: '#059669',
-      });
+      alert(
+        err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data.',
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const executeDelete = async (id: number) => {
+  const performDelete = async (id: number) => {
     const result = await Swal.fire({
       title: 'Apakah Anda yakin ingin menghapus data?',
       text: 'Data yang dihapus tidak bisa dikembalikan.',
@@ -209,9 +172,12 @@ export default function TransaksiIndikatorBidang() {
 
     if (result.isConfirmed) {
       try {
-        await api.delete(`/api/trans-indikator-bidang/${id}`);
-        fetchData();
-        Toast.fire({ icon: 'success', title: 'Data berhasil dihapus' });
+        await api.delete(`/api/master-list-aktifitas-utama/${id}`);
+        fetchData(); // Refresh data
+        Toast.fire({
+          icon: 'success',
+          title: 'Data berhasil dihapus',
+        });
       } catch (err: any) {
         console.error('Gagal menghapus data:', err);
         Swal.fire({
@@ -226,36 +192,35 @@ export default function TransaksiIndikatorBidang() {
     }
   };
 
-  const filteredData = data.filter(item => {
-    const searchLower = search.toLowerCase();
-    return (
-      (item.NAMA_PROGRAM?.toLowerCase() || '').includes(searchLower) ||
-      (item.NAMA_INDIKATOR_UTAMA?.toLowerCase() || '').includes(searchLower) ||
-      (item.NAMA_INDIKATOR?.toLowerCase() || '').includes(searchLower) ||
-      (item.NAMA_BIDANG?.toLowerCase() || '').includes(searchLower) ||
-      (item.NAMA_PERIODE?.toLowerCase() || '').includes(searchLower)
-    );
-  });
+  const filteredData = data.filter(
+    item =>
+      (item.NAMA_AKTIFITAS_UTAMA?.toLowerCase() || '').includes(
+        search.toLowerCase(),
+      ) ||
+      (item.indikator_sub?.NAMA_INDIKATOR_SUB?.toLowerCase() || '').includes(
+        search.toLowerCase(),
+      ),
+  );
 
-  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
   const paginatedData = filteredData.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage,
   );
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, rowsPerPage]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">
-            Transaksi Indikator Bidang
+            Master Aktivitas Utama
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Mapping indikator ke masing-masing bidang
+            Kelola data aktivitas utama di Bapperrida
           </p>
         </div>
         <button
@@ -263,7 +228,7 @@ export default function TransaksiIndikatorBidang() {
           className="flex items-center gap-2 px-4 py-2 font-medium text-white transition-colors shadow-sm bg-emerald-600 hover:bg-emerald-700 rounded-xl"
         >
           <Plus className="w-4 h-4" />
-          Tambah Mapping
+          Tambah Aktifitas
         </button>
       </div>
 
@@ -274,7 +239,7 @@ export default function TransaksiIndikatorBidang() {
       )}
 
       <div className="overflow-hidden bg-white border shadow-sm border-slate-200 rounded-2xl">
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex flex-col gap-3 p-4 border-b sm:flex-row sm:items-center sm:justify-between border-slate-100 bg-slate-50/50">
           <div className="relative w-full max-w-md">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Search className="w-4 h-4 text-slate-400" />
@@ -284,8 +249,27 @@ export default function TransaksiIndikatorBidang() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="block w-full py-2 pl-10 pr-3 leading-5 transition-colors bg-white border rounded-lg border-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
-              placeholder="Cari mapping..."
+              placeholder="Cari aktifitas..."
             />
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <label
+              htmlFor="rowsPerPage"
+              className="font-medium whitespace-nowrap"
+            >
+              Show
+            </label>
+            <select
+              id="rowsPerPage"
+              value={rowsPerPage}
+              onChange={e => setRowsPerPage(Number(e.target.value))}
+              className="px-2 py-2 bg-white border rounded-lg border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
           </div>
         </div>
 
@@ -303,35 +287,17 @@ export default function TransaksiIndikatorBidang() {
                   scope="col"
                   className="px-6 py-3 text-xs font-semibold tracking-wider text-left uppercase text-slate-500"
                 >
-                  Periode
+                  Nama Aktifitas
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-xs font-semibold tracking-wider text-left uppercase text-slate-500"
                 >
-                  Bidang
+                  Indikator Sub
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-xs font-semibold tracking-wider text-left uppercase text-slate-500"
-                >
-                  Program
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-xs font-semibold tracking-wider text-left uppercase text-slate-500"
-                >
-                  Indikator Utama
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-xs font-semibold tracking-wider text-left uppercase text-slate-500"
-                >
-                  Indikator
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-xs font-semibold tracking-wider text-center uppercase text-slate-500"
+                  className="w-24 px-6 py-3 text-xs font-semibold tracking-wider text-center uppercase text-slate-500"
                 >
                   Status
                 </th>
@@ -347,7 +313,7 @@ export default function TransaksiIndikatorBidang() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={5}
                     className="px-6 py-8 text-center text-slate-500"
                   >
                     <div className="flex items-center justify-center gap-2">
@@ -359,10 +325,10 @@ export default function TransaksiIndikatorBidang() {
               ) : paginatedData.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={5}
                     className="px-6 py-8 text-center text-slate-500"
                   >
-                    Tidak ada data mapping ditemukan.
+                    Tidak ada data aktifitas ditemukan.
                   </td>
                 </tr>
               ) : (
@@ -372,22 +338,13 @@ export default function TransaksiIndikatorBidang() {
                     className="transition-colors hover:bg-slate-50"
                   >
                     <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-slate-900">
-                      {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                      {(currentPage - 1) * rowsPerPage + index + 1}
                     </td>
-                    <td className="px-6 py-4 text-sm whitespace-nowrap text-slate-600">
-                      {item.NAMA_PERIODE || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-slate-800">
-                      {item.NAMA_BIDANG || '-'}
+                    <td className="px-6 py-4 text-sm font-medium text-slate-800">
+                      {item.NAMA_AKTIFITAS_UTAMA}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {item.NAMA_PROGRAM || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {item.NAMA_INDIKATOR_UTAMA || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {item.NAMA_INDIKATOR || '-'}
+                      {item.indikator_sub?.NAMA_INDIKATOR_SUB || '-'}
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
                       {item.FLAG_ACTIVE ? (
@@ -410,7 +367,7 @@ export default function TransaksiIndikatorBidang() {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => executeDelete(item.ID)}
+                          onClick={() => performDelete(item.ID)}
                           className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors"
                           title="Hapus"
                         >
@@ -440,7 +397,9 @@ export default function TransaksiIndikatorBidang() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
               <h2 className="text-lg font-bold text-slate-900">
-                {modalMode === 'add' ? 'Tambah Mapping' : 'Edit Mapping'}
+                {modalMode === 'add'
+                  ? 'Tambah Aktifitas Utama'
+                  : 'Edit Aktifitas Utama'}
               </h2>
               <button
                 onClick={handleCloseModal}
@@ -451,89 +410,63 @@ export default function TransaksiIndikatorBidang() {
             </div>
             <div className="p-4 overflow-y-auto">
               <form
-                id="mapping-form"
+                id="aktifitas-form"
                 onSubmit={handleSubmit}
                 className="space-y-4"
               >
                 <div>
                   <label
-                    htmlFor="PERIODE_ID"
+                    htmlFor="MSTR_INDIKATOR_SUB_ID"
                     className="block mb-1 text-sm font-medium text-slate-700"
                   >
-                    Periode <span className="text-red-500">*</span>
+                    Indikator Sub <span className="text-red-500">*</span>
                   </label>
                   <select
-                    id="PERIODE_ID"
+                    id="MSTR_INDIKATOR_SUB_ID"
                     required
-                    value={formData.PERIODE_ID}
-                    onChange={e =>
-                      setFormData({ ...formData, PERIODE_ID: e.target.value })
-                    }
-                    className="w-full px-3 py-2 bg-white border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  >
-                    <option value="">-- Pilih Periode --</option>
-                    {periodeList.map(p => (
-                      <option key={p.ID} value={p.ID}>
-                        {p.NAMA_PERIODE}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="BIDANG_ID"
-                    className="block mb-1 text-sm font-medium text-slate-700"
-                  >
-                    Bidang <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="BIDANG_ID"
-                    required
-                    value={formData.BIDANG_ID}
-                    onChange={e =>
-                      setFormData({ ...formData, BIDANG_ID: e.target.value })
-                    }
-                    className="w-full px-3 py-2 bg-white border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  >
-                    <option value="">-- Pilih Bidang --</option>
-                    {bidangList.map(b => (
-                      <option key={b.ID} value={b.ID}>
-                        {b.NAMA_BIDANG}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="INDIKATOR_SUB_ID"
-                    className="block mb-1 text-sm font-medium text-slate-700"
-                  >
-                    Indikator <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="INDIKATOR_SUB_ID"
-                    required
-                    value={formData.INDIKATOR_SUB_ID}
+                    value={formData.MSTR_INDIKATOR_SUB_ID}
                     onChange={e =>
                       setFormData({
                         ...formData,
-                        INDIKATOR_SUB_ID: e.target.value,
+                        MSTR_INDIKATOR_SUB_ID: e.target.value,
                       })
                     }
                     className="w-full px-3 py-2 bg-white border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   >
-                    <option value="">-- Pilih Indikator --</option>
-                    {indikatorList.map(i => (
-                      <option key={i.ID} value={i.ID}>
-                        {i.KODE_INDIKATOR_SUB} - {i.NAMA_INDIKATOR_SUB}
+                    <option value="" disabled>
+                      Pilih indikator sub
+                    </option>
+                    {indikatorSubList.map(indikator => (
+                      <option key={indikator.ID} value={indikator.ID}>
+                        {indikator.NAMA_INDIKATOR_SUB}
                       </option>
                     ))}
                   </select>
                 </div>
-
-                <div className="flex items-center pt-2">
+                <div>
+                  <label
+                    htmlFor="NAMA_AKTIFITAS_UTAMA"
+                    className="block mb-1 text-sm font-medium text-slate-700"
+                  >
+                    Nama Aktifitas <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="NAMA_AKTIFITAS_UTAMA"
+                    required
+                    maxLength={150}
+                    value={formData.NAMA_AKTIFITAS_UTAMA}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        NAMA_AKTIFITAS_UTAMA: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Masukkan nama aktifitas"
+                  />
+                </div>
+                <div className="flex items-center">
                   <input
                     type="checkbox"
                     id="FLAG_ACTIVE"
@@ -550,7 +483,7 @@ export default function TransaksiIndikatorBidang() {
                     htmlFor="FLAG_ACTIVE"
                     className="block ml-2 text-sm text-slate-700"
                   >
-                    Mapping Aktif
+                    Aktifitas Aktif
                   </label>
                 </div>
               </form>
@@ -565,7 +498,7 @@ export default function TransaksiIndikatorBidang() {
               </button>
               <button
                 type="submit"
-                form="mapping-form"
+                form="aktifitas-form"
                 disabled={isSubmitting}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-70"
               >
@@ -574,46 +507,6 @@ export default function TransaksiIndikatorBidang() {
                 )}
                 Simpan
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="w-full max-w-sm overflow-hidden bg-white shadow-xl rounded-2xl">
-            <div className="p-6 text-center">
-              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full">
-                <Trash2 className="w-8 h-8 text-red-600" />
-              </div>
-              <h2 className="mb-2 text-xl font-bold text-slate-900">
-                Hapus Mapping?
-              </h2>
-              <p className="mb-6 text-sm text-slate-500">
-                Apakah Anda yakin ingin menghapus mapping indikator bidang ini?
-                Tindakan ini tidak dapat dibatalkan.
-              </p>
-              <div className="flex justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={cancelDelete}
-                  className="w-full px-4 py-2 text-sm font-medium transition-colors rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={executeDelete}
-                  disabled={isDeleting}
-                  className="flex items-center justify-center w-full gap-2 px-4 py-2 text-sm font-medium text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-70"
-                >
-                  {isDeleting && (
-                    <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-                  )}
-                  Hapus
-                </button>
-              </div>
             </div>
           </div>
         </div>

@@ -172,7 +172,7 @@ export default function Landing() {
               </div>
 
               <div className="h-[320px] w-full max-w-[500px] relative z-10">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 500, height: 320 }}>
                   <PieChart>
                     <Pie
                       data={distribusi}
@@ -212,7 +212,7 @@ export default function Landing() {
                 </CardHeader>
                 <CardContent className="pt-6">
                   <div className="h-[320px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 500, height: 320 }}>
                       <BarChart
                         data={bidang}
                         margin={{ top: 20, right: 30, left: -20, bottom: 5 }}
@@ -266,7 +266,7 @@ export default function Landing() {
                 </CardHeader>
                 <CardContent className="pt-6">
                   <div className="h-[320px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 500, height: 320 }}>
                       <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radar}>
                         <PolarGrid stroke="#e2e8f0" />
                         <PolarAngleAxis

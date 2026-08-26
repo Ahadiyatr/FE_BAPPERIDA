@@ -4,6 +4,7 @@ import { ChevronLeft, Plus, Image as ImageIcon, FileText, ChevronDown, ChevronRi
 import api from "../../services/api";
 import Swal from "sweetalert2";
 import { Toast } from "../../utils/toast";
+import { AuthedImage, DocumentPreview, downloadAuthedFile } from "../../components/AuthedMedia";
 
 interface ViewProps {
   mode: "detail" | "edit";
@@ -38,7 +39,9 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Media Modal
-  const [mediaToView, setMediaToView] = useState<{ type: 'foto' | 'document', urls: string[] } | null>(null);
+  const [mediaToView, setMediaToView] = useState<
+    { type: 'foto'; ids: number[] } | { type: 'document'; id: number; ext: string } | null
+  >(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -54,15 +57,12 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
 
       const allRealisasi = data.realisasi || [];
       const formattedRealisasi = allRealisasi.map((r: any) => {
-        let parsedFoto = r.FILE_FOTO;
-        if (typeof parsedFoto === 'string') {
-          try {
-            parsedFoto = JSON.parse(parsedFoto);
-          } catch {
-            parsedFoto = parsedFoto ? [parsedFoto] : [];
-          }
-        }
-        return { ...r, FILE_FOTO: Array.isArray(parsedFoto) ? parsedFoto : [] };
+        const FILE_FOTO = (r.FOTO || [])
+          .sort((a: any, b: any) => a.URUTAN - b.URUTAN)
+          .map((f: any) => f.ID as number);
+        const dokItem = (r.DOKUMEN || [])[0];
+        const FILE_DOCUMENT = dokItem ? { id: dokItem.ID as number, ext: (dokItem.EXT || '') as string } : null;
+        return { ...r, FILE_FOTO, FILE_DOCUMENT };
       });
       setRealisasi(formattedRealisasi);
       
@@ -122,15 +122,13 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
     setIsSubmitting(true);
     try {
       const payload = new FormData();
-      payload.append("INDIKATOR_DETAIL_ID", formData.INDIKATOR_DETAIL_ID);
       payload.append("TANGGAL_KEGIATAN", formData.WAKTU_KEGIATAN ? `${formData.TANGGAL_KEGIATAN} ${formData.WAKTU_KEGIATAN}:00` : formData.TANGGAL_KEGIATAN);
       if (formData.KETERANGAN) payload.append("KETERANGAN", formData.KETERANGAN);
-      payload.append("FLAG_ACTIVE", "1");
 
       if (fileFoto && fileFoto.length > 0) {
-        Array.from(fileFoto).forEach(f => payload.append("FILE_FOTO[]", f));
+        Array.from(fileFoto).forEach(f => payload.append("FOTO[]", f));
       }
-      if (fileDocument) payload.append("FILE_DOCUMENT", fileDocument);
+      if (fileDocument) payload.append("DOCUMENT", fileDocument);
 
       if (formMode === "add") {
         await api.post(`/api/realisasi-kegiatan/${formData.INDIKATOR_DETAIL_ID}`, payload, { headers: { "Content-Type": "multipart/form-data" }});
@@ -185,13 +183,6 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
         confirmButtonColor: '#059669'
       });
     }
-  };
-
-  const getMediaUrl = (path: string) => {
-    if (!path) return "";
-    if (path.startsWith("http") || path.startsWith("data:")) return path;
-    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-    return `${baseUrl}/storage${path.startsWith('/') ? path : `/${path}`}`.replace('/storage/storage', '/storage');
   };
 
   if (loading) return <div className="p-8 text-center text-emerald-600 font-medium">Memuat data...</div>;
@@ -256,7 +247,7 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
                  const target = parseFloat(d.TARGET) || 0;
                  const rCount = parseFloat(d.REALISASI) || 0;
                  const persentase = parseFloat(d.PERSENTASE) || 0;
-                 const bobot = (1 / details.length).toFixed(2); // Mock bobot
+                 const bobot = parseFloat(d.BOBOT) || 0;
                  const isComplete = persentase >= 100;
                  return (
                    <tr key={d.DETAIL_ID} className="hover:bg-slate-50/50 transition-colors">
@@ -278,7 +269,10 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
         <div className="space-y-3">
            {details.map((d) => {
              const isExpanded = expandedDetail === d.DETAIL_ID;
-             const myRealisasi = realisasi.filter(r => r.JENIS_KEGIATAN === d.JENIS_KEGIATAN || String(r.INDIKATOR_DETAIL_ID) === String(d.DETAIL_ID));
+             const myRealisasi = realisasi.filter(r =>
+               r.NAMA_KEGIATAN === d.JENIS_KEGIATAN ||
+               r.NAMA_AKTIFITAS === d.JENIS_KEGIATAN
+             );
              
              return (
                <div key={d.DETAIL_ID} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
@@ -338,21 +332,23 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
                                     )}
                                 </div>
                                 <div className="w-full md:w-64 shrink-0 flex flex-col gap-3 justify-start">
-                                    <button 
+                                    <button
                                       onClick={() => {
                                         if(r.FILE_FOTO && r.FILE_FOTO.length > 0) {
-                                          setMediaToView({ type: 'foto', urls: r.FILE_FOTO });
+                                          setMediaToView({ type: 'foto', ids: r.FILE_FOTO });
                                         }
                                       }}
                                       className="w-full h-32 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl flex items-center justify-center transition-colors cursor-pointer group shadow-sm overflow-hidden relative"
                                     >
                                       {r.FILE_FOTO && r.FILE_FOTO.length > 0 ? (
-                                        <div className="relative w-full h-full">
-                                          <img src={getMediaUrl(r.FILE_FOTO[0])} className="w-full h-full object-cover" alt="Foto" 
-                                            onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg .../>'; }}
-                                          />
-                                          {r.FILE_FOTO.length > 1 && <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-lg">+{r.FILE_FOTO.length - 1}</div>}
-                                        </div>
+                                        <AuthedImage
+                                          lampiranId={r.FILE_FOTO[0]}
+                                          className="w-full h-full object-cover"
+                                          alt="Foto"
+                                          badge={r.FILE_FOTO.length > 1 ? (
+                                            <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-lg">+{r.FILE_FOTO.length - 1}</div>
+                                          ) : undefined}
+                                        />
                                       ) : (
                                         <div className="flex flex-col items-center justify-center text-slate-400 group-hover:text-slate-500">
                                             <ImageIcon className="w-6 h-6 mb-1 opacity-50" />
@@ -361,7 +357,7 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
                                       )}
                                     </button>
                                     {r.FILE_DOCUMENT && (
-                                      <button onClick={() => setMediaToView({ type: 'document', urls: [r.FILE_DOCUMENT] })} className="w-full text-xs font-bold text-center py-2.5 bg-white border border-slate-200 text-blue-600 hover:bg-blue-50 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-colors">
+                                      <button onClick={() => setMediaToView({ type: 'document', id: r.FILE_DOCUMENT.id, ext: r.FILE_DOCUMENT.ext })} className="w-full text-xs font-bold text-center py-2.5 bg-white border border-slate-200 text-blue-600 hover:bg-blue-50 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-colors">
                                         <FileText className="w-4 h-4" /> Lihat Dokumen
                                       </button>
                                     )}
@@ -472,30 +468,33 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
                   {mediaToView.type === 'foto' ? <><ImageIcon className="w-5 h-5 text-blue-500"/> Foto Realisasi</> : <><FileText className="w-5 h-5 text-emerald-500"/> Dokumen Pendukung</>} 
                 </h3>
                 <div className="flex items-center gap-2">
-                  <a href={getMediaUrl(mediaToView.urls[0])} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 text-slate-600 border border-slate-200 shadow-sm"><Download className="w-4 h-4"/></a>
+                  <button
+                    onClick={() => {
+                      if (mediaToView.type === 'foto') {
+                        downloadAuthedFile(`/api/realisasi-lampiran/${mediaToView.ids[0]}/preview`, `foto-${mediaToView.ids[0]}`);
+                      } else {
+                        downloadAuthedFile(`/api/realisasi-lampiran/${mediaToView.id}/preview`, `dokumen-${mediaToView.id}${mediaToView.ext ? `.${mediaToView.ext}` : ''}`);
+                      }
+                    }}
+                    className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 text-slate-600 border border-slate-200 shadow-sm"
+                  ><Download className="w-4 h-4"/></button>
                   <button onClick={() => setMediaToView(null)} className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-full border border-red-100 shadow-sm"><X className="w-4 h-4"/></button>
                 </div>
               </div>
               <div className="flex-1 overflow-auto p-6 flex flex-col items-center justify-center bg-slate-50 relative min-h-[50vh]">
                  {mediaToView.type === 'foto' ? (
                    <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto">
-                     {mediaToView.urls.map((u, i) => (
-                       <img key={i} src={getMediaUrl(u)} className="max-w-full max-h-[70vh] rounded-2xl shadow-md border-4 border-white object-contain" alt="Foto" />
+                     {mediaToView.ids.map((lampiranId) => (
+                       <AuthedImage
+                         key={lampiranId}
+                         lampiranId={lampiranId}
+                         className="max-w-full max-h-[70vh] rounded-2xl shadow-md border-4 border-white object-contain"
+                         alt="Foto"
+                       />
                      ))}
                    </div>
                  ) : (
-                   mediaToView.urls[0].toLowerCase().endsWith('.pdf') ? (
-                     <iframe src={getMediaUrl(mediaToView.urls[0])} className="w-full h-full min-h-[60vh] rounded-xl border-0 shadow-inner bg-white" />
-                   ) : (
-                     <div className="text-center p-12 bg-white rounded-3xl shadow-sm border border-slate-200 max-w-md w-full">
-                       <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-                       <div className="font-bold text-slate-800 text-lg mb-2">Preview Tidak Tersedia</div>
-                       <p className="text-sm text-slate-500 mb-6">Format dokumen ini tidak dapat langsung ditampilkan di layar.</p>
-                       <a href={getMediaUrl(mediaToView.urls[0])} target="_blank" rel="noopener noreferrer" className="w-full px-6 py-3 bg-blue-600 text-white rounded-xl font-bold flex justify-center items-center gap-2 shadow-sm hover:bg-blue-700 transition-colors">
-                         Unduh Dokumen <Download className="w-4 h-4"/>
-                       </a>
-                     </div>
-                   )
+                   <DocumentPreview id={mediaToView.id} ext={mediaToView.ext} />
                  )}
               </div>
            </div>

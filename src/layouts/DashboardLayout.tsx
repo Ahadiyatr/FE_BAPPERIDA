@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
 import {
@@ -47,8 +47,13 @@ const sidebarLinks: any[] = [
     href: '/master/aktifitas-utama',
     icon: Activity,
   },
+  // {
+  //   name: 'Aktifitas Utama',
+  //   href: '/dashboard/transaksi-aktifitas-utama',
+  //   icon: LinkIcon,
+  // },
   {
-    name: 'Jenis Kegiatan',
+    name: 'Aktifitas Pendukung',
     href: '/master/jenis-kegiatan',
     icon: BookType,
   },
@@ -56,11 +61,6 @@ const sidebarLinks: any[] = [
   {
     name: 'Indikator Bidang',
     href: '/dashboard/transaksi-indikator-bidang',
-    icon: LinkIcon,
-  },
-  {
-    name: 'Aktifitas Utama',
-    href: '/dashboard/transaksi-aktifitas-utama',
     icon: LinkIcon,
   },
   {
@@ -82,15 +82,38 @@ const sidebarLinks: any[] = [
   },
 ];
 
+// TEMPORARY: set to true to bypass the login/session check below.
+// Revert to false before shipping to production.
+const BYPASS_AUTH = true;
+
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(!BYPASS_AUTH);
   const [user, setUser] = useState<any>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(e.target as Node)
+      ) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (BYPASS_AUTH) {
+      return;
+    }
+
     const checkAuth = async () => {
       try {
         // Memanggil endpoint user untuk memastikan sesi valid
@@ -156,7 +179,7 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className="flex min-h-screen font-sans bg-slate-50">
+    <div className="flex h-screen overflow-hidden font-sans bg-slate-50">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -168,7 +191,7 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <div
         className={`
-        fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col
+        fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col h-full
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         ${collapsed ? 'lg:w-16' : 'lg:w-72'}
         w-72
@@ -257,7 +280,7 @@ export default function DashboardLayout() {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex flex-col flex-1 h-full min-w-0 overflow-hidden">
         {/* Top header */}
         <header className="z-10 flex items-center justify-between h-16 px-4 bg-white border-b border-slate-200 sm:px-6 lg:px-8">
           <button
@@ -271,8 +294,42 @@ export default function DashboardLayout() {
             <div className="hidden text-sm font-medium text-slate-700 sm:block">
               {user?.name || 'Admin Bapperrida'}
             </div>
-            <div className="flex items-center justify-center w-8 h-8 font-bold uppercase rounded-full bg-emerald-100 text-emerald-700">
-              {user?.name ? user.name.charAt(0) : 'A'}
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen(prev => !prev)}
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+                title="Menu akun"
+                className="flex items-center justify-center w-8 h-8 font-bold uppercase transition-colors rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+              >
+                {user?.name ? user.name.charAt(0) : 'A'}
+              </button>
+
+              {userMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 z-30 mt-2 overflow-hidden bg-white border shadow-lg top-full w-60 rounded-xl border-slate-200"
+                >
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <p className="text-sm font-semibold truncate text-slate-800">
+                      {user?.name || 'Admin Bapperrida'}
+                    </p>
+                    <p className="text-xs truncate text-slate-500">
+                      {user?.email || '-'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex items-center w-full gap-2 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
             <button
               onClick={() => setCollapsed(prev => !prev)}
