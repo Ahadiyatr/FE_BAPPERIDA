@@ -22,16 +22,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import api from "../services/api";
 
 // Modern Green to Yellow Palette
-const defaultData = [
-  { name: "P2EPD", distribution: 21, achievement: 75, color: "#047857" }, // Emerald 700
-  { name: "PPM", distribution: 11, achievement: 81, color: "#10B981" }, // Emerald 500
-  { name: "PIK", distribution: 7, achievement: 91, color: "#34D399" }, // Emerald 400
-  { name: "Perencanaan", distribution: 13, achievement: 76, color: "#84CC16" }, // Lime 500
-  { name: "Keuangan", distribution: 6, achievement: 71, color: "#EAB308" }, // Yellow 500
-  { name: "Umum & Kepeg.", distribution: 27, achievement: 78, color: "#F59E0B" }, // Amber 500
-  { name: "Litbang", distribution: 15, achievement: 78, color: "#D97706" }, // Amber 600
-];
-
 const COLORS = [
   "#047857", "#10B981", "#34D399", "#84CC16", "#EAB308", "#F59E0B", "#D97706",
   "#0f766e", "#14b8a6", "#2dd4bf", "#65a30d", "#ca8a04", "#d97706", "#b45309"
@@ -74,9 +64,9 @@ export default function Landing() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<any>(null);
-  const [bidang, setBidang] = useState<any[]>(defaultData);
-  const [distribusi, setDistribusi] = useState<any[]>(defaultData);
-  const [radar, setRadar] = useState<any[]>(defaultData);
+  const [bidang, setBidang] = useState<any[]>([]);
+  const [distribusi, setDistribusi] = useState<any[]>([]);
+  const [radar, setRadar] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -91,7 +81,7 @@ export default function Landing() {
             setBidang(bidang.map((b: any, i: number) => ({
               ...b,
               name: b.NAMA_BIDANG ?? b.nama_bidang ?? b.name,
-              achievement: Number(b.PERSENTASE ?? b.persentase ?? b.achievement ?? 0),
+              achievement: Number(b.RATA_CAPAIAN ?? b.rata_capaian ?? b.PERSENTASE ?? b.persentase ?? b.achievement ?? 0),
               color: COLORS[i % COLORS.length]
             })));
           }
@@ -161,13 +151,13 @@ export default function Landing() {
             <div className="bg-white/60 backdrop-blur-xl border border-white/40 shadow-xl shadow-emerald-900/5 rounded-[2rem] flex flex-col md:flex-row items-center justify-center py-12 px-8 gap-12 relative overflow-hidden">
               <div className="text-center md:text-left flex flex-col items-center md:items-start relative z-10">
                 <div className="text-8xl font-black tracking-tighter bg-gradient-to-br from-emerald-600 to-yellow-500 bg-clip-text text-transparent leading-none mb-4 drop-shadow-sm">
-                  {summary?.CAPAIAN_RATA_RATA ?? summary?.capaian_rata_rata ?? '0'}%
+                  {Number(summary?.RATA_CAPAIAN_KESELURUHAN ?? summary?.rata_capaian_keseluruhan ?? summary?.CAPAIAN_RATA_RATA ?? summary?.capaian_rata_rata ?? 0).toFixed(2)}%
                 </div>
                 <div className="text-xl text-slate-800 font-bold tracking-wide">
                   Capaian Keseluruhan
                 </div>
                 <div className="text-sm text-emerald-700 font-semibold bg-emerald-100/80 px-4 py-1.5 rounded-full mt-3 border border-emerald-200/50 shadow-sm">
-                  {summary?.TOTAL_PROGRAM ?? summary?.total_program ?? '0'} program · {summary?.TOTAL_BIDANG ?? summary?.total_bidang ?? '0'} bidang
+                  {summary?.TOTAL_SUBKEGIATAN ?? summary?.total_subkegiatan ?? summary?.TOTAL_PROGRAM ?? summary?.total_program ?? '0'} program · {summary?.TOTAL_BIDANG ?? summary?.total_bidang ?? '0'} bidang
                 </div>
               </div>
 
@@ -322,7 +312,7 @@ export default function Landing() {
                       className="text-4xl font-black tracking-tighter drop-shadow-sm"
                       style={{ color: item.color }}
                     >
-                      {item.achievement}%
+                      {Number(item.achievement).toFixed(1)}%
                     </div>
                     {item.BIDANG_ID && (
                       <button 

@@ -6,6 +6,8 @@ import api from "../services/api";
 interface ProgramDetail {
   id: number;
   nama: string;
+  target: number;
+  realisasi: number;
   persentase: number;
 }
 
@@ -13,12 +15,13 @@ export default function Detail() {
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  
+
   const bidangId = searchParams.get("bidang");
-  const defaultNama = searchParams.get("nama") || "P2EPD";
-  const defaultScore = parseInt(searchParams.get("score") || "0");
+  const defaultNama = searchParams.get("nama") || "";
+  const defaultScore = Number(searchParams.get("score") || 0);
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<{
     nama: string;
     rata_rata: number;
@@ -31,43 +34,39 @@ export default function Detail() {
     programs: []
   });
 
-  // Since we don't have a specific API for this yet, we'll use dummy data if the API fails,
-  // but we try to fetch it just in case the backend already provides it.
   useEffect(() => {
     const fetchDetail = async () => {
+      if (!bidangId) {
+        setError("Bidang tidak ditentukan");
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
       try {
-        // Attempt to hit an endpoint (the user might create this later)
-        if (bidangId) {
-           const response = await api.get(`/api/dashboard/bidang/${bidangId}`);
-           if (response.data.success) {
-             setData(response.data.data);
-             return; // Stop here if API succeeds
-           }
+        const response = await api.get(`/api/dashboard/bidang/${bidangId}`);
+        if (response.data.success) {
+          const { header, detail } = response.data.data;
+          setData({
+            nama: header?.NAMA_BIDANG ?? defaultNama,
+            rata_rata: Number(header?.RATA_RATA_CAPAIAN ?? 0),
+            total_program: Number(header?.TOTAL_INDIKATOR ?? detail?.length ?? 0),
+            programs: (detail ?? []).map((d: any) => ({
+              id: d.INDIKATOR_ID,
+              nama: d.NAMA_INDIKATOR,
+              target: Number(d.TARGET ?? 0),
+              realisasi: Number(d.REALISASI ?? 0),
+              persentase: Number(d.PERSENTASE ?? 0),
+            })),
+          });
+        } else {
+          setError(response.data.message || "Gagal memuat data bidang");
         }
-      } catch (err) {
-        console.warn("API hasn't been created yet. Using mock data.");
+      } catch (err: any) {
+        setError(err?.response?.data?.message || "Gagal memuat data bidang");
       } finally {
-        // Mock data matching the screenshot
-        setData(prev => ({
-          ...prev,
-          total_program: 12,
-          rata_rata: prev.rata_rata || 75,
-          nama: prev.nama || "Bidang P2EPD",
-          programs: [
-            { id: 1, nama: "Analisis Kondisi Daerah, Permasalahan, dan Isu Strategis Pembangunan Daerah", persentase: 91 },
-            { id: 2, nama: "Koordinasi Penelaahan Dokumen Perencanaan Pembangunan Daerah dengan Dokumen Kebijakan Lainnya", persentase: 70 },
-            { id: 3, nama: "Pelaksanaan Konsultasi Publik", persentase: 61 },
-            { id: 4, nama: "Koordinasi Pelaksanaan Forum Perangkat Daerah/Lintas Perangkat Daerah", persentase: 61 },
-            { id: 5, nama: "Pelaksanaan Musrenbang Kabupaten/Kota", persentase: 95 },
-            { id: 6, nama: "Penyiapan Bahan Koordinasi Musrenbang Kecamatan", persentase: 89 },
-            { id: 7, nama: "Koordinasi Penyusunan dan Penetapan Dokumen Perencanaan Pembangunan Daerah Kabupaten/Kota", persentase: 78 },
-            { id: 8, nama: "Analisis Data dan Informasi Perencanaan Pembangunan Daerah", persentase: 79 },
-            { id: 9, nama: "Pembinaan dan Pemanfaatan Data dan Informasi Perencanaan Pembangunan Perangkat Daerah", persentase: 70 },
-            { id: 10, nama: "Penyusunan Profil Pembangunan Daerah Kabupaten/Kota", persentase: 72 },
-            { id: 11, nama: "Koordinasi Pengendalian Perencanaan dan Pelaksanaan Pembangunan Daerah di Kabupaten/Kota", persentase: 71 },
-            { id: 12, nama: "Monitoring, Evaluasi dan Penyusunan Laporan Berkala Pelaksanaan Pembangunan Daerah", persentase: 70 },
-          ]
-        }));
         setLoading(false);
       }
     };
@@ -92,12 +91,16 @@ export default function Detail() {
         <div className="flex items-center justify-center h-64">
           <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
+      ) : error ? (
+        <main className="max-w-7xl mx-auto px-6 md:px-12 py-10">
+          <div className="p-4 text-red-600 border border-red-100 bg-red-50 rounded-xl">{error}</div>
+        </main>
       ) : (
         <main className="max-w-7xl mx-auto px-6 md:px-12 py-10">
-          
+
           {/* Top Section Layout */}
           <div className="flex flex-col md:flex-row items-center gap-8 mb-12">
-            
+
             {/* Donut Chart */}
             <div className="relative w-40 h-40 shrink-0">
               <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
@@ -119,13 +122,13 @@ export default function Detail() {
                   stroke="#3b82f6" // blue-500
                   strokeWidth="12"
                   strokeLinecap="round"
-                  strokeDasharray={`${(data.rata_rata / 100) * (2 * Math.PI * 40)} ${2 * Math.PI * 40}`}
+                  strokeDasharray={`${(Math.min(100, Math.max(0, data.rata_rata)) / 100) * (2 * Math.PI * 40)} ${2 * Math.PI * 40}`}
                   className="transition-all duration-1000 ease-out"
                 />
               </svg>
               {/* Text Inside */}
               <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="text-3xl font-bold text-slate-800 tracking-tight">{data.rata_rata}%</span>
+                <span className="text-3xl font-bold text-slate-800 tracking-tight">{data.rata_rata.toFixed(1)}%</span>
               </div>
             </div>
 
@@ -133,13 +136,13 @@ export default function Detail() {
             <div className="flex flex-col text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <h1 className="text-3xl font-bold text-slate-800">Bidang {data.nama}</h1>
+                <h1 className="text-3xl font-bold text-slate-800">{data.nama}</h1>
               </div>
               <p className="text-slate-500 font-medium">
-                {data.total_program} program · Rata-rata capaian {data.rata_rata}%
+                {data.total_program} program · Rata-rata capaian {data.rata_rata.toFixed(1)}%
               </p>
             </div>
-            
+
           </div>
 
           {/* Programs Table */}
@@ -155,23 +158,31 @@ export default function Detail() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {data.programs.map((prog, idx) => (
-                    <tr key={prog.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-center text-slate-400 font-medium">{idx + 1}</td>
-                      <td className="px-6 py-4 font-medium text-slate-700">{prog.nama}</td>
-                      <td className="px-6 py-4">
-                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                          <div 
-                            className="bg-blue-500 h-full rounded-full transition-all duration-1000 ease-out" 
-                            style={{ width: `${prog.persentase}%` }}
-                          ></div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right text-blue-600 font-semibold">
-                        {prog.persentase}%
+                  {data.programs.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-10 text-center text-slate-400">
+                        Belum ada data indikator untuk bidang ini.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    data.programs.map((prog, idx) => (
+                      <tr key={prog.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 text-center text-slate-400 font-medium">{idx + 1}</td>
+                        <td className="px-6 py-4 font-medium text-slate-700">{prog.nama}</td>
+                        <td className="px-6 py-4">
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="bg-blue-500 h-full rounded-full transition-all duration-1000 ease-out"
+                              style={{ width: `${Math.min(100, Math.max(0, prog.persentase))}%` }}
+                            ></div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right text-blue-600 font-semibold">
+                          {prog.persentase.toFixed(1)}%
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
