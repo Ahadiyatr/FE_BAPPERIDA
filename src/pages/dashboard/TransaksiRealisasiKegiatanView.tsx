@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, Plus, Image as ImageIcon, FileText, ChevronDown, ChevronRight, Download, Eye, X, Edit, Trash2 } from "lucide-react";
+import { ChevronLeft, Plus, Image as ImageIcon, FileText, ChevronRight, Download, X, Edit, Trash2, RotateCcw, AlertTriangle } from "lucide-react";
 import api from "../../services/api";
 import Swal from "sweetalert2";
 import { Toast } from "../../utils/toast";
@@ -32,11 +32,19 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
     KETERANGAN: "",
     WAKTU_KEGIATAN: "", // Optional, but used in UI (e.g. HH:MM)
   });
-  const [fileFoto, setFileFoto] = useState<FileList | null>(null);
+  const [fileFoto, setFileFoto] = useState<File[]>([]);
   const [fileDocument, setFileDocument] = useState<File | null>(null);
   const fileFotoRef = useRef<HTMLInputElement>(null);
   const fileDocumentRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Lampiran milik realisasi yang sedang diedit. Foto yang diunggah pada mode
+  // edit MENGGANTI seluruh foto lama; foto lama juga bisa dihapus satuan.
+  const [existingFoto, setExistingFoto] = useState<number[]>([]);
+  const [fotoToDelete, setFotoToDelete] = useState<number[]>([]);
+  const [existingDocument, setExistingDocument] = useState<{ id: number; ext: string } | null>(null);
+  const [removeDocument, setRemoveDocument] = useState(false);
+  const [fotoPreviews, setFotoPreviews] = useState<string[]>([]);
 
   // Media Modal
   const [mediaToView, setMediaToView] = useState<
@@ -82,16 +90,32 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
     setExpandedDetail(expandedDetail === detailId ? null : detailId);
   };
 
+  // Preview lokal untuk foto yang baru dipilih, dibuang lagi saat pilihan berubah
+  // agar object URL tidak menumpuk.
+  useEffect(() => {
+    if (fileFoto.length === 0) {
+      setFotoPreviews([]);
+      return;
+    }
+    const urls = fileFoto.map((f) => URL.createObjectURL(f));
+    setFotoPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [fileFoto]);
+
   // Form Handlers
   const handleOpenForm = (openMode: "add" | "edit", detailId?: number, item?: any) => {
     setFormMode(openMode);
-    setFileFoto(null);
+    setFileFoto([]);
     setFileDocument(null);
+    setFotoToDelete([]);
+    setRemoveDocument(false);
     if (fileFotoRef.current) fileFotoRef.current.value = "";
     if (fileDocumentRef.current) fileDocumentRef.current.value = "";
 
     if (openMode === "edit" && item) {
       setCurrentRealisasiId(item.ID);
+      setExistingFoto(item.FILE_FOTO || []);
+      setExistingDocument(item.FILE_DOCUMENT || null);
       let dateVal = "";
       let timeVal = "";
       if (item.TANGGAL_KEGIATAN) {
@@ -107,6 +131,8 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
       });
     } else {
       setCurrentRealisasiId(null);
+      setExistingFoto([]);
+      setExistingDocument(null);
       setFormData({
         INDIKATOR_DETAIL_ID: detailId ? detailId.toString() : "",
         TANGGAL_KEGIATAN: new Date().toISOString().split('T')[0],
@@ -117,22 +143,58 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
     setIsFormOpen(true);
   };
 
+  // Foto lama yang masih akan tersimpan setelah form disubmit.
+  const fotoLamaTersisa = existingFoto.filter(fid => !fotoToDelete.includes(fid));
+  const totalBuktiTersisa =
+    fotoLamaTersisa.length +
+    fileFoto.length +
+    (existingDocument && !removeDocument ? 1 : 0) +
+    (fileDocument ? 1 : 0);
+
+  const toggleHapusFoto = (fotoId: number) => {
+    setFotoToDelete(prev =>
+      prev.includes(fotoId) ? prev.filter(x => x !== fotoId) : [...prev, fotoId]
+    );
+  };
+
+  // Pilihan foto ditumpuk, bukan ditimpa, supaya user bisa memilih beberapa kali.
+  const handlePilihFoto = (files: FileList | null) => {
+    if (files && files.length > 0) setFileFoto(prev => [...prev, ...Array.from(files)]);
+    if (fileFotoRef.current) fileFotoRef.current.value = "";
+  };
+
+  const batalkanFotoBaru = (index: number) => {
+    setFileFoto(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formMode === "edit" && totalBuktiTersisa === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Bukti kegiatan kosong',
+        text: 'Realisasi harus punya minimal satu bukti. Unggah foto/dokumen pengganti sebelum menghapus semuanya.',
+        confirmButtonColor: '#059669'
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload = new FormData();
       payload.append("TANGGAL_KEGIATAN", formData.WAKTU_KEGIATAN ? `${formData.TANGGAL_KEGIATAN} ${formData.WAKTU_KEGIATAN}:00` : formData.TANGGAL_KEGIATAN);
       if (formData.KETERANGAN) payload.append("KETERANGAN", formData.KETERANGAN);
 
-      if (fileFoto && fileFoto.length > 0) {
-        Array.from(fileFoto).forEach(f => payload.append("FOTO[]", f));
-      }
+      fileFoto.forEach(f => payload.append("FOTO[]", f));
       if (fileDocument) payload.append("DOCUMENT", fileDocument);
 
       if (formMode === "add") {
         await api.post(`/api/realisasi-kegiatan/${formData.INDIKATOR_DETAIL_ID}`, payload, { headers: { "Content-Type": "multipart/form-data" }});
       } else {
+        // Foto baru ditambahkan; foto lama dibuang satuan lewat HAPUS_FOTO.
+        fotoToDelete.forEach(fid => payload.append("HAPUS_FOTO[]", String(fid)));
+        if (removeDocument && !fileDocument) payload.append("HAPUS_DOKUMEN", "1");
         payload.append("_method", "PUT");
         await api.post(`/api/realisasi-kegiatan/${currentRealisasiId}`, payload, { headers: { "Content-Type": "multipart/form-data" }});
       }
@@ -398,7 +460,7 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
       {/* Form Modal */}
       {isFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50 shrink-0">
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 {formMode === "add" ? (
@@ -427,31 +489,151 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Keterangan Aktivitas</label>
                       <textarea rows={4} placeholder="Tuliskan detail mengenai kegiatan yang telah direalisasikan..." value={formData.KETERANGAN} onChange={e => setFormData({...formData, KETERANGAN: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-medium text-sm text-slate-900 shadow-sm resize-none"/>
                    </div>
-                   <div className="grid grid-cols-2 gap-4">
+                   {/* ---------------- FOTO ---------------- */}
+                   <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                         <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Foto Kegiatan</label>
+                         {fotoToDelete.length > 0 && (
+                           <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-full">
+                             {fotoToDelete.length} FOTO AKAN DIHAPUS
+                           </span>
+                         )}
+                      </div>
+
+                      {formMode === "edit" && existingFoto.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Foto Tersimpan</p>
+                          <div className="grid grid-cols-4 gap-2">
+                            {existingFoto.map((fotoId) => {
+                              const ditandaiHapus = fotoToDelete.includes(fotoId);
+                              return (
+                                <div
+                                  key={fotoId}
+                                  className={`relative h-20 rounded-xl overflow-hidden border shadow-sm ${ditandaiHapus ? 'border-red-200' : 'border-slate-200'}`}
+                                >
+                                  <AuthedImage lampiranId={fotoId} className="w-full h-full object-cover" alt="Foto tersimpan" />
+                                  {ditandaiHapus && (
+                                    <div className="absolute inset-0 bg-red-900/60 flex items-center justify-center">
+                                      <span className="text-[9px] font-bold text-white tracking-wider">DIHAPUS</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleHapusFoto(fotoId)}
+                                    title={ditandaiHapus ? 'Batalkan hapus' : 'Hapus foto ini'}
+                                    className={`absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-sm border transition-colors ${ditandaiHapus ? 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100' : 'bg-white/90 border-red-200 text-red-600 hover:bg-red-50'}`}
+                                  >
+                                    {ditandaiHapus ? <RotateCcw className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {fileFoto.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-2">Foto Baru ({fileFoto.length})</p>
+                          <div className="grid grid-cols-4 gap-2">
+                            {fileFoto.map((f, i) => (
+                              <div key={`${f.name}-${i}`} className="relative h-20 rounded-xl overflow-hidden border border-emerald-200 shadow-sm bg-slate-100">
+                                {fotoPreviews[i] && <img src={fotoPreviews[i]} className="w-full h-full object-cover" alt={f.name} />}
+                                <button
+                                  type="button"
+                                  onClick={() => batalkanFotoBaru(i)}
+                                  title="Batalkan foto ini"
+                                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-red-200 text-red-600 hover:bg-red-50 flex items-center justify-center shadow-sm"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="border border-dashed border-slate-300 bg-slate-50/50 rounded-xl p-5 text-center hover:bg-slate-50 transition-colors relative cursor-pointer group flex flex-col items-center justify-center">
                          <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center mb-3">
                             <ImageIcon className="w-5 h-5 text-emerald-600" />
                          </div>
-                         <div className="text-sm font-bold text-slate-700 mb-1">Pilih Foto</div>
+                         <div className="text-sm font-bold text-slate-700 mb-1">
+                            {formMode === "edit" ? "Tambah Foto" : "Pilih Foto"}
+                         </div>
                          <p className="text-[10px] font-medium text-slate-500">Mendukung banyak format .jpg/.png</p>
-                         <input type="file" ref={fileFotoRef} multiple accept="image/*" onChange={e => setFileFoto(e.target.files)} className="absolute inset-0 opacity-0 cursor-pointer" />
-                         {fileFoto && fileFoto.length > 0 && <div className="absolute top-3 right-3 bg-emerald-500 border-2 border-white text-white text-[10px] rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-sm">{fileFoto.length}</div>}
+                         <input type="file" ref={fileFotoRef} multiple accept="image/*" onChange={e => handlePilihFoto(e.target.files)} className="absolute inset-0 opacity-0 cursor-pointer" />
+                         {fileFoto.length > 0 && <div className="absolute top-3 right-3 bg-emerald-500 border-2 border-white text-white text-[10px] rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-sm">{fileFoto.length}</div>}
                       </div>
+                   </div>
+
+                   {/* ---------------- DOKUMEN ---------------- */}
+                   <div className="space-y-3">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Dokumen Pendukung</label>
+
+                      {formMode === "edit" && existingDocument && (
+                        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-sm ${removeDocument || fileDocument ? 'bg-red-50/50 border-red-200' : 'bg-white border-slate-200'}`}>
+                           <FileText className={`w-5 h-5 shrink-0 ${removeDocument || fileDocument ? 'text-red-400' : 'text-blue-600'}`} />
+                           <div className="flex-1 min-w-0 text-left">
+                              <div className={`text-xs font-bold truncate ${removeDocument || fileDocument ? 'text-red-500 line-through' : 'text-slate-700'}`}>
+                                 Dokumen tersimpan{existingDocument.ext ? ` (.${existingDocument.ext})` : ''}
+                              </div>
+                              <div className="text-[10px] font-medium text-slate-500">
+                                 {fileDocument ? 'Akan diganti dokumen baru' : removeDocument ? 'Akan dihapus saat disimpan' : 'Tersimpan di server'}
+                              </div>
+                           </div>
+                           {!fileDocument && (
+                             <button
+                               type="button"
+                               onClick={() => setRemoveDocument(!removeDocument)}
+                               title={removeDocument ? 'Batalkan hapus' : 'Hapus dokumen'}
+                               className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border shadow-sm transition-colors ${removeDocument ? 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100' : 'bg-white border-red-200 text-red-600 hover:bg-red-50'}`}
+                             >
+                               {removeDocument ? <RotateCcw className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
+                             </button>
+                           )}
+                        </div>
+                      )}
+
                       <div className="border border-dashed border-slate-300 bg-slate-50/50 rounded-xl p-5 text-center hover:bg-slate-50 transition-colors relative cursor-pointer group flex flex-col items-center justify-center">
                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-3">
                             <FileText className="w-5 h-5 text-blue-600" />
                          </div>
-                         <div className="text-sm font-bold text-slate-700 mb-1">Pilih Dokumen</div>
-                         <p className="text-[10px] font-medium text-slate-500">Hanya .pdf atau .docx</p>
+                         <div className="text-sm font-bold text-slate-700 mb-1">
+                            {formMode === "edit" && existingDocument ? "Ganti Dokumen" : "Pilih Dokumen"}
+                         </div>
+                         <p className="text-[10px] font-medium text-slate-500">
+                            {fileDocument ? fileDocument.name : "Hanya .pdf atau .docx"}
+                         </p>
                          <input type="file" ref={fileDocumentRef} accept=".pdf,.doc,.docx" onChange={e => setFileDocument(e.target.files ? e.target.files[0] : null)} className="absolute inset-0 opacity-0 cursor-pointer" />
-                         {fileDocument && <div className="absolute top-3 right-3 text-emerald-500 bg-white rounded-full"><CheckCircle2 className="w-6 h-6"/></div>}
+                         {fileDocument && (
+                           <button
+                             type="button"
+                             onClick={() => {
+                               setFileDocument(null);
+                               if (fileDocumentRef.current) fileDocumentRef.current.value = "";
+                             }}
+                             title="Batalkan dokumen baru"
+                             className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white border border-red-200 text-red-600 hover:bg-red-50 flex items-center justify-center shadow-sm z-10"
+                           >
+                             <X className="w-3.5 h-3.5" />
+                           </button>
+                         )}
                       </div>
                    </div>
+
+                   {formMode === "edit" && totalBuktiTersisa === 0 && (
+                     <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <p className="text-xs font-medium text-amber-800">
+                           Realisasi harus punya minimal satu bukti. Unggah foto atau dokumen pengganti sebelum menyimpan.
+                        </p>
+                     </div>
+                   )}
                 </form>
             </div>
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 shrink-0">
                <button type="button" onClick={() => setIsFormOpen(false)} className="px-5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
-               <button type="submit" form="realisasi-form" disabled={isSubmitting} className="min-w-[140px] px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-sm transition-colors justify-center flex items-center gap-2">
+               <button type="submit" form="realisasi-form" disabled={isSubmitting || (formMode === "edit" && totalBuktiTersisa === 0)} className="min-w-[140px] px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold shadow-sm transition-colors justify-center flex items-center gap-2">
                  {isSubmitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent flex items-center rounded-full animate-spin"></div> Menyimpan...</> : "Simpan Data"}
                </button>
             </div>
@@ -502,8 +684,4 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
       )}
     </div>
   );
-}
-
-function CheckCircle2(props: any) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
 }

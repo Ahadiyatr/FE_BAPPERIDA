@@ -15,7 +15,8 @@ import Pagination from '../../components/Pagination';
 
 interface JenisKegiatan {
   ID: number;
-  MSTR_INDIKATOR_SUB_ID: number;
+  // Null untuk baris lama yang dibuat sebelum kolom induknya ada.
+  INDIKATOR_SUB_ID: number | null;
   NAMA_AKTIFITAS_PENDUKUNG: string;
   FLAG_ACTIVE: boolean;
   indikator_sub?: {
@@ -42,7 +43,7 @@ export default function MasterJenisKegiatan() {
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    MSTR_INDIKATOR_SUB_ID: '',
+    INDIKATOR_SUB_ID: '',
     NAMA_AKTIFITAS_PENDUKUNG: '',
     FLAG_ACTIVE: true,
   });
@@ -93,7 +94,7 @@ export default function MasterJenisKegiatan() {
     if (mode === 'edit' && item) {
       setCurrentId(item.ID);
       setFormData({
-        MSTR_INDIKATOR_SUB_ID: item.MSTR_INDIKATOR_SUB_ID.toString(),
+        INDIKATOR_SUB_ID: item.INDIKATOR_SUB_ID?.toString() || '',
         NAMA_AKTIFITAS_PENDUKUNG: item.NAMA_AKTIFITAS_PENDUKUNG || '',
         FLAG_ACTIVE:
           item.FLAG_ACTIVE === undefined ? true : Boolean(item.FLAG_ACTIVE),
@@ -101,7 +102,7 @@ export default function MasterJenisKegiatan() {
     } else {
       setCurrentId(null);
       setFormData({
-        MSTR_INDIKATOR_SUB_ID: '',
+        INDIKATOR_SUB_ID: '',
         NAMA_AKTIFITAS_PENDUKUNG: '',
         FLAG_ACTIVE: true,
       });
@@ -112,7 +113,7 @@ export default function MasterJenisKegiatan() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setFormData({
-      MSTR_INDIKATOR_SUB_ID: '',
+      INDIKATOR_SUB_ID: '',
       NAMA_AKTIFITAS_PENDUKUNG: '',
       FLAG_ACTIVE: true,
     });
@@ -125,7 +126,7 @@ export default function MasterJenisKegiatan() {
 
     const payload = {
       ...formData,
-      MSTR_INDIKATOR_SUB_ID: parseInt(formData.MSTR_INDIKATOR_SUB_ID),
+      INDIKATOR_SUB_ID: parseInt(formData.INDIKATOR_SUB_ID),
     };
 
     try {
@@ -374,19 +375,19 @@ export default function MasterJenisKegiatan() {
               >
                 <div>
                   <label
-                    htmlFor="MSTR_INDIKATOR_SUB_ID"
+                    htmlFor="INDIKATOR_SUB_ID"
                     className="block mb-1 text-sm font-medium text-slate-700"
                   >
                     Indikator Sub <span className="text-red-500">*</span>
                   </label>
                   <select
-                    id="MSTR_INDIKATOR_SUB_ID"
+                    id="INDIKATOR_SUB_ID"
                     required
-                    value={formData.MSTR_INDIKATOR_SUB_ID}
+                    value={formData.INDIKATOR_SUB_ID}
                     onChange={e =>
                       setFormData({
                         ...formData,
-                        MSTR_INDIKATOR_SUB_ID: e.target.value,
+                        INDIKATOR_SUB_ID: e.target.value,
                       })
                     }
                     className="w-full px-3 py-2 bg-white border rounded-lg border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"

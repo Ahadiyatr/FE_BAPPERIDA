@@ -37,6 +37,8 @@ type RencanaDetailRow = {
   LIST_AKTIFITAS_PENDUKUNG_ID: string;
   TARGET: string;
   BOBOT_TARGET: string;
+  /** true bila user mengetik bobot sendiri — baris ini dilewati auto-hitung */
+  BOBOT_MANUAL?: boolean;
 };
 
 export default function RencanaKegiatan() {
@@ -465,8 +467,70 @@ export default function RencanaKegiatan() {
   ) => {
     const newDetails = [...details];
     newDetails[index] = { ...newDetails[index], [field]: value };
+    if (field === 'BOBOT_TARGET') {
+      newDetails[index].BOBOT_MANUAL = true;
+    }
     setDetails(newDetails);
   };
+
+  // BOBOT_TARGET diinput dalam persen (0-100) agar intuitif bagi user,
+  // tetapi backend menyimpan pecahan 0-1 dan mewajibkan
+  // SUM(BOBOT_TARGET) seluruh detail = 1.0 (100%).
+  const bobotToFraction = (v: string) =>
+    Math.round((parseFloat(v) || 0) * 100) / 10000;
+
+  const totalBobotFraction = details.reduce(
+    (sum, d) => sum + bobotToFraction(d.BOBOT_TARGET),
+    0,
+  );
+  const totalBobotPersen = totalBobotFraction * 100;
+  const isBobotValid = Math.abs(totalBobotFraction - 1) < 0.0005;
+
+  // Aturan kanonik dari docs/Operasional Indikator Kinerja BAPPERIDA.xlsx
+  // sheet "Programmed": UTAMA 70% dibagi rata, PENDUKUNG 30% dibagi rata.
+  // Bila salah satu tipe tidak ada, seluruh 100% jatuh ke tipe yang tersedia
+  // supaya total tetap bisa mencapai 100%.
+  const hitungBobotPersen = (rows: RencanaDetailRow[]) => {
+    const nUtama = rows.filter(r => r.TIPE_AKTIFITAS === 'UTAMA').length;
+    const nPendukung = rows.length - nUtama;
+
+    if (nUtama > 0 && nPendukung > 0) {
+      return { UTAMA: 70 / nUtama, PENDUKUNG: 30 / nPendukung };
+    }
+    return {
+      UTAMA: nUtama > 0 ? 100 / nUtama : 0,
+      PENDUKUNG: nPendukung > 0 ? 100 / nPendukung : 0,
+    };
+  };
+
+  const terapkanBobotOtomatis = (
+    rows: RencanaDetailRow[],
+    paksaSemua = false,
+  ): RencanaDetailRow[] => {
+    const bobot = hitungBobotPersen(rows);
+    return rows.map(r =>
+      !paksaSemua && r.BOBOT_MANUAL
+        ? r
+        : {
+            ...r,
+            BOBOT_TARGET: bobot[r.TIPE_AKTIFITAS].toFixed(2),
+            BOBOT_MANUAL: paksaSemua ? false : r.BOBOT_MANUAL,
+          },
+    );
+  };
+
+  // Komposisi UTAMA/PENDUKUNG menentukan pembagi, jadi bobot dihitung ulang
+  // tiap kali jumlah atau tipe baris berubah. Baris yang sudah diketik manual
+  // tidak ikut ditimpa.
+  const komposisiDetail = details.map(d => d.TIPE_AKTIFITAS).join(',');
+  useEffect(() => {
+    if (formMode !== 'add' || details.length === 0) return;
+    const berikutnya = terapkanBobotOtomatis(details);
+    if (berikutnya.some((r, i) => r.BOBOT_TARGET !== details[i].BOBOT_TARGET)) {
+      setDetails(berikutnya);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [komposisiDetail, formMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -491,6 +555,16 @@ export default function RencanaKegiatan() {
           setIsSubmitting(false);
           return;
         }
+        if (!isBobotValid) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Bobot Target belum 100%',
+            text: `Total bobot seluruh detail aktifitas harus tepat 100%, saat ini ${totalBobotPersen.toFixed(2)}%.`,
+            confirmButtonColor: '#059669',
+          });
+          setIsSubmitting(false);
+          return;
+        }
         payload.DETAIL = details.map(d => ({
           TIPE_AKTIFITAS: d.TIPE_AKTIFITAS,
           LIST_AKTIFITAS_UTAMA_ID:
@@ -506,7 +580,7 @@ export default function RencanaKegiatan() {
                 : null
               : null,
           TARGET: Number(d.TARGET),
-          BOBOT_TARGET: parseFloat(d.BOBOT_TARGET) || 0,
+          BOBOT_TARGET: bobotToFraction(d.BOBOT_TARGET),
         }));
         await api.post('/api/rencana-kegiatan', payload);
       } else {
@@ -1107,6 +1181,32 @@ export default function RencanaKegiatan() {
                           Tambah
                         </button>
                       </div>
+                      <div
+                        className={`flex items-center justify-between px-3 py-2 mb-3 text-xs font-bold border rounded-lg ${
+                          isBobotValid
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            : 'bg-amber-50 border-amber-200 text-amber-700'
+                        }`}
+                      >
+                        <span className="uppercase">Total Bobot Target</span>
+                        <div className="flex items-center gap-2">
+                          <span className="tabular-nums">
+                            {totalBobotPersen.toFixed(2)}% / 100%
+                          </span>
+                          {details.some(d => d.BOBOT_MANUAL) && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDetails(terapkanBobotOtomatis(details, true))
+                              }
+                              title="Kembalikan ke aturan 70% utama / 30% pendukung"
+                              className="px-2 py-1 text-[10px] font-bold uppercase bg-white border rounded-md border-slate-300 text-slate-600 hover:bg-slate-50"
+                            >
+                              Hitung otomatis
+                            </button>
+                          )}
+                        </div>
+                      </div>
                       <div className="space-y-3">
                         {details.map((detail, index) => (
                           <div
@@ -1262,24 +1362,36 @@ export default function RencanaKegiatan() {
                                 />
                               </div>
                               <div>
-                                <label className="block mb-2 text-xs font-bold uppercase text-slate-700">
-                                  Bobot Target
+                                <label className="flex items-center gap-1.5 mb-2 text-xs font-bold uppercase text-slate-700">
+                                  Bobot Target (%)
+                                  {!detail.BOBOT_MANUAL && (
+                                    <span className="px-1.5 py-0.5 text-[9px] font-bold normal-case rounded bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                      otomatis
+                                    </span>
+                                  )}
                                 </label>
-                                <input
-                                  required
-                                  type="number"
-                                  min={0}
-                                  step="0.0001"
-                                  value={detail.BOBOT_TARGET}
-                                  onChange={e =>
-                                    handleDetailChange(
-                                      index,
-                                      'BOBOT_TARGET',
-                                      e.target.value,
-                                    )
-                                  }
-                                  className="w-full px-3 py-2 text-sm font-medium bg-white border rounded-lg border-slate-200 focus:ring-2 focus:ring-emerald-500"
-                                />
+                                <div className="relative">
+                                  <input
+                                    required
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    step="0.01"
+                                    placeholder="mis. 35"
+                                    value={detail.BOBOT_TARGET}
+                                    onChange={e =>
+                                      handleDetailChange(
+                                        index,
+                                        'BOBOT_TARGET',
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full py-2 pl-3 pr-8 text-sm font-medium bg-white border rounded-lg border-slate-200 focus:ring-2 focus:ring-emerald-500"
+                                  />
+                                  <span className="absolute text-xs font-bold -translate-y-1/2 pointer-events-none right-3 top-1/2 text-slate-400">
+                                    %
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1318,8 +1430,15 @@ export default function RencanaKegiatan() {
                       <button
                         type="button"
                         onClick={handleSubmit}
-                        disabled={isSubmitting}
-                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-sm transition-colors flex items-center gap-2 min-w-[120px] justify-center disabled:opacity-70"
+                        disabled={
+                          isSubmitting || (formMode === 'add' && !isBobotValid)
+                        }
+                        title={
+                          formMode === 'add' && !isBobotValid
+                            ? 'Total bobot target harus tepat 100%'
+                            : undefined
+                        }
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-sm transition-colors flex items-center gap-2 min-w-[120px] justify-center disabled:opacity-70 disabled:cursor-not-allowed"
                       >
                         {isSubmitting && (
                           <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin" />
