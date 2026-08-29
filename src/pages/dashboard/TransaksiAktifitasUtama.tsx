@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Search, CheckCircle2, XCircle, Eye, X } from 'lucide-react';
-import api from '../../services/api.js';
+import api from '../../services/api';
 import Pagination from '../../components/Pagination';
 
 interface TransAktifitasUtama {

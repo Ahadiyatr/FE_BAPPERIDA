@@ -1,0 +1,20 @@
+// Barrel — komponen memanggil `import { getProgram } from "@/services"`,
+// bukan menunjuk file service satu-satu. Memudahkan Fase 6 kalau susunan
+// file service berubah tanpa mengubah import di tiap halaman.
+export * from "./types"
+export * from "./program.service"
+export * from "./kegiatan.service"
+export * from "./subkegiatan.service"
+export * from "./aktifitas.service"
+export * from "./bidang.service"
+export * from "./periode.service"
+export * from "./user.service"
+export * from "./realisasi.service"
+export * from "./rencana.service"
+export * from "./capaian.service"
+export * from "./monitoring.service"
+export * from "./dokumen.service"
+export * from "./log.service"
+export * from "./laporan.service"
+export * from "./excel-import.service"
+export * from "./sesi"

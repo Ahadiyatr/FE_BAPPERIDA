@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════
+   OPERA INK — token desain
+   Format shadcn cssVariables (Tailwind v3, HSL tanpa fungsi hsl()).
+   baseColor neutral tetap dipakai untuk abu-abu; yang ditimpa di sini
+   hanya warna yang membawa makna.
+
+   Catatan Tailwind v4: kalau repo sudah pindah ke v4, pindahkan blok
+   :root ini apa adanya, lalu ganti tailwind.config.js dengan
+   @theme inline { --color-brass: var(--brass); ... } di file yang sama.
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* ── permukaan ────────────────────────────────────────────── */
+    --background: 216 16% 94%;   /* kertas, latar halaman */
+    --foreground: 211 53% 11%;   /* ink */
+
+    --card: 0 0% 100%;
+    --card-foreground: 211 53% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 211 53% 11%;
+
+    /* ── aksi ─────────────────────────────────────────────────── */
+    --primary: 211 53% 11%;      /* navy — tombol utama, bukan brass */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 214 20% 96%;
+    --secondary-foreground: 211 53% 11%;
+
+    --muted: 214 20% 95%;
+    --muted-foreground: 214 16% 44%;
+
+    --accent: 38 57% 44%;        /* brass */
+    --accent-foreground: 211 53% 11%;
+
+    --destructive: 8 57% 42%;    /* rust */
+    --destructive-foreground: 0 0% 100%;
+
+    /* ── garis ────────────────────────────────────────────────── */
+    --border: 214 20% 86%;
+    --input: 214 20% 86%;
+    --ring: 38 57% 44%;          /* fokus selalu brass */
+
+    /* ── sidebar (rail navy) ──────────────────────────────────── */
+    --sidebar-background: 211 53% 11%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 38 57% 44%;
+    --sidebar-primary-foreground: 211 53% 11%;
+    --sidebar-accent: 211 42% 17%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 211 40% 20%;
+    --sidebar-ring: 38 57% 44%;
+
+    /* ── token khas OPERA ─────────────────────────────────────── */
+    --brass: 38 57% 44%;          /* aktifitas UTAMA, aksen, fokus */
+    --brass-tint: 40 55% 90%;
+    --teal: 175 77% 26%;          /* aktifitas PENDUKUNG, status baik */
+    --teal-tint: 168 33% 90%;
+    --amber: 41 89% 40%;          /* status draf / perlu perhatian */
+    --amber-tint: 44 82% 90%;
+    --rust: 8 57% 42%;            /* status tertinggal / galat */
+    --rust-tint: 14 60% 91%;
+
+    --ledger: 211 53% 11%;        /* latar buku besar bobot */
+    --ledger-foreground: 0 0% 100%;
+
+    --radius: 0.1875rem;          /* 3px — sudut tajam, bukan bulat */
+  }
+
+  /* Mode gelap belum dirancang. Kalau repo membutuhkannya, permukaan
+     dibalik tapi brass/teal/amber/rust dinaikkan lightness-nya ~12%
+     supaya tetap lolos kontras di atas latar gelap. */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11";
+  }
+  /* Angka selalu sejajar — penting untuk tabel capaian */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}

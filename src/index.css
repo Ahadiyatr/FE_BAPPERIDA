@@ -1,13 +1,20 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+@import "tailwindcss";
 @import "tw-animate-css";
 @import "@fontsource-variable/geist";
 
 @custom-variant dark (&:is(.dark *));
 
-/* ================= THEME ================= */
+/* ═══════════════════════════════════════════════════════════════
+   Token asli FE BAPPERIDA — hijau/kuning, Geist, radius bawaan.
+   Berkas ini sudah berformat Tailwind v4 sejak awal; dulu ia tidak
+   pernah bekerja karena repo masih menjalankan v3, sehingga
+   tailwind.config.js membungkusnya jadi hsl(oklch(...)) yang invalid.
+   Sekarang repo memakai v4 dan blok ini berlaku apa adanya.
+
+   Skala radius SENGAJA tidak dipetakan ulang: rounded-lg/xl/2xl tetap
+   nilai bawaan Tailwind, supaya seluruh halaman lama tidak bergeser.
+   ═══════════════════════════════════════════════════════════════ */
+
 @theme inline {
     --font-sans: 'Geist Variable', sans-serif;
 
@@ -33,12 +40,11 @@
     --color-accent-foreground: var(--accent-foreground);
 
     --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
 
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
-
-    --radius: 0.75rem;
 }
 
 /* ================= ROOT ================= */
@@ -65,10 +71,13 @@
     --accent-foreground: oklch(0.2 0 0);
 
     --destructive: oklch(0.6 0.25 30);
+    --destructive-foreground: oklch(0.98 0 0);
 
     --border: oklch(0.9 0 0);
     --input: oklch(0.9 0 0);
     --ring: oklch(0.55 0.15 140);
+
+    --radius: 0.75rem;
 }
 
 /* ================= DARK ================= */
@@ -88,8 +97,8 @@
 /* ================= BASE ================= */
 @layer base {
   * {
-    /* 🔥 FIX: jangan pakai border-border langsung */
-    border-color: hsl(var(--border));
+    /* var() langsung — bukan hsl(), karena nilainya oklch */
+    border-color: var(--border);
   }
 
   body {
@@ -98,5 +107,25 @@
 
   html {
     font-family: 'Geist Variable', sans-serif;
+  }
+
+  /* Angka sejajar untuk kolom capaian. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Tailwind v4 mengubah dua bawaan ini. Dikunci ke perilaku v3 supaya
+   99 pemakaian shadow-sm dan 48 outline-none di halaman lama tidak
+   bergeser sedikit pun. */
+@layer utilities {
+  .shadow-sm {
+    --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
+                var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+  .outline-none {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
   }
 }

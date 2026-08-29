@@ -91,7 +91,7 @@ export function AuthedImage({
   badge?: ReactNode;
 }) {
   const { url, loading, error } = useAuthedBlobUrl(
-    lampiranId ? `/api/realisasi-lampiran/${lampiranId}/preview` : null
+    lampiranId ? `/lampiran/${lampiranId}/preview` : null
   );
 
   if (loading) return <LoadingBox className={className} />;
@@ -107,7 +107,7 @@ export function AuthedImage({
 
 export function DocumentPreview({ id, ext }: { id: number; ext: string }) {
   const isPdf = (ext || "").toLowerCase() === "pdf";
-  const apiPath = `/api/realisasi-lampiran/${id}/preview`;
+  const apiPath = `/lampiran/${id}/preview`;
   const { url, loading, error } = useAuthedBlobUrl(isPdf ? apiPath : null);
 
   if (isPdf) {

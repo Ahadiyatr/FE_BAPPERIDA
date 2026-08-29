@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Activity, LogIn } from "lucide-react";
+import { ArrowRight, Activity } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -19,7 +19,8 @@ import {
   PolarRadiusAxis,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import api from "../services/api";
+import { apiMessage } from "../services/api";
+import { getLandingPublik } from "../services/public-dashboard.service";
 
 // Modern Green to Yellow Palette
 const COLORS = [
@@ -27,36 +28,29 @@ const COLORS = [
   "#0f766e", "#14b8a6", "#2dd4bf", "#65a30d", "#ca8a04", "#d97706", "#b45309"
 ];
 
-const RADIAN = Math.PI / 180;
-const renderCustomizedLabel = ({
-  cx,
-  cy,
-  midAngle,
-  innerRadius,
-  outerRadius,
-  percent,
-  index,
-  name,
-  distribution,
-  color,
-}: any) => {
-  const radius = outerRadius * 1.2;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+const ringkasNamaBidang = (nama: string) => {
+  const label: Record<string, string> = {
+    "Pemerintahan dan Pembangunan Manusia": "Pemerintahan & SDM",
+    "Perekonomian, Infrastruktur dan Kewilayahan": "Ekonomi & Infrastruktur",
+    "Perencanaan, Pengendalian dan Evaluasi Pembangunan Daerah": "Perencanaan & Evaluasi",
+    "Riset dan Inovasi Daerah": "Riset & Inovasi",
+  };
+
+  return label[nama] ?? nama;
+};
+
+const DonutTooltip = ({ active, payload }: any) => {
+  const bidang = payload?.[0]?.payload;
+
+  if (!active || !bidang) return null;
 
   return (
-    <text
-      x={x}
-      y={y}
-      fill={color}
-      textAnchor={x > cx ? "start" : "end"}
-      dominantBaseline="central"
-      fontSize={13}
-      fontWeight={600}
-      className="drop-shadow-sm"
-    >
-      {`${name} ${distribution ? distribution + '%' : ''}`}
-    </text>
+    <div className="max-w-64 rounded-xl border border-emerald-100 bg-white px-4 py-3 shadow-xl shadow-slate-900/10">
+      <p className="text-sm font-bold leading-snug text-slate-800">{bidang.name}</p>
+      <p className="mt-1 text-xs font-semibold text-emerald-700">
+        Proporsi subkegiatan: {Number(bidang.distribution).toFixed(2)}%
+      </p>
+    </div>
   );
 };
 
@@ -67,44 +61,19 @@ export default function Landing() {
   const [bidang, setBidang] = useState<any[]>([]);
   const [distribusi, setDistribusi] = useState<any[]>([]);
   const [radar, setRadar] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const response = await api.get("/api/dashboard");
-        if (response.data.success) {
-          const { summary, bidang, distribusi, radar } = response.data.data;
-          
-          setSummary(summary);
-          
-          if (bidang && bidang.length > 0) {
-            setBidang(bidang.map((b: any, i: number) => ({
-              ...b,
-              name: b.NAMA_BIDANG ?? b.nama_bidang ?? b.name,
-              achievement: Number(b.RATA_CAPAIAN ?? b.rata_capaian ?? b.PERSENTASE ?? b.persentase ?? b.achievement ?? 0),
-              color: COLORS[i % COLORS.length]
-            })));
-          }
-          
-          if (distribusi && distribusi.length > 0) {
-            setDistribusi(distribusi.map((d: any, i: number) => ({
-              ...d,
-              name: d.NAMA_BIDANG ?? d.nama_bidang ?? d.name,
-              distribution: Number(d.PERSENTASE ?? d.persentase ?? d.distribution ?? 0),
-              color: COLORS[i % COLORS.length]
-            })));
-          }
-          
-          if (radar && radar.length > 0) {
-            setRadar(radar.map((r: any) => ({
-              ...r,
-              name: r.LABEL ?? r.label ?? r.name,
-              achievement: Number(r.VALUE ?? r.value ?? r.achievement ?? 0),
-            })));
-          }
-        }
+        const data = await getLandingPublik();
+        setSummary(data.summary);
+        setBidang(data.bidang.map((b, i) => ({ ...b, name: b.nama_bidang, label: ringkasNamaBidang(b.nama_bidang), achievement: b.capaian_bidang, color: COLORS[i % COLORS.length] })));
+        setDistribusi(data.distribusi.map((d, i) => ({ ...d, name: d.nama_bidang, distribution: d.persentase, color: COLORS[i % COLORS.length] })));
+        setRadar(data.radar.map((r) => ({ name: ringkasNamaBidang(r.label), achievement: r.value })));
       } catch (err) {
         console.error("Failed to fetch dashboard data", err);
+        setError(apiMessage(err, "Gagal memuat dashboard publik."));
       } finally {
         setLoading(false);
       }
@@ -145,33 +114,35 @@ export default function Landing() {
            <div className="flex justify-center items-center h-64">
               <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
            </div>
+        ) : error ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-5 text-red-700">{error}</div>
         ) : (
           <>
             {/* Top Section */}
             <div className="bg-white/60 backdrop-blur-xl border border-white/40 shadow-xl shadow-emerald-900/5 rounded-[2rem] flex flex-col md:flex-row items-center justify-center py-12 px-8 gap-12 relative overflow-hidden">
               <div className="text-center md:text-left flex flex-col items-center md:items-start relative z-10">
                 <div className="text-8xl font-black tracking-tighter bg-gradient-to-br from-emerald-600 to-yellow-500 bg-clip-text text-transparent leading-none mb-4 drop-shadow-sm">
-                  {Number(summary?.RATA_CAPAIAN_KESELURUHAN ?? summary?.rata_capaian_keseluruhan ?? summary?.CAPAIAN_RATA_RATA ?? summary?.capaian_rata_rata ?? 0).toFixed(2)}%
+                  {Number(summary?.capaian_pd ?? 0).toFixed(2)}%
                 </div>
                 <div className="text-xl text-slate-800 font-bold tracking-wide">
                   Capaian Keseluruhan
                 </div>
                 <div className="text-sm text-emerald-700 font-semibold bg-emerald-100/80 px-4 py-1.5 rounded-full mt-3 border border-emerald-200/50 shadow-sm">
-                  {summary?.TOTAL_SUBKEGIATAN ?? summary?.total_subkegiatan ?? summary?.TOTAL_PROGRAM ?? summary?.total_program ?? '0'} program · {summary?.TOTAL_BIDANG ?? summary?.total_bidang ?? '0'} bidang
+                  {summary?.jumlah_program ?? 0} program · {summary?.jumlah_bidang ?? 0} bidang
                 </div>
               </div>
 
-              <div className="h-[320px] w-full max-w-[500px] relative z-10">
-                <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 500, height: 320 }}>
+              <div className="relative z-10 h-[380px] w-full max-w-[500px]">
+                <ResponsiveContainer className="relative z-10" width="100%" height="100%" initialDimension={{ width: 500, height: 320 }}>
                   <PieChart>
                     <Pie
                       data={distribusi}
                       cx="50%"
-                      cy="50%"
-                      labelLine={{ stroke: '#94a3b8', strokeWidth: 1 }}
-                      label={renderCustomizedLabel}
+                      cy="38%"
+                      labelLine={false}
+                      label={false}
                       innerRadius={60}
-                      outerRadius={100}
+                      outerRadius={92}
                       paddingAngle={2}
                       dataKey="distribution"
                       nameKey="name"
@@ -181,11 +152,24 @@ export default function Landing() {
                         <Cell key={`cell-${index}`} fill={entry.color} className="hover:opacity-80 transition-opacity duration-300 cursor-pointer" />
                       ))}
                     </Pie>
+                    <RechartsTooltip
+                      cursor={false}
+                      content={<DonutTooltip />}
+                      wrapperStyle={{ zIndex: 30, pointerEvents: "none" }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
                 {/* Center decorative circle */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-white rounded-full shadow-inner flex items-center justify-center">
+                <div className="pointer-events-none absolute z-0 left-1/2 top-[38%] flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-inner">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-50 to-yellow-50 border border-emerald-100/50"></div>
+                </div>
+                <div className="absolute inset-x-4 bottom-1 flex flex-wrap justify-center gap-x-3 gap-y-1.5 text-[11px] font-semibold text-slate-600">
+                  {distribusi.map((item) => (
+                    <div key={item.bidang_id} className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span>{ringkasNamaBidang(item.name)}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -201,28 +185,29 @@ export default function Landing() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <div className="h-[320px] w-full">
+                  <div className="h-[340px] w-full">
                     <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 500, height: 320 }}>
                       <BarChart
                         data={bidang}
-                        margin={{ top: 20, right: 30, left: -20, bottom: 5 }}
+                        layout="vertical"
+                        margin={{ top: 8, right: 28, left: 16, bottom: 4 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                         <XAxis
-                          dataKey="name"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
-                          interval={0}
-                          dy={10}
-                        />
-                        <YAxis
+                          type="number"
                           axisLine={false}
                           tickLine={false}
                           tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
                           domain={[0, 100]}
                           ticks={[0, 25, 50, 75, 100]}
-                          dx={-10}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="label"
+                          width={165}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 10, fill: "#475569", fontWeight: 600 }}
                         />
                         <RechartsTooltip
                           cursor={{ fill: "#f8fafc", opacity: 0.6 }}
@@ -235,7 +220,7 @@ export default function Landing() {
                             fontWeight: 600
                           }}
                         />
-                        <Bar dataKey="achievement" radius={[6, 6, 0, 0]} maxBarSize={50}>
+                        <Bar dataKey="achievement" radius={[0, 6, 6, 0]} maxBarSize={32} label={{ position: "right", fill: "#475569", fontSize: 11, fontWeight: 700, formatter: (value) => `${Number(value).toFixed(1)}%` }}>
                           {bidang.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} className="hover:opacity-80 transition-opacity duration-300 cursor-pointer" />
                           ))}
@@ -255,13 +240,13 @@ export default function Landing() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <div className="h-[320px] w-full">
+                  <div className="h-[340px] w-full">
                     <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 500, height: 320 }}>
-                      <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radar}>
+                      <RadarChart cx="50%" cy="50%" outerRadius="58%" data={radar}>
                         <PolarGrid stroke="#e2e8f0" />
                         <PolarAngleAxis
                           dataKey="name"
-                          tick={{ fill: "#475569", fontSize: 11, fontWeight: 600 }}
+                          tick={{ fill: "#475569", fontSize: 10, fontWeight: 600 }}
                         />
                         <PolarRadiusAxis
                           angle={30}
@@ -300,12 +285,12 @@ export default function Landing() {
             </div>
 
             {/* Cards Section */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-5">
+            <div className="grid grid-flow-col grid-rows-1 auto-cols-[minmax(9rem,1fr)] gap-5 overflow-x-auto pb-2">
               {bidang.map((item) => (
-                <Card key={item.name} className="bg-white/80 backdrop-blur-md border-white/60 shadow-lg shadow-emerald-900/5 hover:shadow-xl hover:shadow-emerald-900/10 hover:-translate-y-1.5 transition-all duration-300 overflow-hidden group">
+                <Card key={item.name} className="group min-h-56 overflow-hidden border-white/60 bg-white/80 shadow-lg shadow-emerald-900/5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-900/10 backdrop-blur-md">
                   <div className="h-1.5 w-full transition-all duration-300 group-hover:h-2" style={{ backgroundColor: item.color }}></div>
-                  <CardContent className="p-5 flex flex-col items-center text-center space-y-3">
-                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest h-8 flex items-center justify-center">
+                  <CardContent className="flex h-full flex-col items-center space-y-3 p-5 text-center">
+                    <div className="flex h-16 items-center justify-center text-[11px] font-bold uppercase leading-relaxed tracking-wider text-slate-500">
                       {item.name}
                     </div>
                     <div
@@ -314,10 +299,10 @@ export default function Landing() {
                     >
                       {Number(item.achievement).toFixed(1)}%
                     </div>
-                    {item.BIDANG_ID && (
+                    {item.bidang_id && (
                       <button 
-                        onClick={() => navigate(`/detail?bidang=${item.BIDANG_ID}&nama=${encodeURIComponent(item.name)}&score=${item.achievement}`)}
-                        className="text-[11px] font-semibold text-slate-400 hover:text-emerald-600 flex items-center gap-1 mt-2 transition-colors"
+                        onClick={() => navigate(`/detail?bidang=${item.bidang_id}`)}
+                        className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-slate-400 transition-colors hover:text-emerald-600"
                       >
                         Lihat Detail <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                       </button>

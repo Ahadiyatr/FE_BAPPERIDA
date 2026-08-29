@@ -1,355 +1,201 @@
-import { useState, useEffect, useRef } from 'react';
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import api from '../services/api.js';
+import { useState } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Database,
-  Target,
+  Activity,
   BarChart2,
-  Layers,
   Calendar,
-  Link as LinkIcon,
-  ListTodo,
   CheckSquare,
+  Database,
+  LayoutDashboard,
+  Layers,
   LogOut,
   Menu,
-  X,
-  Activity,
   PanelLeftClose,
   PanelLeftOpen,
-  BookType,
-  LibraryBig,
+  Table2,
+  Target,
+  X,
 } from 'lucide-react';
+import { LABEL_PERAN, bolehAkses, usePeran } from '@/lib/peran';
 
-const sidebarLinks: any[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { Heading: 'Master Data' },
-  { name: 'Periode', href: '/master/periode', icon: Calendar },
-  { name: 'Program', href: '/master/program', icon: Database },
-  { name: 'Bidang', href: '/master/bidang', icon: Layers },
+const semuaMenu = [
   {
-    name: 'User',
-    href: '/master/user',
-    icon: Database,
+    label: 'Ringkasan',
+    items: [
+      {
+        name: 'Dashboard',
+        href: '/dashboard',
+        icon: LayoutDashboard,
+        catatan: 'Sebagian mock · daftar tertinggal',
+      },
+      { name: 'Monitoring Kinerja', href: '/monitoring', icon: Table2 },
+      { name: 'Struktur Program', href: '/struktur', icon: Layers },
+      { name: 'Capaian Program', href: '/capaian-program', icon: BarChart2 },
+    ],
   },
   {
-    name: 'Indikator Utama',
-    href: '/master/indikator-utama',
-    icon: LibraryBig,
+    label: 'Perencanaan',
+    items: [
+      { name: 'Periode', href: '/periode', icon: Calendar },
+      { name: 'Penyusunan Rencana', href: '/rencana', icon: Target },
+      { name: 'Rencana Saya', href: '/rencana-saya', icon: Target },
+    ],
   },
   {
-    name: 'Indikator Sub',
-    href: '/master/indikator',
-    icon: BarChart2,
+    label: 'Pelaksanaan',
+    items: [
+      { name: 'Catat Realisasi', href: '/realisasi', icon: CheckSquare },
+      { name: 'Bukti Kegiatan', href: '/bukti', icon: Database },
+    ],
   },
   {
-    name: 'Aktifitas Utama',
-    href: '/master/aktifitas-utama',
-    icon: Activity,
-  },
-  // {
-  //   name: 'Aktifitas Utama',
-  //   href: '/dashboard/transaksi-aktifitas-utama',
-  //   icon: LinkIcon,
-  // },
-  {
-    name: 'Aktifitas Pendukung',
-    href: '/master/jenis-kegiatan',
-    icon: BookType,
-  },
-  { Heading: 'Transaksi' },
-  {
-    name: 'Indikator Bidang',
-    href: '/dashboard/transaksi-indikator-bidang',
-    icon: LinkIcon,
+    label: 'Administrasi',
+    items: [
+      { name: 'Dokumen', href: '/master-dokumen', icon: Database },
+      { name: 'Data Master', href: '/master/program', icon: Database },
+      { name: 'Bidang', href: '/master-bidang', icon: Layers },
+      { name: 'Pengguna', href: '/pengguna', icon: Database },
+    ],
   },
   {
-    name: 'Indikator Detail',
-    href: '/dashboard/transaksi-indikator-detail',
-    icon: ListTodo,
-  },
-
-  { Heading: 'Renacana & Realisasi' },
-  {
-    name: 'Rencana & Capaian Kegiatan',
-    href: '/dashboard/rencana-kegiatan',
-    icon: Target,
-  },
-  {
-    name: 'Realisasi Kegiatan',
-    href: '/dashboard/transaksi-realisasi-kegiatan',
-    icon: CheckSquare,
+    label: 'Log',
+    items: [{ name: 'Log Aktivitas', href: '/log', icon: Database }],
   },
 ];
 
-// TEMPORARY: set to true to bypass the login/session check below.
-// Revert to false before shipping to production.
-const BYPASS_AUTH = true;
-
 export default function DashboardLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(!BYPASS_AUTH);
-  const [user, setUser] = useState<any>(null);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const location = useLocation();
+  const [terbuka, setTerbuka] = useState(false);
+  const [ringkas, setRingkas] = useState(false);
+  const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { peran, user, memuat, logout } = usePeran();
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(e.target as Node)
-      ) {
-        setUserMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (BYPASS_AUTH) {
-      return;
-    }
-
-    const checkAuth = async () => {
-      try {
-        // Memanggil endpoint user untuk memastikan sesi valid
-        // (Akan menggunakan token dari localStorage atau cookie Sanctum)
-        const response = await api.get('/api/user');
-
-        // Sesuaikan dengan struktur response backend Laravel
-        // Bisa di response.data, response.data.data, atau response.data.user
-        const userData =
-          response.data?.data || response.data?.user || response.data;
-        setUser(userData);
-      } catch (error: any) {
-        console.error('Auth check failed:', error);
-        // Hapus token yang tidak valid
-        localStorage.removeItem('token');
-        // Jika gagal (misal 401 Unauthorized), arahkan ke halaman login
-        navigate('/login');
-      } finally {
-        // Pastikan loading state dimatikan baik saat sukses maupun gagal
-        setIsCheckingAuth(false);
-      }
-    };
-
-    checkAuth();
-  }, [navigate]);
-
-  const handleLogout = async () => {
-    try {
-      // hit logout API
-      await api.post(
-        '/api/logout',
-        {},
-        {
-          withCredentials: true,
-        },
-      );
-
-      // hapus data lokal (kalau ada)
-      localStorage.removeItem('token');
-
-      // redirect ke login
-      navigate('/login');
-    } catch (error: any) {
-      console.error('Logout gagal:', error.response?.data || error.message);
-
-      // kalau token/session sudah tidak valid → paksa logout frontend
-      if (error.response?.status === 401) {
-        localStorage.removeItem('token');
-        navigate('/login');
-      }
-    }
+  const keluar = async () => {
+    await logout();
+    navigate('/login', { replace: true });
   };
 
-  if (isCheckingAuth) {
+  if (memuat)
     return (
-      <div className="flex items-center justify-center min-h-screen font-sans bg-slate-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 rounded-full border-emerald-500 border-t-transparent animate-spin"></div>
-          <p className="font-medium text-slate-500">Memeriksa sesi login...</p>
-        </div>
+      <div className="grid min-h-screen text-sm place-items-center text-slate-500">
+        Memeriksa sesi…
       </div>
     );
-  }
 
   return (
     <div className="flex h-screen overflow-hidden font-sans bg-slate-50">
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+      {terbuka && (
+        <button
+          aria-label="Tutup menu"
+          className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden"
+          onClick={() => setTerbuka(false)}
         />
       )}
-
-      {/* Sidebar */}
-      <div
-        className={`
-        fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col h-full
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        ${collapsed ? 'lg:w-16' : 'lg:w-72'}
-        w-72
-      `}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white transition-all lg:static ${terbuka ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${ringkas ? 'lg:w-20' : 'lg:w-72'}`}
       >
-        {/* Sidebar header */}
-        <div
-          className={`flex items-center h-16 px-4 border-b border-slate-100 ${collapsed ? 'justify-center' : 'justify-between'}`}
-        >
-          <Link to="/" className="flex items-center min-w-0 gap-3">
-            <div className="shrink-0 bg-gradient-to-br from-emerald-500 to-yellow-400 p-1.5 rounded-lg shadow-sm">
-              <Activity className="w-5 h-5 text-white" />
-            </div>
-            {!collapsed && (
-              <span className="font-bold tracking-tight truncate text-slate-800">
-                OPERA-INK
+        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-100">
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-3 overflow-hidden"
+          >
+            <span className="p-2 text-white rounded-lg bg-emerald-600">
+              <Activity className="w-5 h-5" />
+            </span>
+            {!ringkas && (
+              <span className="font-bold whitespace-nowrap text-slate-800">
+                OPERA INK
               </span>
             )}
           </Link>
-          {/* Mobile close */}
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-slate-500 shrink-0"
-          >
-            <X className="w-6 h-6" />
+          <button className="lg:hidden" onClick={() => setTerbuka(false)}>
+            <X className="w-5 h-5" />
           </button>
         </div>
-
-        <div
-          className={`flex-1 py-4 space-y-1 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}
-        >
-          {sidebarLinks.map((link, idx) => {
-            if (link.Heading) {
-              if (collapsed) {
-                return (
-                  <div
-                    key={`divider-${idx}`}
-                    className="my-1 border-t border-slate-100"
-                  />
-                );
-              }
-              return (
-                <div
-                  key={`heading-${idx}`}
-                  className="px-3 pt-4 pb-1 text-xs font-bold tracking-wider uppercase select-none text-slate-400"
-                >
-                  {link.Heading}
-                </div>
-              );
-            }
-            const isActive = location.pathname === link.href;
-            const Icon = link.icon;
+        <nav className="flex-1 p-3 space-y-5 overflow-y-auto">
+          {semuaMenu.map(kelompok => {
+            const items = kelompok.items.filter(item =>
+              bolehAkses(peran, item.href),
+            );
+            if (!items.length) return null;
             return (
-              <Link
-                key={link.href || `link-${idx}`}
-                to={link.href}
-                onClick={() => setSidebarOpen(false)}
-                title={collapsed ? link.name : undefined}
-                className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
-                  ${collapsed ? 'justify-center' : ''}
-                  ${isActive ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
-                `}
-              >
-                <Icon
-                  className={`w-5 h-5 shrink-0 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`}
-                />
-                {!collapsed && link.name}
-              </Link>
+              <div key={kelompok.label}>
+                {!ringkas && (
+                  <p className="mb-1 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {kelompok.label}
+                  </p>
+                )}
+                {items.map(item => {
+                  const aktif =
+                    pathname === item.href ||
+                    (item.href.includes('/master/') &&
+                      pathname.startsWith('/master/'));
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      title={
+                        ringkas
+                          ? `${item.name}${item.catatan ? ` — ${item.catatan}` : ''}`
+                          : undefined
+                      }
+                      onClick={() => setTerbuka(false)}
+                      className={`mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${aktif ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'} ${ringkas ? 'justify-center' : ''}`}
+                    >
+                      <Icon className="w-5 h-5 shrink-0" />
+                      {!ringkas && (
+                        <span className="min-w-0">
+                          <span className="block">{item.name}</span>
+                          {item.catatan && (
+                            <span className="block text-[10px] font-normal leading-3 text-amber-600">
+                              {item.catatan}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
-        </div>
-
-        <div
-          className={`border-t border-slate-100 ${collapsed ? 'p-2' : 'p-4'}`}
+        </nav>
+        <button
+          onClick={keluar}
+          className={`m-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 ${ringkas ? 'justify-center' : ''}`}
         >
-          <button
-            onClick={handleLogout}
-            title={collapsed ? 'Logout' : undefined}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 w-full transition-colors ${collapsed ? 'justify-center' : ''}`}
-          >
-            <LogOut className="w-5 h-5 shrink-0" />
-            {!collapsed && 'Logout'}
+          <LogOut className="w-5 h-5" />
+          {!ringkas && 'Keluar'}
+        </button>
+      </aside>
+      <section className="flex flex-col flex-1 min-w-0">
+        <header className="flex items-center justify-between h-16 px-4 bg-white border-b border-slate-200 sm:px-6">
+          <button className="lg:hidden" onClick={() => setTerbuka(true)}>
+            <Menu className="w-5 h-5" />
           </button>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex flex-col flex-1 h-full min-w-0 overflow-hidden">
-        {/* Top header */}
-        <header className="z-10 flex items-center justify-between h-16 px-4 bg-white border-b border-slate-200 sm:px-6 lg:px-8">
           <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-slate-500 hover:text-slate-700"
+            className="hidden lg:block"
+            onClick={() => setRingkas(v => !v)}
           >
-            <Menu className="w-6 h-6" />
+            {ringkas ? (
+              <PanelLeftOpen className="w-5 h-5" />
+            ) : (
+              <PanelLeftClose className="w-5 h-5" />
+            )}
           </button>
-
-          <div className="flex items-center justify-end flex-1 gap-3">
-            <div className="hidden text-sm font-medium text-slate-700 sm:block">
-              {user?.name || 'Admin Bapperrida'}
-            </div>
-            <div className="relative" ref={userMenuRef}>
-              <button
-                onClick={() => setUserMenuOpen(prev => !prev)}
-                aria-haspopup="menu"
-                aria-expanded={userMenuOpen}
-                title="Menu akun"
-                className="flex items-center justify-center w-8 h-8 font-bold uppercase transition-colors rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-              >
-                {user?.name ? user.name.charAt(0) : 'A'}
-              </button>
-
-              {userMenuOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 z-30 mt-2 overflow-hidden bg-white border shadow-lg top-full w-60 rounded-xl border-slate-200"
-                >
-                  <div className="px-4 py-3 border-b border-slate-100">
-                    <p className="text-sm font-semibold truncate text-slate-800">
-                      {user?.name || 'Admin Bapperrida'}
-                    </p>
-                    <p className="text-xs truncate text-slate-500">
-                      {user?.email || '-'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      handleLogout();
-                    }}
-                    className="flex items-center w-full gap-2 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-            <button
-              onClick={() => setCollapsed(prev => !prev)}
-              className="items-center justify-center hidden w-8 h-8 transition-colors rounded-lg lg:flex text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-              title={collapsed ? 'Buka sidebar' : 'Tutup sidebar'}
-            >
-              {collapsed ? (
-                <PanelLeftOpen className="w-5 h-5" />
-              ) : (
-                <PanelLeftClose className="w-5 h-5" />
-              )}
-            </button>
+          <div className="ml-auto text-right">
+            <p className="text-sm font-semibold text-slate-800">{user?.name}</p>
+            <p className="text-xs text-slate-500">
+              {LABEL_PERAN[peran]}
+              {user?.bidang[0] ? ` · ${user.bidang[0].nama_bidang}` : ''}
+            </p>
           </div>
         </header>
-
-        {/* Main scrollable area */}
-        <main className="flex-1 p-4 overflow-y-auto bg-slate-50 sm:p-6 lg:p-8">
+        <main className="flex-1 p-4 overflow-y-auto sm:p-6 lg:p-8">
           <Outlet />
         </main>
-      </div>
+      </section>
     </div>
   );
 }

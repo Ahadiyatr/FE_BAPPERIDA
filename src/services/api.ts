@@ -1,20 +1,55 @@
-import axios from 'axios';
+import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios"
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000',
+export interface ApiEnvelope<T> {
+  success: boolean
+  data: T
+  message?: string
+  errors?: Record<string, string[]>
+}
+
+const appUrl = (import.meta.env.VITE_BACKEND_URL || "http://localhost:8000").replace(/\/$/, "")
+
+export const api = axios.create({
+  baseURL: `${appUrl}/api/v1`,
   withCredentials: true,
-  headers: {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-  },
-});
+  // Port Vite dan Laravel berbeda sehingga request adalah cross-origin.
+  // Axios perlu flag ini agar cookie XSRF-TOKEN juga menjadi header X-XSRF-TOKEN.
+  withXSRFToken: true,
+  headers: { Accept: "application/json" },
+  xsrfCookieName: "XSRF-TOKEN",
+  xsrfHeaderName: "X-XSRF-TOKEN",
+})
 
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+export const ensureCsrf = () => axios.get(`${appUrl}/sanctum/csrf-cookie`, {
+  withCredentials: true,
+  headers: { Accept: "application/json" },
+})
+
+type RetryableConfig = InternalAxiosRequestConfig & { _csrfRetried?: boolean }
+
+api.interceptors.response.use(response => response, async (error: AxiosError) => {
+  const config = error.config as RetryableConfig | undefined
+  if (error.response?.status === 419 && config && !config._csrfRetried) {
+    config._csrfRetried = true
+    await ensureCsrf()
+    return api.request(config)
   }
-  return config;
-});
+  if (error.response?.status === 401 && window.location.pathname !== "/login") {
+    window.dispatchEvent(new CustomEvent("opera:unauthorized"))
+  }
+  return Promise.reject(error)
+})
 
-export default api;
+export function dataOf<T>(response: { data: ApiEnvelope<T> }): T {
+  return response.data.data
+}
+
+export function apiMessage(error: unknown, fallback = "Terjadi kesalahan."): string {
+  if (axios.isAxiosError(error)) {
+    const body = error.response?.data as Partial<ApiEnvelope<unknown>> | undefined
+    return body?.message || fallback
+  }
+  return error instanceof Error ? error.message : fallback
+}
+
+export default api

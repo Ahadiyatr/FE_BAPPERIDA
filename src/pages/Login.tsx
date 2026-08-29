@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Activity, LogIn, Mail, Lock } from "lucide-react";
 import Swal from "sweetalert2";
-import api from "../services/api";
+import { apiMessage } from "../services/api";
+import { usePeran } from "../lib/peran";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login, user, memuat } = usePeran();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,30 +19,13 @@ export default function Login() {
     setError("");
 
     try {
-      // 1. Ambil CSRF cookie (WAJIB untuk Sanctum)
-      await api.get("/sanctum/csrf-cookie");
-
-      // 2. Kirim login ke backend
-      const response = await api.post("/api/login", {
-        email,
-        password,
-      });
-
-      console.log("Login sukses:", response.data);
-
-      // Simpan token ke localStorage jika ada
-      const token = response.data.token || response.data.data?.token;
-      if (token) {
-        localStorage.setItem("token", token);
-      }
-
-      // 3. Redirect ke dashboard
+      await login(email, password);
       navigate("/dashboard");
 
     } catch (err: any) {
       console.error(err);
       
-      const errorMessage = err.response?.data?.message || "Login gagal";
+      const errorMessage = apiMessage(err, "Login gagal");
       setError(errorMessage);
       
       if (errorMessage.toLowerCase().includes("password") || errorMessage.toLowerCase().includes("kredensial") || errorMessage.toLowerCase().includes("salah")) {
@@ -63,6 +48,10 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    if (!memuat && user) navigate("/dashboard", { replace: true })
+  }, [memuat, navigate, user])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-slate-50 to-yellow-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">

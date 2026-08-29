@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -19,7 +19,7 @@ export default function RencanaKegiatanView() {
   const [rekap, setRekap] = useState<any[]>([]);
   const [realisasi, setRealisasi] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
 
   const [expandedDetail, setExpandedDetail] = useState<number | null>(null);
 

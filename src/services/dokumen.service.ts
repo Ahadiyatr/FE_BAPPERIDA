@@ -1,0 +1,10 @@
+import { api,dataOf } from "./api"
+import type { Dokumen,DokumenDenganIsi,OpsiMaster,SimpanDokumenInput,StatusDokumen } from "./types"
+type Row={id:number;nama_dokumen:string;tahun_mulai:number;tahun_selesai:number;status:"AKTIF"|"ARSIP";jumlah_program?:number;jumlah_periode?:number}
+const map=(r:Row):Dokumen=>({id:r.id,kode:`DOK-${r.id}`,nama:r.nama_dokumen,jenis:r.tahun_mulai===r.tahun_selesai?"RKPD":"RPJMD",indukId:null,tahunMulai:r.tahun_mulai,tahunSelesai:r.tahun_selesai,status:r.status as StatusDokumen,flagActive:r.status==="AKTIF"})
+export async function getDokumen(opsi:OpsiMaster={}):Promise<Dokumen[]>{return dataOf<Row[]>(await api.get("/dokumen-perencanaan",{params:opsi.termasukNonaktif?{}:{status:"AKTIF"}})).map(map)}
+export async function getDokumenById(id:number):Promise<Dokumen|null>{return map(dataOf<Row>(await api.get(`/dokumen-perencanaan/${id}`)))}
+export async function getRpjmd():Promise<Dokumen[]>{return (await getDokumen()).filter(d=>d.jenis==="RPJMD")}
+export async function getDokumenBerpohon(opsi:OpsiMaster={}):Promise<DokumenDenganIsi[]>{const rows=dataOf<Row[]>(await api.get("/dokumen-perencanaan",{params:opsi.termasukNonaktif?{}:{status:"AKTIF"}}));return rows.map(r=>({...map(r),namaInduk:null,jumlahProgram:Number(r.jumlah_program??0),jumlahPeriode:Number(r.jumlah_periode??0),anak:[]}))}
+export async function simpanDokumen(i:SimpanDokumenInput):Promise<Dokumen>{const body={NAMA_DOKUMEN:i.nama,TAHUN_MULAI:i.tahunMulai,TAHUN_SELESAI:i.tahunSelesai,STATUS:i.status==="ARSIP"?"ARSIP":"AKTIF"};return map(dataOf<Row>(i.id?await api.put(`/dokumen-perencanaan/${i.id}`,body):await api.post("/dokumen-perencanaan",body)))}
+export async function setAktifDokumen(id:number,aktif:boolean):Promise<Dokumen>{const r=await getDokumenById(id);if(!r)throw new Error("Dokumen tidak ditemukan.");return map(dataOf<Row>(await api.put(`/dokumen-perencanaan/${id}`,{NAMA_DOKUMEN:r.nama,TAHUN_MULAI:r.tahunMulai,TAHUN_SELESAI:r.tahunSelesai,STATUS:aktif?"AKTIF":"ARSIP"})))}

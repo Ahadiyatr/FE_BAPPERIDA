@@ -18,7 +18,7 @@ export default function TransaksiRealisasiKegiatanView({ mode }: ViewProps) {
   const [details, setDetails] = useState<any[]>([]);
   const [realisasi, setRealisasi] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [, setError] = useState("");
 
   const [expandedDetail, setExpandedDetail] = useState<number | null>(null);
 

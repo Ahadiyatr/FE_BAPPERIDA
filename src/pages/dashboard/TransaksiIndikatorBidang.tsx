@@ -68,9 +68,6 @@ export default function TransaksiIndikatorBidang() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Delete modal state
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -579,45 +576,6 @@ export default function TransaksiIndikatorBidang() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="w-full max-w-sm overflow-hidden bg-white shadow-xl rounded-2xl">
-            <div className="p-6 text-center">
-              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full">
-                <Trash2 className="w-8 h-8 text-red-600" />
-              </div>
-              <h2 className="mb-2 text-xl font-bold text-slate-900">
-                Hapus Mapping?
-              </h2>
-              <p className="mb-6 text-sm text-slate-500">
-                Apakah Anda yakin ingin menghapus mapping indikator bidang ini?
-                Tindakan ini tidak dapat dibatalkan.
-              </p>
-              <div className="flex justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={cancelDelete}
-                  className="w-full px-4 py-2 text-sm font-medium transition-colors rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={executeDelete}
-                  disabled={isDeleting}
-                  className="flex items-center justify-center w-full gap-2 px-4 py-2 text-sm font-medium text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-70"
-                >
-                  {isDeleting && (
-                    <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-                  )}
-                  Hapus
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

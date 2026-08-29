@@ -1,3 +1,12 @@
 node_modules/
 .DS_Store
 **/.DS_Store
+
+# hasil build
+dist
+
+# dokumentasi internal
+docs/
+
+# claude code
+.claude/

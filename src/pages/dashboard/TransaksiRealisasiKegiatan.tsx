@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Search, Eye, Edit, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Eye, Edit } from "lucide-react";
 import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import Pagination from "../../components/Pagination";
