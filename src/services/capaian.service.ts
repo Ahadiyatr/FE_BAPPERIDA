@@ -8,6 +8,14 @@ import type {
   SubkegiatanRinci, SubkegiatanStruktur, SubkegiatanTertinggal,
 } from "./types"
 
+export interface TrenCapaian {
+  periodeId: number
+  namaPeriode: string
+  status: "DRAFT" | "OPEN" | "LOCKED"
+  capaian: number
+  jumlahSubkegiatan: number
+}
+
 /**
  * Rollup capaian.
  *
@@ -37,7 +45,7 @@ export async function getRankingBidang(periodeId: number): Promise<CapaianBidang
   return (h.bidang??[]).map((r:any)=>({bidangId:r.bidang_id,namaBidang:r.nama_bidang,capaianBidang:Number(r.capaian_bidang),jumlahSubkegiatan:r.jumlah_subkegiatan})).sort((a:CapaianBidang,b:CapaianBidang)=>b.capaianBidang-a.capaianBidang)
 }
 
-type AktifitasMonitoring = { id:number; nama_aktifitas:string; tipe_aktifitas:"UTAMA"|"PENDUKUNG"; bobot_target:number; target:number; realisasi:number; bobot_realisasi:number; jumlah_catatan:number }
+type AktifitasMonitoring = { id:number; nama_aktifitas:string; tipe_aktifitas:"UTAMA"|"PENDUKUNG"; satuan:string|null; bobot_target:number; target:number; realisasi:number; bobot_realisasi:number; jumlah_catatan:number }
 type SubkegiatanMonitoring = { id:number; kode_subkegiatan:string; nama_subkegiatan:string; bidang_id:number; nama_bidang:string; indikator_kinerja:string; output_kinerja:string|null; target:number; satuan:string; capaian:number; aktifitas:AktifitasMonitoring[] }
 type KegiatanMonitoring = { kode_kegiatan:string; nama_kegiatan:string; jumlah_subkegiatan:number; capaian:number; subkegiatan:SubkegiatanMonitoring[] }
 type ProgramMonitoring = { kode_program:string; nama_program:string; jumlah_subkegiatan:number; capaian:number; kegiatan:KegiatanMonitoring[] }
@@ -107,6 +115,20 @@ export async function getRingkasanDashboard(periodeId: number): Promise<Ringkasa
   return{periode,capaianPd:Number(ring.capaian_pd??ring.rata_capaian_subkegiatan??0),jumlahBidang:Number(ring.jumlah_bidang??bidang.length),jumlahBidangSiap:0,jumlahSubkegiatan:Number(ring.jumlah_subkegiatan??0),jumlahAktifitas:0,jumlahRealisasi:0}
 }
 
+/** Tren sampai periode terpilih; scope mengikuti peran pengguna yang masuk. */
+export async function getTrenCapaian(periodeId: number, batas = 6): Promise<TrenCapaian[]> {
+  const rows = dataOf<Array<{ periode_id:number; nama_periode:string; status:TrenCapaian["status"]; capaian:number; jumlah_subkegiatan:number }>>(
+    await api.get("/dashboard/tren", { params: { periode_id: periodeId, batas } })
+  )
+  return rows.map((r) => ({
+    periodeId: r.periode_id,
+    namaPeriode: r.nama_periode,
+    status: r.status,
+    capaian: Number(r.capaian),
+    jumlahSubkegiatan: Number(r.jumlah_subkegiatan),
+  }))
+}
+
 /** Telusur Struktur Program — subkegiatan satu kegiatan beserta bidang
  * penanggung jawab dan capaiannya pada periode terpilih. */
 export async function getStrukturSubkegiatan(
@@ -143,7 +165,7 @@ export async function getRincianKegiatan(
     indikatorKinerja:s.indikator_kinerja ?? "", outputKinerja:s.output_kinerja ?? "", namaBidang:s.nama_bidang ?? "—", bidangId:s.bidang_id,
     target:Number(s.target), satuan:s.satuan ?? "", capaian:Number(s.capaian),
     aktifitas:s.aktifitas.map(a => ({ indikatorBidangId:a.id, namaAktifitas:a.nama_aktifitas,
-      tipeAktifitas:a.tipe_aktifitas, bobotTarget:Number(a.bobot_target), target:Number(a.target),
+      tipeAktifitas:a.tipe_aktifitas, satuan:a.satuan ?? "", bobotTarget:Number(a.bobot_target), target:Number(a.target),
       realisasi:Number(a.realisasi), bobotRealisasi:Number(a.bobot_realisasi), jumlahCatatan:Number(a.jumlah_catatan) })),
   })).sort((a, b) => a.kode.localeCompare(b.kode))
 }

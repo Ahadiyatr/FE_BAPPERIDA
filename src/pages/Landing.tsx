@@ -21,12 +21,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiMessage } from "../services/api";
 import { getLandingPublik } from "../services/public-dashboard.service";
+import { CHART_PALETTE, DESIGN_COLOR } from "../lib/design-tokens";
 
 // Modern Green to Yellow Palette
-const COLORS = [
-  "#047857", "#10B981", "#34D399", "#84CC16", "#EAB308", "#F59E0B", "#D97706",
-  "#0f766e", "#14b8a6", "#2dd4bf", "#65a30d", "#ca8a04", "#d97706", "#b45309"
-];
+const COLORS = [...CHART_PALETTE, ...CHART_PALETTE];
 
 const ringkasNamaBidang = (nama: string) => {
   const label: Record<string, string> = {
@@ -192,12 +190,12 @@ export default function Landing() {
                         layout="vertical"
                         margin={{ top: 8, right: 28, left: 16, bottom: 4 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-surface-subtle)" />
                         <XAxis
                           type="number"
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
+                          tick={{ fontSize: 11, fill: DESIGN_COLOR.textMuted, fontWeight: 500 }}
                           domain={[0, 100]}
                           ticks={[0, 25, 50, 75, 100]}
                         />
@@ -207,10 +205,10 @@ export default function Landing() {
                           width={165}
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fontSize: 10, fill: "#475569", fontWeight: 600 }}
+                          tick={{ fontSize: 10, fill: DESIGN_COLOR.textMuted, fontWeight: 600 }}
                         />
                         <RechartsTooltip
-                          cursor={{ fill: "#f8fafc", opacity: 0.6 }}
+                          cursor={{ fill: DESIGN_COLOR.surface, opacity: 0.6 }}
                           contentStyle={{ 
                             borderRadius: "12px", 
                             border: "1px solid rgba(255,255,255,0.8)", 
@@ -220,7 +218,7 @@ export default function Landing() {
                             fontWeight: 600
                           }}
                         />
-                        <Bar dataKey="achievement" radius={[0, 6, 6, 0]} maxBarSize={32} label={{ position: "right", fill: "#475569", fontSize: 11, fontWeight: 700, formatter: (value) => `${Number(value).toFixed(1)}%` }}>
+                        <Bar dataKey="achievement" radius={[0, 6, 6, 0]} maxBarSize={32} label={{ position: "right", fill: DESIGN_COLOR.textMuted, fontSize: 11, fontWeight: 700, formatter: (value) => `${Number(value).toFixed(1)}%` }}>
                           {bidang.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} className="hover:opacity-80 transition-opacity duration-300 cursor-pointer" />
                           ))}
@@ -243,10 +241,10 @@ export default function Landing() {
                   <div className="h-[340px] w-full">
                     <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 500, height: 320 }}>
                       <RadarChart cx="50%" cy="50%" outerRadius="58%" data={radar}>
-                        <PolarGrid stroke="#e2e8f0" />
+                        <PolarGrid stroke={DESIGN_COLOR.border} />
                         <PolarAngleAxis
                           dataKey="name"
-                          tick={{ fill: "#475569", fontSize: 10, fontWeight: 600 }}
+                          tick={{ fill: DESIGN_COLOR.textMuted, fontSize: 10, fontWeight: 600 }}
                         />
                         <PolarRadiusAxis
                           angle={30}
@@ -257,15 +255,15 @@ export default function Landing() {
                         <Radar
                           name="Capaian"
                           dataKey="achievement"
-                          stroke="#10B981"
+                          stroke={DESIGN_COLOR.success}
                           strokeWidth={3}
                           fill="url(#colorUv)"
                           fillOpacity={0.6}
                         />
                         <defs>
                           <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="#EAB308" stopOpacity={0.2}/>
+                            <stop offset="5%" stopColor={DESIGN_COLOR.success} stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor={DESIGN_COLOR.warning} stopOpacity={0.2}/>
                           </linearGradient>
                         </defs>
                         <RechartsTooltip 

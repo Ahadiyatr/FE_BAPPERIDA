@@ -35,8 +35,7 @@ export default function MasterBidang() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Master Bidang</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-sm text-slate-500">
             Daftar bidang penanggung jawab. Bidang yang sudah dipakai dalam rencana atau
             capaian sebuah periode tidak bisa dihapus — nonaktifkan saja.
           </p>

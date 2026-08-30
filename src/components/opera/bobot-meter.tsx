@@ -99,7 +99,7 @@ export function BobotMeter({
         className={cn("flex w-full min-w-[120px] gap-[2px]", className)}
         style={{ height: tinggi }}
         role="img"
-        aria-label={`Capaian: aktifitas utama ${persen(
+        aria-label={`Capaian: aktivitas utama ${persen(
           rasio(utama) * utama.bobotTarget
         )} dari ${persen(utama.bobotTarget)}, ${pendukung.length} aktifitas pendukung`}
         {...props}
@@ -146,11 +146,11 @@ export function BobotMeterLegenda({
     >
       <span className="flex items-center gap-1.5">
         <i className="size-2.5 rounded-[1px] bg-emerald-600" aria-hidden />
-        Aktifitas utama — bobot 70%
+        Aktivitas utama — bobot 70%
       </span>
       <span className="flex items-center gap-1.5">
         <i className="size-2.5 rounded-[1px] bg-slate-400" aria-hidden />
-        {bobotPendukung.length} aktifitas pendukung — bobot aktual {bobotPendukung.map(persen).join(", ")} (Σ {persen(total)})
+        {bobotPendukung.length} aktivitas pendukung — bobot aktual {bobotPendukung.map(persen).join(", ")} (Σ {persen(total)})
       </span>
     </div>
   )

@@ -45,7 +45,7 @@ export const TINGKAT: Record<IdTingkat, DefTingkat> = {
     setAktif: setAktifSubkegiatan,
   },
   aktifitas: {
-    id: "aktifitas", label: "Aktifitas", tingkat: "Tingkat 4",
+    id: "aktifitas", label: "Aktivitas", tingkat: "Tingkat 4",
     induk: "subkegiatan", anak: null,
     // Bobot 30%÷n hanya bermakna dalam satu subkegiatan, jadi tingkat ini
     // selalu butuh induk. Tanpa induk daftarnya sengaja kosong.

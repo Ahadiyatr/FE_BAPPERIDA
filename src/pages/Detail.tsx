@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiMessage } from "../services/api";
 import { getDetailBidangPublik, type DetailBidangPublik } from "../services/public-dashboard.service";
+import { DESIGN_COLOR } from "../lib/design-tokens";
 
 export default function Detail() {
   const navigate = useNavigate();
@@ -41,8 +42,8 @@ export default function Detail() {
           <div className="mb-12 flex flex-col items-center gap-8 md:flex-row">
             <div className="relative h-40 w-40 shrink-0">
               <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" />
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#3b82f6" strokeWidth="12" strokeLinecap="round" strokeDasharray={`${(Math.min(100, Math.max(0, data.header.capaian_bidang)) / 100) * (2 * Math.PI * 40)} ${2 * Math.PI * 40}`} className="transition-all duration-1000 ease-out" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke={DESIGN_COLOR.border} strokeWidth="12" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke={DESIGN_COLOR.brand} strokeWidth="12" strokeLinecap="round" strokeDasharray={`${(Math.min(100, Math.max(0, data.header.capaian_bidang)) / 100) * (2 * Math.PI * 40)} ${2 * Math.PI * 40}`} className="transition-all duration-1000 ease-out" />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-bold tracking-tight text-slate-800">{data.header.capaian_bidang.toFixed(1)}%</span></div>
             </div>

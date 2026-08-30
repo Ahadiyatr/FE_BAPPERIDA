@@ -175,11 +175,6 @@ export default function MonitoringKinerja() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Monitoring Kinerja
-          </h1>
-        </div>
         <PilihPeriode
           periodes={periodes}
           nilai={periodeId}
@@ -214,7 +209,7 @@ export default function MonitoringKinerja() {
               catatan="Tersusun pada periode ini"
             />
             <KartuKpi
-              label="Aktifitas"
+              label="Aktivitas"
               nilai={String(r?.jumlahAktifitas ?? 0)}
               catatan="Utama & pendukung"
             />
@@ -228,7 +223,7 @@ export default function MonitoringKinerja() {
       </div>
 
       <Panel
-        judul="Rincian program → kegiatan → subkegiatan → aktifitas"
+        judul="Rincian program → kegiatan → subkegiatan → aktivitas"
         aksi={
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -250,7 +245,7 @@ export default function MonitoringKinerja() {
                 onChange={e => setSemuaAktifitas(e.target.checked)}
                 className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
               />
-              Tampilkan aktifitas
+              Tampilkan aktivitas
             </label>
           </div>
         }
@@ -261,7 +256,7 @@ export default function MonitoringKinerja() {
             <input
               value={cari}
               onChange={e => setCari(e.target.value)}
-              placeholder="Cari program, kegiatan, subkegiatan, atau aktifitas…"
+              placeholder="Cari program, kegiatan, subkegiatan, atau aktivitas…"
               className="w-full py-2 pr-3 text-sm border rounded-xl border-slate-200 pl-9 text-slate-700 focus:border-emerald-500 focus:outline-none"
             />
           </div>
@@ -511,6 +506,7 @@ export default function MonitoringKinerja() {
                                           </td>
                                           <td className="whitespace-nowrap px-4 py-1.5 text-right tabular text-slate-500">
                                             {angka(a.realisasi)}
+                                            {a.jumlahCatatan > 0 && <span className="ml-1 text-[10px] text-slate-400">({a.jumlahCatatan} catatan)</span>}
                                           </td>
                                           <td className="whitespace-nowrap px-4 py-1.5 text-right tabular text-slate-500">
                                             {persen1(a.bobotTarget)}

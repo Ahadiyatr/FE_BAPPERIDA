@@ -69,8 +69,7 @@ export default function StrukturProgram() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Struktur Program</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-sm text-slate-500">
             Telusur hirarki program → kegiatan → subkegiatan, beserta bidang penanggung
             jawab dan capaiannya pada periode terpilih.
           </p>
@@ -198,10 +197,10 @@ export default function StrukturProgram() {
       )}
 
       {subAktif && (
-        <Panel judul={`Aktifitas dalam ${subAktif.kode} (${aktifitas.length})`}>
+        <Panel judul={`Aktivitas dalam ${subAktif.kode} (${aktifitas.length})`}>
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
-              <tr><Th>Kode</Th><Th>Aktifitas</Th><Th>Tipe</Th><Th>Satuan</Th></tr>
+              <tr><Th>Kode</Th><Th>Aktivitas</Th><Th>Tipe</Th><Th>Satuan</Th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {aktifitas.map(a => (
@@ -212,7 +211,7 @@ export default function StrukturProgram() {
                   <td className="px-6 py-3 text-sm text-slate-500">{a.satuan}</td>
                 </tr>
               ))}
-              {!aktifitas.length && <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-slate-400">Belum ada aktifitas aktif.</td></tr>}
+              {!aktifitas.length && <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-slate-400">Belum ada aktivitas aktif.</td></tr>}
             </tbody>
           </table>
         </Panel>

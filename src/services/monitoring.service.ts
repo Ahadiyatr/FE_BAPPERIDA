@@ -15,6 +15,7 @@ export interface MonitoringAktifitas {
   target: number
   realisasi: number
   bobotRealisasi: number
+  jumlahCatatan: number
   flagAdhoc: boolean
   urutan: number
 }
@@ -81,6 +82,7 @@ type AktifitasRow = {
   target: number
   realisasi: number
   bobot_realisasi: number
+  jumlah_catatan: number
   flag_adhoc: boolean
   urutan: number
 }
@@ -133,6 +135,7 @@ const aktifitas = (r: AktifitasRow): MonitoringAktifitas => ({
   target: Number(r.target),
   realisasi: Number(r.realisasi),
   bobotRealisasi: Number(r.bobot_realisasi),
+  jumlahCatatan: Number(r.jumlah_catatan),
   flagAdhoc: Boolean(r.flag_adhoc),
   urutan: r.urutan,
 })

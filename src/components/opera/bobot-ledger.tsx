@@ -116,9 +116,9 @@ export function LedgerCapaian({
   return (
     <BobotLedger
       baris={[
-        { label: "Bobot realisasi aktifitas utama", nilai: persen2(bobotUtama) },
+        { label: "Bobot realisasi aktivitas utama", nilai: persen2(bobotUtama) },
         {
-          label: `Bobot realisasi ${jumlahPendukung} aktifitas pendukung`,
+          label: `Bobot realisasi ${jumlahPendukung} aktivitas pendukung`,
           nilai: persen2(bobotPendukung),
         },
         {
@@ -146,7 +146,7 @@ export function LedgerTambahPendukung({
       baris={[
         { label: "Aktifitas utama", nilai: "70,0%" },
         {
-          label: `${n} aktifitas pendukung × ${persen(baru)}`,
+          label: `${n} aktivitas pendukung × ${persen(baru)}`,
           nilai: "30,0%",
         },
         { label: "Bobot baris baru ini", nilai: persen(baru), total: true },
@@ -154,7 +154,7 @@ export function LedgerTambahPendukung({
       meter={{ jumlahPendukung: n, segmenBaru: true }}
       peringatan={
         jumlahSekarang > 0
-          ? `Menambah baris ini menurunkan bobot ${jumlahSekarang} aktifitas pendukung yang sudah ada dari ${persen(
+          ? `Menambah baris ini menurunkan bobot ${jumlahSekarang} aktivitas pendukung yang sudah ada dari ${persen(
               lama
             )} menjadi ${persen(baru)}.`
           : undefined

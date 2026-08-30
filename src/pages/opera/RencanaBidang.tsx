@@ -166,13 +166,13 @@ function Editor({
           />
         ) : (
           <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">
-            Belum ada aktifitas utama — tidak ada pemegang bobot 70%.
+            Belum ada aktivitas utama — tidak ada pemegang bobot 70%.
           </p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Eyebrow>Aktifitas ({baris.aktifitas.length})</Eyebrow>
+        <Eyebrow>Aktivitas ({baris.aktifitas.length})</Eyebrow>
         <div className="divide-y rounded-xl border">
           {baris.aktifitas.map((a) => (
             <div key={a.id} className="flex items-center gap-2 px-3 py-2 text-sm">
@@ -214,11 +214,11 @@ function Editor({
 
       {dapatDisunting ? (
       <div className="space-y-2 rounded-xl border bg-muted/40 p-3">
-        <Eyebrow>Tambah aktifitas pendukung</Eyebrow>
+        <Eyebrow>Tambah aktivitas pendukung</Eyebrow>
         <div className="flex flex-wrap gap-2">
           <Input
             className="h-8 min-w-48 flex-1"
-            placeholder="Nama aktifitas pendukung"
+            placeholder="Nama aktivitas pendukung"
             value={namaBaru}
             onChange={(e) => setNamaBaru(e.target.value)}
           />
@@ -246,7 +246,7 @@ function Editor({
           </Button>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          Menambah baris ini membagi 30% ke <b>{pendukung.length + 1}</b> aktifitas pendukung —
+          Menambah baris ini membagi 30% ke <b>{pendukung.length + 1}</b> aktivitas pendukung —
           dari {persen(pendukung.length ? 30 / pendukung.length : 0)} menjadi{" "}
           {persen(30 / (pendukung.length + 1))} tiap satu.
         </p>
@@ -384,7 +384,7 @@ export default function RencanaBidang() {
                         <Kode>{k.kode}</Kode>
                         <span className="line-clamp-2 text-sm">{k.nama}</span>
                         <span className="font-mono text-[11px] tracking-[0.12em] text-muted-foreground">
-                          {k.jumlahAktifitas} aktifitas
+                          {k.jumlahAktifitas} aktivitas
                         </span>
                       </div>
                     </CommandItem>

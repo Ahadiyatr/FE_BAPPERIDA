@@ -1,93 +1,145 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Activity, LogIn, Mail, Lock } from "lucide-react";
-import Swal from "sweetalert2";
-import { apiMessage } from "../services/api";
-import { usePeran } from "../lib/peran";
+import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Activity, LogIn, Mail, Lock } from 'lucide-react';
+import Swal from 'sweetalert2';
+import { apiMessage } from '../services/api';
+import { usePeran } from '../lib/peran';
+import { DESIGN_COLOR } from '../lib/design-tokens';
+
+const AKUN_DEV = [
+  { email: 'admin@opera.test', label: 'Admin Aplikasi' },
+  { email: 'bidang1@opera.test', label: 'Admin Bidang 1' },
+  { email: 'bidang2@opera.test', label: 'Admin Bidang 2' },
+  { email: 'bidang3@opera.test', label: 'Admin Bidang 3' },
+  { email: 'bidang4@opera.test', label: 'Admin Bidang 4' },
+  { email: 'bidang5@opera.test', label: 'Admin Bidang 5' },
+];
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, user, memuat } = usePeran();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('admin@opera.test');
+  const [password, setPassword] = useState('password');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setError('');
 
     try {
       await login(email, password);
-      navigate("/dashboard");
-
+      const dariState = (location.state as { dari?: unknown } | null)?.dari;
+      const dariSesi = sessionStorage.getItem('opera:redirect_after_login');
+      const tujuan = [dariState, dariSesi].find(
+        (nilai): nilai is string => typeof nilai === 'string' && nilai.startsWith('/') && !nilai.startsWith('//'),
+      ) ?? '/dashboard';
+      sessionStorage.removeItem('opera:redirect_after_login');
+      sessionStorage.removeItem('opera:session_expired');
+      navigate(tujuan, { replace: true });
     } catch (err: any) {
       console.error(err);
-      
-      const errorMessage = apiMessage(err, "Login gagal");
+
+      const errorMessage = apiMessage(err, 'Login gagal');
       setError(errorMessage);
-      
-      if (errorMessage.toLowerCase().includes("password") || errorMessage.toLowerCase().includes("kredensial") || errorMessage.toLowerCase().includes("salah")) {
+
+      if (
+        errorMessage.toLowerCase().includes('password') ||
+        errorMessage.toLowerCase().includes('kredensial') ||
+        errorMessage.toLowerCase().includes('salah')
+      ) {
         Swal.fire({
           icon: 'error',
           title: 'Login Gagal',
           text: 'Password salah. Silakan coba lagi.',
-          confirmButtonColor: '#059669' // emerald-600
+          confirmButtonColor: DESIGN_COLOR.success,
         });
       } else {
-         Swal.fire({
+        Swal.fire({
           icon: 'error',
           title: 'Oops...',
           text: errorMessage,
-          confirmButtonColor: '#059669' // emerald-600
+          confirmButtonColor: DESIGN_COLOR.success,
         });
       }
-
     } finally {
       setLoading(false);
     }
   };
 
   React.useEffect(() => {
-    if (!memuat && user) navigate("/dashboard", { replace: true })
-  }, [memuat, navigate, user])
+    if (!memuat && user) {
+      const dari = (location.state as { dari?: unknown } | null)?.dari;
+      navigate(typeof dari === 'string' && dari.startsWith('/') && !dari.startsWith('//') ? dari : '/dashboard', { replace: true });
+    }
+  }, [location.state, memuat, navigate, user]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-slate-50 to-yellow-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
+    <div className="flex flex-col justify-center min-h-screen py-12 font-sans bg-gradient-to-br from-emerald-50 via-slate-50 to-yellow-50 sm:px-6 lg:px-8">
       {/* DEV ONLY: Info login akun developer */}
       <div className="mb-4 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="p-4 mb-2 text-sm text-yellow-900 border border-yellow-400 shadow rounded-xl bg-yellow-50">
-          <strong>Info Login Developer:</strong>
-          <br />
-          Email: <span className="font-mono">admin@example.com</span>
-          <br />
-          Password: <span className="font-mono">password</span>
+          <strong>Info Login Developer</strong>
+          <span className="text-yellow-800">
+            {' '}
+            — klik untuk isi otomatis (password{' '}
+            <span className="font-mono">password</span>)
+          </span>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {AKUN_DEV.map(akun => (
+              <button
+                key={akun.email}
+                type="button"
+                title={akun.label}
+                onClick={() => {
+                  setEmail(akun.email);
+                  setPassword('password');
+                }}
+                className={`px-2 py-1 rounded-lg border font-mono text-xs transition-colors ${
+                  email === akun.email
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                    : 'border-yellow-400 bg-white/70 hover:bg-yellow-100'
+                }`}
+              >
+                {akun.email}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="bg-gradient-to-br from-emerald-500 to-yellow-400 p-3 rounded-2xl shadow-lg">
+          <div className="p-3 shadow-lg bg-gradient-to-br from-emerald-500 to-yellow-400 rounded-2xl">
             <Activity className="w-10 h-10 text-white" />
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 tracking-tight">
+        <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-center text-slate-900">
           Login ke Dashboard
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-600">
+        <p className="mt-2 text-sm text-center text-slate-600">
           OPERA-INK BAPPERRIDA KAB. TABALONG
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white/80 backdrop-blur-xl py-8 px-4 shadow-xl shadow-emerald-900/5 sm:rounded-3xl sm:px-10 border border-white/60">
+        <div className="px-4 py-8 border shadow-xl bg-white/80 backdrop-blur-xl shadow-emerald-900/5 sm:rounded-3xl sm:px-10 border-white/60">
           <form className="space-y-6" onSubmit={handleLogin}>
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+              <div className="p-4 border-l-4 border-red-500 rounded-md bg-red-50">
                 <div className="flex">
                   <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <svg
+                      className="w-5 h-5 text-red-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </div>
                   <div className="ml-3">
@@ -104,9 +156,9 @@ export default function Login() {
               >
                 Alamat Email
               </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-slate-400" />
+              <div className="relative mt-1 rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Mail className="w-5 h-5 text-slate-400" />
                 </div>
                 <input
                   id="email"
@@ -115,8 +167,8 @@ export default function Login() {
                   autoComplete="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 sm:text-sm border-slate-300 rounded-xl py-3 border bg-white/50"
+                  onChange={e => setEmail(e.target.value)}
+                  className="block w-full py-3 pl-10 border focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm border-slate-300 rounded-xl bg-white/50"
                   placeholder="admin@bapperrida.go.id"
                 />
               </div>
@@ -129,9 +181,9 @@ export default function Login() {
               >
                 Password
               </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-400" />
+              <div className="relative mt-1 rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Lock className="w-5 h-5 text-slate-400" />
                 </div>
                 <input
                   id="password"
@@ -140,8 +192,8 @@ export default function Login() {
                   autoComplete="current-password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 sm:text-sm border-slate-300 rounded-xl py-3 border bg-white/50"
+                  onChange={e => setPassword(e.target.value)}
+                  className="block w-full py-3 pl-10 border focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm border-slate-300 rounded-xl bg-white/50"
                   placeholder="••••••••"
                 />
               </div>
@@ -153,11 +205,11 @@ export default function Login() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded"
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
                 />
                 <label
                   htmlFor="remember-me"
-                  className="ml-2 block text-sm text-slate-900"
+                  className="block ml-2 text-sm text-slate-900"
                 >
                   Ingat saya
                 </label>
@@ -177,17 +229,33 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                className="flex justify-center w-full px-4 py-3 text-sm font-bold text-white transition-all border border-transparent shadow-sm rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {loading ? (
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="w-5 h-5 mr-3 -ml-1 text-white animate-spin"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                 ) : (
                   <LogIn className="w-5 h-5 mr-2" />
                 )}
-                {loading ? "Memproses..." : "Masuk"}
+                {loading ? 'Memproses...' : 'Masuk'}
               </button>
             </div>
           </form>

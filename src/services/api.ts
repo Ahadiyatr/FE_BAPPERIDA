@@ -35,7 +35,12 @@ api.interceptors.response.use(response => response, async (error: AxiosError) =>
     return api.request(config)
   }
   if (error.response?.status === 401 && window.location.pathname !== "/login") {
-    window.dispatchEvent(new CustomEvent("opera:unauthorized"))
+    const dari = `${window.location.pathname}${window.location.search}${window.location.hash}`
+    sessionStorage.setItem("opera:redirect_after_login", dari)
+    if (!sessionStorage.getItem("opera:session_expired")) {
+      sessionStorage.setItem("opera:session_expired", "1")
+      window.dispatchEvent(new CustomEvent("opera:unauthorized", { detail: { dari } }))
+    }
   }
   return Promise.reject(error)
 })

@@ -47,8 +47,8 @@ const SKEMA = {
     outputKinerja: z.string().trim().optional(),
   }),
   aktifitas: z.object({
-    kodeIndikator: teks("Kode aktifitas wajib diisi."),
-    namaIndikator: teks("Nama aktifitas wajib diisi."),
+    kodeIndikator: teks("Kode aktivitas wajib diisi."),
+    namaIndikator: teks("Nama aktivitas wajib diisi."),
     tipeAktifitas: z.enum(["UTAMA", "PENDUKUNG"]),
     satuan: teks("Satuan wajib diisi."),
     targetAnjuran: z.coerce.number().min(0, "Target tidak boleh negatif."),
@@ -78,8 +78,10 @@ function nilaiAwal(tingkat: IdTingkat, baris: BarisMaster | null): NilaiForm {
     if (tingkat === "kegiatan") return { kodeKegiatan: "", namaKegiatan: "" }
     return { kodeProgram: "", namaProgram: "" }
   }
-  const { id: _id, flagActive: _f, bobotTarget: _b, ...sisa } =
-    baris as unknown as Record<string, unknown> & { id: number; flagActive: boolean; bobotTarget?: number }
+  const sisa = { ...(baris as unknown as Record<string, unknown>) }
+  delete sisa.id
+  delete sisa.flagActive
+  delete sisa.bobotTarget
   return { ...sisa, outputKinerja: (sisa.outputKinerja as string) ?? "" }
 }
 
@@ -217,7 +219,7 @@ export function LaciMaster({
             {baris ? `Ubah ${def.label.toLowerCase()}` : `${def.label} baru`}
           </SheetTitle>
           <SheetDescription>
-            Bobot tidak pernah diisi manual — ia dihitung dari jumlah aktifitas pendukung yang aktif.
+            Bobot tidak pernah diisi manual — ia dihitung dari jumlah aktivitas pendukung yang aktif.
           </SheetDescription>
         </SheetHeader>
 
@@ -341,12 +343,12 @@ export function LaciMaster({
             {tingkat === "aktifitas" && (
               <>
                 <Field>
-                  <FieldLabel htmlFor="kodeIndikator">Kode aktifitas</FieldLabel>
+                  <FieldLabel htmlFor="kodeIndikator">Kode aktivitas</FieldLabel>
                   <Input id="kodeIndikator" className="font-mono" {...form.register("kodeIndikator")} />
                   <FieldError errors={e("kodeIndikator")} />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="namaIndikator">Nama aktifitas</FieldLabel>
+                  <FieldLabel htmlFor="namaIndikator">Nama aktivitas</FieldLabel>
                   <Textarea
                     id="namaIndikator"
                     rows={3}

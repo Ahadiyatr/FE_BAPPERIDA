@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { api, dataOf, ensureCsrf } from '@/services/api';
+import { Toast } from '@/utils/toast';
 
 export type Peran = 'publik' | 'admin_bidang' | 'admin_aplikasi';
 export interface PenggunaSesi {
@@ -42,6 +43,10 @@ export function PenyediaPeran({ children }: { children: React.ReactNode }) {
     const unauthorized = () => {
       setUser(null);
       setMemuat(false);
+      Toast.fire({
+        icon: 'info',
+        title: 'Sesi berakhir. Silakan masuk kembali.',
+      });
     };
     window.addEventListener('opera:unauthorized', unauthorized);
     return () => window.removeEventListener('opera:unauthorized', unauthorized);

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { Eyebrow } from "@/components/opera/primitives"
 import { getPapanKesiapan, getPeriode, salinRencana, ubahStatusPeriode } from "@/services"
+import { apiMessage } from "@/services/api"
 import type { KesiapanBidang, Periode } from "@/services"
 import { cn } from "@/lib/utils"
 
@@ -130,17 +131,14 @@ export default function PenyusunanRencana() {
       setPeriodes(await getPeriode())
       await muat()
     } catch (e) {
-      setGalat(e instanceof Error ? e.message : "Gagal membuka periode.")
+      setGalat(apiMessage(e, "Gagal membuka periode."))
     }
   }
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          Penyusunan Rencana{periode ? ` — ${periode.namaPeriode}` : ""}
-        </h1>
-        <p className="mt-1 max-w-prose text-sm text-slate-500">
+        <p className="max-w-prose text-sm text-slate-500">
           Susun rencana per bidang sebelum periode dibuka untuk pencatatan.
           Satu subkegiatan hanya boleh dipegang satu bidang dalam satu periode.
         </p>
@@ -236,7 +234,7 @@ export default function PenyusunanRencana() {
             </label>
 
             {([
-              ["ikutAktifitas", "Aktifitas utama dan pendukung", "Bobot 70/30 dihitung ulang di periode baru."],
+              ["ikutAktifitas", "Aktivitas utama dan pendukung", "Bobot 70/30 dihitung ulang di periode baru."],
               ["ikutTarget", "Angka target", "Bisa disesuaikan satu per satu setelah disalin."],
               ["ikutCapaianNol", "Subkegiatan yang capaiannya nol", "Yang tidak berjalan sama sekali di periode sumber."],
             ] as const).map(([kunci, judul, ket]) => (

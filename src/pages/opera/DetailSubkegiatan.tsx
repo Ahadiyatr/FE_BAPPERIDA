@@ -386,13 +386,6 @@ export default function DetailSubkegiatan() {
             <span className="font-mono text-slate-400">{data.kodeKegiatan}</span> {data.namaKegiatan}
           </p>
         )}
-        <h1 className="line-clamp-2 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
-          {data
-            ? `${data.kodeSubkegiatan} — ${data.namaSubkegiatan}`
-            : galat
-              ? "Tidak ditemukan"
-              : "Memuat…"}
-        </h1>
       </div>
 
       {galat && (
@@ -421,7 +414,7 @@ export default function DetailSubkegiatan() {
                 <BarCapaian persen={data.capaian} />
               </div>
               <p className="mt-3 text-xs text-slate-400">
-                Rata-rata bobot 70/30 dari {data.aktifitas.length} aktifitas
+                Rata-rata bobot 70/30 dari {data.aktifitas.length} aktivitas
               </p>
             </div>
 
@@ -438,7 +431,7 @@ export default function DetailSubkegiatan() {
                 </Fakta>
                 <Fakta label="Indikator">{data.indikatorKinerja || "—"}</Fakta>
                 <Fakta label="Isi">
-                  {data.aktifitas.length} aktifitas · {jumlahCatatan} catatan realisasi ·{" "}
+                  {data.aktifitas.length} aktivitas · {jumlahCatatan} catatan realisasi ·{" "}
                   {jumlahLampiran} lampiran
                 </Fakta>
               </dl>
@@ -469,18 +462,18 @@ export default function DetailSubkegiatan() {
               </div>
             ) : (
               <p className="m-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-                Tanpa aktifitas utama — tidak ada pemegang bobot 70%.
+                Tanpa aktivitas utama — tidak ada pemegang bobot 70%.
               </p>
             )}
           </Panel>
 
           {/* ── Tabel aktifitas + sidebar lampiran, sejajar ───── */}
-          <div className={`grid gap-6 lg:items-start ${sidebarTampil ? "lg:grid-cols-[1fr_23rem]" : ""}`}>
+          <div className={`grid min-w-0 gap-6 lg:items-start ${sidebarTampil ? "lg:grid-cols-[minmax(0,1fr)_23rem]" : ""}`}>
             <div className="min-w-0 space-y-6">
-              <Panel judul={`Aktifitas & realisasi (${data.aktifitas.length})`}>
+              <Panel judul={`Aktivitas & realisasi (${data.aktifitas.length})`}>
                 {data.aktifitas.length === 0 ? (
                   <p className="p-8 text-sm text-center text-slate-500">
-                    Subkegiatan ini belum punya aktifitas tersusun.
+                    Subkegiatan ini belum punya aktivitas tersusun.
                   </p>
                 ) : (
                   <TabelAktifitas

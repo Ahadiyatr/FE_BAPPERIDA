@@ -1,5 +1,5 @@
 import * as React from "react"
-import { PencilLine } from "lucide-react"
+import { History, PencilLine, RefreshCw, Trash2 } from "lucide-react"
 
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -9,10 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { BobotLedger } from "@/components/opera/bobot-ledger"
 import {
-  catatRealisasi, getAktifitasBidang, getBidang, getPeriode, pratinjauRealisasi,
+  catatRealisasi, getAktifitasBidang, getBidang, getPeriode, pratinjauRealisasi, getRealisasiByIndikatorBidang, hapusRealisasi, ubahRealisasi,
 } from "@/services"
 import type {
-  AktifitasPencatatan, Bidang, Periode, PratinjauRealisasi,
+  AktifitasPencatatan, Bidang, Periode, PratinjauRealisasi, RealisasiKegiatan,
 } from "@/services"
 import { usePeran } from "@/lib/peran"
 import { apiMessage } from "@/services/api"
@@ -127,7 +127,7 @@ function FormCatat({
               <BobotLedger
                 baris={[
                   {
-                    label: "Realisasi aktifitas ini",
+                    label: "Realisasi aktivitas ini",
                     nilai: `${angka1(pratinjau.realisasiSekarang)} → ${angka1(pratinjau.realisasiSetelah)} dari ${angka1(pratinjau.satuanTarget)}`,
                   },
                   {
@@ -169,6 +169,24 @@ function FormCatat({
   )
 }
 
+function RiwayatRealisasi({ baris, bolehUbah, onTutup, onTersimpan }: { baris: AktifitasPencatatan; bolehUbah: boolean; onTutup: () => void; onTersimpan: () => void }) {
+  const [data, setData] = React.useState<RealisasiKegiatan[] | null>(null)
+  const [edit, setEdit] = React.useState<RealisasiKegiatan | null>(null)
+  const [hapus, setHapus] = React.useState<RealisasiKegiatan | null>(null)
+  const [tanggal, setTanggal] = React.useState("")
+  const [jumlah, setJumlah] = React.useState("")
+  const [keterangan, setKeterangan] = React.useState("")
+  const [proses, setProses] = React.useState(false)
+  const [galat, setGalat] = React.useState<string | null>(null)
+  const totalSetelahKoreksi = edit && Number.isFinite(Number(jumlah)) ? baris.realisasi - edit.jumlahRealisasi + Number(jumlah) : null
+  const muat = React.useCallback(() => getRealisasiByIndikatorBidang(baris.indikatorBidangId).then(setData).catch((e) => setGalat(apiMessage(e, "Gagal memuat riwayat."))), [baris.indikatorBidangId])
+  React.useEffect(() => { void muat() }, [muat])
+  function mulaiEdit(item: RealisasiKegiatan) { setEdit(item); setTanggal(item.tanggalKegiatan); setJumlah(String(item.jumlahRealisasi)); setKeterangan(item.keterangan) }
+  async function simpanEdit() { if (!edit || !Number.isInteger(Number(jumlah)) || Number(jumlah) < 0) return; setProses(true); try { await ubahRealisasi(edit.id, { tanggalKegiatan: tanggal, jumlahRealisasi: Number(jumlah), keterangan }); setEdit(null); await muat(); onTersimpan() } catch (e) { setGalat(apiMessage(e, "Gagal mengubah realisasi.")) } finally { setProses(false) } }
+  async function konfirmasiHapus() { if (!hapus) return; setProses(true); try { await hapusRealisasi(hapus.id); setHapus(null); await muat(); onTersimpan() } catch (e) { setGalat(apiMessage(e, "Gagal menghapus realisasi.")) } finally { setProses(false) } }
+  return <Dialog open onOpenChange={(o) => !o && onTutup()}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>Riwayat realisasi</DialogTitle><DialogDescription>{baris.namaAktifitas} · perubahan capaian dihitung ulang saat disimpan.</DialogDescription></DialogHeader><div className="space-y-2 max-h-72 overflow-auto">{data === null ? <p className="text-sm text-slate-500">Memuat…</p> : data.length === 0 ? <p className="text-sm text-slate-500">Belum ada catatan.</p> : data.map((item) => <div className="rounded-lg border p-3 text-sm" key={item.id}><div className="flex justify-between gap-2"><span>{item.tanggalKegiatan} · <b>{angka1(item.jumlahRealisasi)}</b></span>{bolehUbah && <span className="flex gap-1"><Button size="icon" variant="ghost" onClick={() => mulaiEdit(item)}><PencilLine className="size-4" /></Button><Button size="icon" variant="ghost" className="text-red-600" onClick={() => setHapus(item)}><Trash2 className="size-4" /></Button></span>}</div>{item.keterangan && <p className="mt-1 text-slate-500">{item.keterangan}</p>}</div>)}</div>{galat && <p className="text-sm text-red-600">{galat}</p>}{edit && <div className="space-y-2 border-t pt-3"><p className="font-medium text-sm">Koreksi catatan</p><div className="grid grid-cols-2 gap-2"><Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /><Input type="number" step="1" min="0" value={jumlah} onChange={(e) => setJumlah(e.target.value)} /></div><Textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="Keterangan" /><p className="text-xs text-slate-500">Pratinjau total aktivitas: {angka1(baris.realisasi)} → {totalSetelahKoreksi == null ? "—" : angka1(totalSetelahKoreksi)} dari {angka1(baris.target)}. Server menghitung ulang bobot dan capaian saat koreksi disimpan.</p><Button size="sm" disabled={proses} onClick={() => void simpanEdit()}>{proses ? "Menyimpan…" : "Simpan koreksi"}</Button></div>}{hapus && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm"><p>Hapus catatan {hapus.tanggalKegiatan} sebesar {angka1(hapus.jumlahRealisasi)}? Capaian aktivitas dan subkegiatan akan dihitung ulang.</p><div className="mt-2 flex gap-2"><Button size="sm" variant="outline" onClick={() => setHapus(null)}>Batal</Button><Button size="sm" variant="destructive" disabled={proses} onClick={() => void konfirmasiHapus()}>Hapus</Button></div></div>}<DialogFooter><Button variant="outline" onClick={onTutup}>Tutup</Button></DialogFooter></DialogContent></Dialog>
+}
+
 export default function CatatRealisasi() {
   const { peran, bidangId: bidangPeran } = usePeran()
   const [periodes, setPeriodes] = React.useState<Periode[]>([])
@@ -178,23 +196,33 @@ export default function CatatRealisasi() {
   const [daftar, setDaftar] = React.useState<AktifitasPencatatan[]>([])
   const [saring, setSaring] = React.useState<Saring>("belum")
   const [memuat, setMemuat] = React.useState(true)
+  const [galatMuat, setGalatMuat] = React.useState<string | null>(null)
   const [form, setForm] = React.useState<AktifitasPencatatan | null>(null)
+  const [riwayat, setRiwayat] = React.useState<AktifitasPencatatan | null>(null)
 
-  React.useEffect(() => {
+  const muatAwal = React.useCallback(async () => {
+    setGalatMuat(null)
+    setMemuat(true)
     const sumberBidang = peran === "admin_aplikasi" ? getBidang() : Promise.resolve<Bidang[]>([])
-    Promise.all([getPeriode(), sumberBidang]).then(([p, b]) => {
+    try {
+      const [p, b] = await Promise.all([getPeriode(), sumberBidang])
       setPeriodes(p)
       setPeriodeId((p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null)
       setBidangs(b)
       if (peran === "admin_aplikasi") setBidangId((v) => v ?? b[0]?.id ?? null)
-    })
+    } catch (e) { setGalatMuat(apiMessage(e, "Gagal memuat periode atau bidang.")); setMemuat(false) }
   }, [peran])
+  React.useEffect(() => { void muatAwal() }, [muatAwal])
 
   const muat = React.useCallback(async () => {
     if (periodeId == null || bidangId == null) return
     setMemuat(true)
+    setGalatMuat(null)
     try {
       setDaftar(await getAktifitasBidang(bidangId, periodeId))
+    } catch (e) {
+      setDaftar([])
+      setGalatMuat(apiMessage(e, "Gagal memuat aktivitas realisasi."))
     } finally {
       setMemuat(false)
     }
@@ -217,8 +245,7 @@ export default function CatatRealisasi() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Catat Realisasi</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-sm text-slate-500">
             Setiap pencatatan langsung menyusun ulang bobot realisasi dan capaian
             subkegiatannya. Efeknya ditampilkan sebelum disimpan.
           </p>
@@ -263,12 +290,14 @@ export default function CatatRealisasi() {
         </div>
       )}
 
-      <Panel>
+      {galatMuat && <Panel><div className="p-8 text-center"><p className="text-sm text-red-600">{galatMuat}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => { if (periodeId == null) void muatAwal(); else void muat() }}><RefreshCw className="size-3.5" /> Coba lagi</Button></div></Panel>}
+
+      {!galatMuat && <Panel>
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
               <Th>Subkegiatan</Th>
-              <Th>Aktifitas</Th>
+              <Th>Aktivitas</Th>
               <Th kanan>Bobot</Th>
               <Th kanan>Realisasi</Th>
               <Th kanan>Capaian subkeg</Th>
@@ -281,7 +310,7 @@ export default function CatatRealisasi() {
             )}
             {!memuat && terlihat.length === 0 && (
               <tr><td colSpan={6} className="px-6 py-8 text-sm text-center text-slate-500">
-                Tidak ada aktifitas pada saringan ini.
+                Tidak ada aktivitas pada saringan ini.
               </td></tr>
             )}
             {!memuat && terlihat.map((a) => (
@@ -321,19 +350,21 @@ export default function CatatRealisasi() {
                   <div className="mt-1.5 w-16 ml-auto"><BarCapaian persen={a.capaianSubkegiatan} /></div>
                 </td>
                 <td className="px-6 py-3 text-right">
-                  <Button size="sm" variant="outline" onClick={() => setForm(a)} disabled={!dapatMencatat}>
+                  <Button size="sm" variant="outline" onClick={() => setForm(a)} disabled={!dapatMencatat || peran !== "admin_bidang"}>
                     <PencilLine className="w-3.5 h-3.5" /> Catat
                   </Button>
+                  <Button size="sm" variant="ghost" className="ml-1" onClick={() => setRiwayat(a)}><History className="w-3.5 h-3.5" /> Riwayat</Button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </Panel>
+      </Panel>}
 
       {form && (
         <FormCatat baris={form} onTutup={() => setForm(null)} onTersimpan={() => void muat()} />
       )}
+      {riwayat && <RiwayatRealisasi baris={riwayat} bolehUbah={dapatMencatat && peran === "admin_bidang"} onTutup={() => setRiwayat(null)} onTersimpan={() => void muat()} />}
     </div>
   )
 }

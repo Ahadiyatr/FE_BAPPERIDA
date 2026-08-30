@@ -13,7 +13,7 @@ import { LABEL_PERAN, bolehAkses, peranYangBoleh, usePeran } from "@/lib/peran"
  */
 export function PenjagaPeran({ children }: { children: React.ReactNode }) {
   const { peran, memuat } = usePeran()
-  const { pathname } = useLocation()
+  const { pathname, search, hash } = useLocation()
 
   if (memuat) return <div className="p-8 text-center text-sm text-slate-500">Memeriksa sesi…</div>
   if (bolehAkses(peran, pathname)) return <>{children}</>
@@ -21,7 +21,7 @@ export function PenjagaPeran({ children }: { children: React.ReactNode }) {
   // Pengunjung tanpa login tidak melihat halaman penolakan — ia diantar ke
   // landing publik yang memang tempatnya (keputusan 29 Agustus 2026).
   if (peran === "publik") {
-    return <Navigate to="/login" replace state={{ dari: pathname }} />
+    return <Navigate to="/login" replace state={{ dari: `${pathname}${search}${hash}` }} />
   }
 
   const boleh = peranYangBoleh(pathname) ?? []

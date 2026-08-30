@@ -102,8 +102,7 @@ export default function MasterDokumen() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Master Dokumen Perencanaan</h1>
-          <p className="mt-1 max-w-prose text-sm text-slate-500">
+          <p className="max-w-prose text-sm text-slate-500">
             RPJMD berlaku lima tahun dan menaungi RKPD tahunan. Program hidup di RPJMD;
             periode triwulanan menunjuk RKPD tahun berjalan.
           </p>

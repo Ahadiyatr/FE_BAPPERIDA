@@ -4,11 +4,11 @@ import { Link } from "react-router-dom"
 import { Download } from "lucide-react"
 import {
   getPeriode, getRankingBidang, getRankingProgram, getRingkasanDashboard,
-  getSubkegiatanTertinggal,
+  getSubkegiatanTertinggal, getTrenCapaian,
   eksporLaporan,
 } from "@/services"
 import type {
-  CapaianBidang, CapaianProgram, Periode, RingkasanDashboard, SubkegiatanTertinggal,
+  CapaianBidang, CapaianProgram, Periode, RingkasanDashboard, SubkegiatanTertinggal, TrenCapaian,
 } from "@/services"
 import { usePeran } from "@/lib/peran"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ export default function DashboardUmum() {
   const [bidang, setBidang] = React.useState<CapaianBidang[]>([])
   const [program, setProgram] = React.useState<CapaianProgram[]>([])
   const [tertinggal, setTertinggal] = React.useState<SubkegiatanTertinggal[]>([])
+  const [tren, setTren] = React.useState<TrenCapaian[]>([])
   const [memuat, setMemuat] = React.useState(true)
   const [galat, setGalat] = React.useState<string | null>(null)
 
@@ -45,10 +46,11 @@ export default function DashboardUmum() {
       getRankingBidang(periodeId),
       getRankingProgram(periodeId),
       getSubkegiatanTertinggal(periodeId),
+      getTrenCapaian(periodeId),
     ])
-      .then(([r, b, p, t]) => {
+      .then(([r, b, p, t, tr]) => {
         if (batal) return
-        setRingkas(r); setBidang(b); setProgram(p); setTertinggal(t)
+        setRingkas(r); setBidang(b); setProgram(p); setTertinggal(t); setTren(tr)
       })
       .catch(() => !batal && setGalat("Gagal memuat capaian."))
       .finally(() => !batal && setMemuat(false))
@@ -59,8 +61,7 @@ export default function DashboardUmum() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard Umum</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-sm text-slate-500">
             Capaian BAPPERIDA dihitung ulang otomatis setiap ada bidang yang mencatat realisasi.
           </p>
         </div>
@@ -105,7 +106,7 @@ export default function DashboardUmum() {
               catatan={`${ringkas.jumlahBidangSiap} dari ${ringkas.jumlahBidang} bidang berstatus siap`}
             />
             <KartuKpi
-              label="Aktifitas"
+              label="Aktivitas"
               nilai={String(ringkas.jumlahAktifitas)}
               catatan="Utama + pendukung pada periode ini"
             />
@@ -117,6 +118,27 @@ export default function DashboardUmum() {
           </>
         )}
       </div>
+
+      <Panel judul={peran === "admin_bidang" ? "Tren capaian bidang" : "Tren capaian perangkat daerah"} aksi={<span className="text-xs text-slate-500">Maks. 6 periode terakhir</span>}>
+        {memuat ? <div className="h-40 animate-pulse bg-slate-50" /> : tren.length === 0 ? (
+          <p className="p-8 text-center text-sm text-slate-500">Belum ada periode OPEN atau LOCKED untuk dibandingkan.</p>
+        ) : (
+          <div className="flex min-h-44 items-end gap-3 overflow-x-auto px-5 pb-5 pt-6">
+            {tren.map((t) => (
+              <div key={t.periodeId} className="flex min-w-24 flex-1 flex-col items-center gap-2 text-center" title={`${t.namaPeriode}: ${t.capaian}%`}>
+                <span className="text-xs font-semibold tabular text-slate-700">{persen1(t.capaian)}</span>
+                <div className="flex h-24 w-full max-w-16 items-end rounded-t-lg bg-slate-100">
+                  <div className="w-full rounded-t-lg bg-emerald-600 transition-all" style={{ height: `${Math.max(2, Math.min(t.capaian, 100))}%` }} />
+                </div>
+                <div>
+                  <p className="line-clamp-2 text-xs font-medium text-slate-700">{t.namaPeriode}</p>
+                  <p className="mt-0.5 text-[11px] text-slate-400">{t.jumlahSubkegiatan} subkeg · {t.status}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel judul="Kinerja per bidang">
@@ -199,7 +221,7 @@ export default function DashboardUmum() {
                 <td className="px-6 py-3 text-sm text-slate-700"><span className="line-clamp-2">{t.nama}</span></td>
                 <td className="px-6 py-3 text-sm text-slate-500">{t.namaBidang}</td>
                 <td className="px-6 py-3 text-sm text-right tabular text-slate-500">
-                  {t.jumlahAktifitasBelumJalan} aktifitas
+                  {t.jumlahAktifitasBelumJalan} aktivitas
                 </td>
                 <td className={`px-6 py-3 text-right font-semibold tabular ${warnaCapaian(t.capaian)}`}>
                   {persen1(t.capaian)}

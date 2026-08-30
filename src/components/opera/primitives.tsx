@@ -115,7 +115,7 @@ export function CapaianPersen({
 /* ─────────────────────────────────────────────────────────────
    ChainNav — navigasi data berjenjang.
    Dipakai di layar Data Master untuk Program → Kegiatan →
-   Subkegiatan → Aktifitas. Bukan <Tabs>: tab sejajar menyiratkan
+   Subkegiatan → Aktivitas. Bukan <Tabs>: tab sejajar menyiratkan
    lima hal setara, padahal ini rantai induk-anak.
    ───────────────────────────────────────────────────────────── */
 

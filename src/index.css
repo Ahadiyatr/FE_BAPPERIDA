@@ -78,6 +78,24 @@
     --ring: oklch(0.55 0.15 140);
 
     --radius: 0.75rem;
+
+    /* Semantic/domain tokens — status dan nilai SVG/JS tidak memakai literal. */
+    --color-brand: #059669;
+    --color-brand-strong: #047857;
+    --color-status-success: #059669;
+    --color-status-warning: #d97706;
+    --color-status-danger: #ef4444;
+    --color-status-neutral: #94a3b8;
+    --color-surface-subtle: #f4f7fb;
+    --color-border-subtle: #e2e8f0;
+    --color-text-muted: #64748b;
+    --color-chart-1: #047857;
+    --color-chart-2: #10b981;
+    --color-chart-3: #34d399;
+    --color-chart-4: #84cc16;
+    --color-chart-5: #eab308;
+    --color-chart-6: #f59e0b;
+    --color-chart-7: #d97706;
 }
 
 /* ================= DARK ================= */

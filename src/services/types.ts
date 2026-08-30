@@ -499,6 +499,7 @@ export interface AktifitasRinci {
   indikatorBidangId: number
   namaAktifitas: string
   tipeAktifitas: TipeAktifitas
+  satuan: string
   bobotTarget: number
   target: number
   realisasi: number

@@ -23,7 +23,7 @@ import {
   TINGKAT, URUT_TINGKAT, adalahAktifitas, adalahSubkegiatan, kodeDari, namaDari,
 } from "./master/tingkat"
 import type { BarisMaster, IdTingkat } from "./master/tingkat"
-import { getProgram, getKegiatan, getSubkegiatan, getJumlahAktifitas, previewImportExcel, unduhTemplateImportExcel } from "@/services"
+import { getProgram, getKegiatan, getSubkegiatan, getJumlahAktifitas, importKatalogExcel, previewImportExcel, unduhTemplateImportExcel } from "@/services"
 import type { PreviewExcel } from "@/services"
 
 const persen = (n: number) =>
@@ -56,6 +56,9 @@ export default function DataMaster() {
   const [fileImport, setFileImport] = React.useState<File | null>(null)
   const [previewImport, setPreviewImport] = React.useState<PreviewExcel | null>(null)
   const [memprosesImport, setMemprosesImport] = React.useState(false)
+  const [namaDokumenImport, setNamaDokumenImport] = React.useState("")
+  const [tahunMulaiImport, setTahunMulaiImport] = React.useState("2025")
+  const [tahunSelesaiImport, setTahunSelesaiImport] = React.useState("2029")
   const [nama_induk, setNamaInduk] = React.useState<string | null>(null)
 
   const muat = React.useCallback(async () => {
@@ -137,8 +140,7 @@ export default function DataMaster() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Data Master</h1>
-        <p className="mt-1 max-w-prose text-sm text-slate-500">
+        <p className="max-w-prose text-sm text-slate-500">
           Katalog murni — tanpa bidang dan tanpa periode. Mengubah di sini tidak
           menyentuh realisasi periode yang sudah berjalan.
         </p>
@@ -161,7 +163,7 @@ export default function DataMaster() {
       {def.induk && indukId == null && tingkat === "aktifitas" && (
         <div className="rounded-xl border bg-amber-50/60 px-3 py-2 text-sm text-foreground">
           Bobot 30%÷n hanya bermakna dalam satu subkegiatan. Pilih satu subkegiatan
-          dulu lewat kolom <b>Aktifitas</b> di tingkat sebelumnya.
+          dulu lewat kolom <b>Aktivitas</b> di tingkat sebelumnya.
         </div>
       )}
 
@@ -329,7 +331,7 @@ export default function DataMaster() {
                   {konfirmasi && adalahAktifitas(konfirmasi) && konfirmasi.tipeAktifitas === "PENDUKUNG" && (
                     <>
                       {" "}Bobot 30% akan dibagi ulang ke{" "}
-                      <b>{jumlahPendukungAktif - 1} aktifitas pendukung</b> yang tersisa.
+                      <b>{jumlahPendukungAktif - 1} aktivitas pendukung</b> yang tersisa.
                     </>
                   )}
                 </>
@@ -365,9 +367,15 @@ export default function DataMaster() {
               <b>{previewImport.valid ? "File valid untuk dipreview" : "File perlu diperbaiki"}</b>
               <p className="mt-1">Sheet: {previewImport.nama_sheet} · {previewImport.jumlah_baris} baris terisi.</p>
               <p className="mt-1 text-muted-foreground">{previewImport.catatan}</p>
+              {previewImport.audit && <p className="mt-1 text-muted-foreground">Audit: {previewImport.audit.program} program · {previewImport.audit.kegiatan} kegiatan · {previewImport.audit.subkegiatan} subkegiatan · {previewImport.audit.aktifitas} aktivitas · {previewImport.audit.bidang.length} bidang.</p>}
               {previewImport.errors.map((error) => <p key={error} className="mt-1 text-red-600">{error}</p>)}
             </div>
           )}
+          {previewImport?.valid && <>
+            <Input value={namaDokumenImport} onChange={(e) => setNamaDokumenImport(e.target.value)} placeholder="Nama dokumen baru" />
+            <div className="grid grid-cols-2 gap-2"><Input type="number" value={tahunMulaiImport} onChange={(e) => setTahunMulaiImport(e.target.value)} placeholder="Tahun mulai" /><Input type="number" value={tahunSelesaiImport} onChange={(e) => setTahunSelesaiImport(e.target.value)} placeholder="Tahun selesai" /></div>
+            <p className="text-xs text-muted-foreground">Impor hanya membuat katalog baru; kode yang sudah ada akan ditolak agar data historis tidak tertimpa.</p>
+          </>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setImporTerbuka(false)}>Tutup</Button>
             <Button disabled={!fileImport || memprosesImport} onClick={() => {
@@ -378,6 +386,14 @@ export default function DataMaster() {
             }}>
               {memprosesImport ? "Memeriksa…" : "Preview & validasi"}
             </Button>
+            <Button disabled={!fileImport || !previewImport?.valid || !namaDokumenImport.trim() || memprosesImport} onClick={() => {
+              if (!fileImport) return
+              setMemprosesImport(true)
+              importKatalogExcel(fileImport, { nama: namaDokumenImport.trim(), tahunMulai: Number(tahunMulaiImport), tahunSelesai: Number(tahunSelesaiImport) })
+                .then(() => { setImporTerbuka(false); void muat() })
+                .catch((e) => setGalat(e instanceof Error ? e.message : "Import katalog gagal."))
+                .finally(() => setMemprosesImport(false))
+            }}>Import katalog</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

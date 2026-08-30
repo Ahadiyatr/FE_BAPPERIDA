@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import {
   getCapaianProgram,
@@ -31,9 +32,11 @@ const angka = (n: number) =>
 function KartuSubkegiatan({
   s,
   bidangSaya,
+  dapatLihatBukti,
 }: {
   s: SubkegiatanRinci;
   bidangSaya: number | null;
+  dapatLihatBukti: boolean;
 }) {
   const utama = s.aktifitas.find(a => a.tipeAktifitas === 'UTAMA');
   const pendukung = s.aktifitas.filter(a => a.tipeAktifitas === 'PENDUKUNG');
@@ -66,6 +69,11 @@ function KartuSubkegiatan({
           >
             {persen1(s.capaian)}
           </span>
+          {dapatLihatBukti && (
+            <Link to={`/monitoring/subkegiatan/${s.subkegiatanBidangId}`} className="mt-1 inline-flex items-center gap-0.5 text-[11px] font-medium text-emerald-700 hover:underline">
+              Bukti <ArrowUpRight className="size-3" />
+            </Link>
+          )}
         </div>
       </div>
 
@@ -90,7 +98,7 @@ function KartuSubkegiatan({
       )}
       {!utama && (
         <p className="px-3 py-2 mt-3 text-xs text-red-600 rounded-lg bg-red-50">
-          Tanpa aktifitas utama — tidak ada pemegang bobot 70%.
+          Tanpa aktivitas utama — tidak ada pemegang bobot 70%.
         </p>
       )}
 
@@ -99,7 +107,7 @@ function KartuSubkegiatan({
           <thead>
             <tr className="border-b border-slate-200 text-slate-400">
               <th className="py-1.5 pr-3 text-left font-medium uppercase tracking-wider">
-                Aktifitas
+                Aktivitas
               </th>
               <th className="py-1.5 px-2 text-right font-medium uppercase tracking-wider whitespace-nowrap">
                 Bobot
@@ -136,7 +144,7 @@ function KartuSubkegiatan({
                   {persen1(a.bobotTarget)}
                 </td>
                 <td className="py-1.5 px-2 text-right tabular whitespace-nowrap text-slate-600">
-                  {angka(a.realisasi)} / {angka(a.target)}
+                  {angka(a.realisasi)} / {angka(a.target)} {a.satuan}
                 </td>
                 <td className="py-1.5 pl-2 text-right font-medium tabular text-slate-700">
                   {persen1(a.bobotRealisasi)}
@@ -146,6 +154,9 @@ function KartuSubkegiatan({
           </tbody>
         </table>
       </div>
+      <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+        Rumus: bobot realisasi = min(realisasi ÷ target, 100%) × bobot target; capaian subkegiatan = Σ bobot realisasi.
+      </p>
     </div>
   );
 }
@@ -156,10 +167,12 @@ function BarisKegiatan({
   k,
   periodeId,
   bidangSaya,
+  dapatLihatBukti,
 }: {
   k: RincianKegiatanProgram;
   periodeId: number;
   bidangSaya: number | null;
+  dapatLihatBukti: boolean;
 }) {
   const [buka, setBuka] = React.useState(false);
   const [rinci, setRinci] = React.useState<SubkegiatanRinci[] | null>(null);
@@ -221,6 +234,7 @@ function BarisKegiatan({
               key={s.subkegiatanBidangId}
               s={s}
               bidangSaya={bidangSaya}
+              dapatLihatBukti={dapatLihatBukti}
             />
           ))}
         </div>
@@ -234,10 +248,12 @@ function BarisProgram({
   p,
   periodeId,
   bidangSaya,
+  dapatLihatBukti,
 }: {
   p: ProgramBerurusan;
   periodeId: number;
   bidangSaya: number | null;
+  dapatLihatBukti: boolean;
 }) {
   const [buka, setBuka] = React.useState(false);
   const punyaBidangSaya =
@@ -325,7 +341,7 @@ function BarisProgram({
 
           <div className="overflow-hidden bg-white border border-slate-200 rounded-xl">
             <p className="px-4 py-2 text-xs font-semibold tracking-wider uppercase border-b border-slate-100 text-slate-500">
-              Per kegiatan — buka untuk melihat subkegiatan dan aktifitasnya
+              Per kegiatan — buka untuk melihat subkegiatan dan aktivitasnya
             </p>
             {p.perKegiatan.map(k => (
               <BarisKegiatan
@@ -333,6 +349,7 @@ function BarisProgram({
                 k={k}
                 periodeId={periodeId}
                 bidangSaya={bidangSaya}
+                dapatLihatBukti={dapatLihatBukti}
               />
             ))}
           </div>
@@ -343,7 +360,7 @@ function BarisProgram({
 }
 
 export default function CapaianProgram() {
-  const { bidangId } = usePeran();
+  const { bidangId, peran } = usePeran();
   const [periodes, setPeriodes] = React.useState<Periode[]>([]);
   const [periodeId, setPeriodeId] = React.useState<number | null>(null);
   const [programs, setPrograms] = React.useState<ProgramBerurusan[]>([]);
@@ -388,8 +405,7 @@ export default function CapaianProgram() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Capaian Program</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-sm text-slate-500">
             Capaian tiap program pada periode terpilih. Buka satu baris untuk
             melihat rinciannya per bidang dan per kegiatan.
           </p>
@@ -457,6 +473,7 @@ export default function CapaianProgram() {
                 p={p}
                 periodeId={periodeId!}
                 bidangSaya={bidangId}
+                dapatLihatBukti={peran === 'admin_aplikasi'}
               />
             ))}
           </div>

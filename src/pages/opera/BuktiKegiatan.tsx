@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Upload } from "lucide-react"
+import { RefreshCw, Upload } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { getBidang, getBuktiByBidang, getPeriode, hapusLampiran, uploadLampiran } from "@/services"
@@ -82,25 +82,34 @@ export default function BuktiKegiatan() {
   const [catatan, setCatatan] = React.useState<CatatanBukti[]>([])
   const [hanyaBerlampiran, setHanyaBerlampiran] = React.useState(false)
   const [memuat, setMemuat] = React.useState(true)
+  const [galatMuat, setGalatMuat] = React.useState<string | null>(null)
   const [mengunggah, setMengunggah] = React.useState<number | null>(null)
   const [menghapus, setMenghapus] = React.useState<number | null>(null)
   const [pratinjau, setPratinjau] = React.useState<RealisasiLampiran | null>(null)
 
-  React.useEffect(() => {
+  const muatAwal = React.useCallback(async () => {
+    setGalatMuat(null)
+    setMemuat(true)
     const sumberBidang = peran === "admin_aplikasi" ? getBidang() : Promise.resolve<Bidang[]>([])
-    Promise.all([getPeriode(), sumberBidang]).then(([p, b]) => {
+    try {
+      const [p, b] = await Promise.all([getPeriode(), sumberBidang])
       setPeriodes(p)
       setPeriodeId((p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null)
       setBidangs(b)
       if (peran === "admin_aplikasi") setBidangId((v) => v ?? b[0]?.id ?? null)
-    })
+    } catch (e) { setGalatMuat(apiMessage(e, "Gagal memuat periode atau bidang.")); setMemuat(false) }
   }, [peran])
+  React.useEffect(() => { void muatAwal() }, [muatAwal])
 
   const muat = React.useCallback(async () => {
     if (periodeId == null || bidangId == null) return
     setMemuat(true)
+    setGalatMuat(null)
     try {
       setCatatan(await getBuktiByBidang(bidangId, periodeId))
+    } catch (e) {
+      setCatatan([])
+      setGalatMuat(apiMessage(e, "Gagal memuat bukti kegiatan."))
     } finally {
       setMemuat(false)
     }
@@ -150,8 +159,7 @@ export default function BuktiKegiatan() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Bukti Kegiatan</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-sm text-slate-500">
             Foto dan dokumen pendukung tiap catatan realisasi.
           </p>
         </div>
@@ -186,14 +194,16 @@ export default function BuktiKegiatan() {
 
       {memuat && <Panel><p className="p-8 text-sm text-center text-slate-400">Memuat…</p></Panel>}
 
-      {!memuat && terlihat.length === 0 && (
+      {galatMuat && <Panel><div className="p-8 text-center"><p className="text-sm text-red-600">{galatMuat}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => { if (periodeId == null) void muatAwal(); else void muat() }}><RefreshCw className="size-3.5" /> Coba lagi</Button></div></Panel>}
+
+      {!memuat && !galatMuat && terlihat.length === 0 && (
         <Panel><p className="p-8 text-sm text-center text-slate-500">
           Belum ada catatan realisasi pada periode ini.
         </p></Panel>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {!memuat && terlihat.map((c) => (
+        {!memuat && !galatMuat && terlihat.map((c) => (
           <KartuCatatan
             key={c.realisasiId}
             c={c}

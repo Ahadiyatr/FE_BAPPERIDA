@@ -45,12 +45,9 @@ export default function KinerjaBidang() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            {rencana ? `Kinerja Bidang ${rencana.bidang.namaBidang}` : tidakAda ? "Bidang tidak ditemukan" : "Memuat…"}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Capaian tiap subkegiatan memakai pembagian bobot 70% aktifitas utama dan 30%
-            dibagi rata ke aktifitas pendukung.
+          <p className="text-sm text-slate-500">
+            Capaian tiap subkegiatan memakai pembagian bobot 70% aktivitas utama dan 30%
+            dibagi rata ke aktivitas pendukung.
           </p>
         </div>
         <PilihPeriode periodes={periodes} nilai={periodeId} onPilih={setPeriodeId} />
@@ -105,7 +102,7 @@ export default function KinerjaBidang() {
                         <span className="line-clamp-2">{b.namaSubkegiatan}</span>
                         <p className="mt-0.5 text-xs text-slate-400">
                           target {b.subkegiatanBidang.target} {b.subkegiatanBidang.satuan}
-                          {" · "}{pendukung.length} aktifitas pendukung
+                          {" · "}{pendukung.length} aktivitas pendukung
                         </p>
                       </td>
                       <td className="px-6 py-3 w-56">
@@ -118,7 +115,7 @@ export default function KinerjaBidang() {
                             }))}
                           />
                         ) : (
-                          <span className="text-xs text-red-600">Tanpa aktifitas utama</span>
+                          <span className="text-xs text-red-600">Tanpa aktivitas utama</span>
                         )}
                       </td>
                       <td className="px-6 py-3 text-right">

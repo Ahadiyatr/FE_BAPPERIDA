@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cekSyaratBuka, getPeriode, simpanPeriode, ubahStatusPeriode } from "@/services"
+import { apiMessage } from "@/services/api"
 import type { Periode, StatusPeriode, SyaratBukaPeriode } from "@/services"
 import { Panel, Th } from "./bagian/ui"
 
@@ -48,7 +49,7 @@ export default function PeriodeLayar() {
   async function ubah(p: Periode, ke: StatusPeriode) {
     setGalat(null)
     try { await ubahStatusPeriode(p.id, ke); await muat() }
-    catch (e) { setGalat(e instanceof Error ? e.message : "Gagal mengubah status.") }
+    catch (e) { setGalat(apiMessage(e, "Gagal mengubah status periode.")) }
     finally { setKonfirmasi(null) }
   }
 
@@ -56,8 +57,7 @@ export default function PeriodeLayar() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Periode</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-sm text-slate-500">
             Hanya satu periode boleh terbuka pada satu waktu. Kunci periode yang
             sedang terbuka sebelum membuka periode lain.
           </p>
