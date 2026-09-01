@@ -20,6 +20,7 @@ import PenyusunanRencana from "./pages/opera/PenyusunanRencana"
 import PeriodeLayar from "./pages/opera/PeriodeLayar"
 import RencanaBidang from "./pages/opera/RencanaBidang"
 import RencanaSaya from "./pages/opera/RencanaSaya"
+import RencanaSayaDetail from "./pages/opera/RencanaSayaDetail"
 import StrukturProgram from "./pages/opera/StrukturProgram"
 import { PenjagaPeran } from "./pages/opera/bagian/PenjagaPeran"
 
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/rencana" element={jaga(<PenyusunanRencana />)} />
             <Route path="/rencana/:bidangId" element={jaga(<RencanaBidang />)} />
             <Route path="/rencana-saya" element={jaga(<RencanaSaya />)} />
+            <Route path="/rencana-saya/:id" element={jaga(<RencanaSayaDetail />)} />
             <Route path="/realisasi" element={jaga(<CatatRealisasi />)} />
             <Route path="/bukti" element={jaga(<BuktiKegiatan />)} />
             <Route path="/log" element={jaga(<LogAktivitas />)} />

@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useSearchParams } from "react-router-dom"
 import { History, PencilLine, RefreshCw, Trash2 } from "lucide-react"
 
 import {
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { BobotLedger } from "@/components/opera/bobot-ledger"
+import { MelebihiTargetBadge } from "@/components/opera/realisasi-status"
 import {
   catatRealisasi, getAktifitasBidang, getBidang, getPeriode, pratinjauRealisasi, getRealisasiByIndikatorBidang, hapusRealisasi, ubahRealisasi,
 } from "@/services"
@@ -15,6 +17,7 @@ import type {
   AktifitasPencatatan, Bidang, Periode, PratinjauRealisasi, RealisasiKegiatan,
 } from "@/services"
 import { usePeran } from "@/lib/peran"
+import { KonfirmasiRealisasiMelebihiTarget } from "@/lib/konfirmasi-realisasi"
 import { apiMessage } from "@/services/api"
 import { BarCapaian, Panel, PilihPeriode, Th, persen1, warnaCapaian } from "./bagian/ui"
 
@@ -43,9 +46,10 @@ function FormCatat({
   const [pratinjau, setPratinjau] = React.useState<PratinjauRealisasi | null>(null)
   const [menyimpan, setMenyimpan] = React.useState(false)
   const [galat, setGalat] = React.useState<string | null>(null)
+  const [konfirmasiTerbuka, setKonfirmasiTerbuka] = React.useState(false)
 
   const n = Number(jumlah)
-  const sahih = Number.isFinite(n) && n > 0
+  const sahih = Number.isSafeInteger(n) && n > 0
 
   // Pratinjau dihitung di service, bukan di komponen — rumusnya satu tempat.
   React.useEffect(() => {
@@ -55,7 +59,10 @@ function FormCatat({
     return () => { batal = true }
   }, [baris.indikatorBidangId, n, sahih])
 
-  async function simpan() {
+  const totalSetelah = pratinjau?.realisasiSetelah ?? baris.realisasi + n
+  const target = pratinjau?.satuanTarget ?? baris.target
+
+  async function lakukanSimpan() {
     setMenyimpan(true)
     setGalat(null)
     try {
@@ -75,6 +82,14 @@ function FormCatat({
     } finally {
       setMenyimpan(false)
     }
+  }
+
+  function simpan() {
+    if (target > 0 && totalSetelah > target) {
+      setKonfirmasiTerbuka(true)
+      return
+    }
+    void lakukanSimpan()
   }
 
   return (
@@ -104,7 +119,7 @@ function FormCatat({
                 Jumlah realisasi
               </span>
               <Input
-                type="number" step="any" min="0"
+                type="number" step="1" min="0" max={Number.MAX_SAFE_INTEGER}
                 className="font-mono tabular"
                 value={jumlah}
                 onChange={(e) => setJumlah(e.target.value)}
@@ -164,6 +179,13 @@ function FormCatat({
             {menyimpan ? "Menyimpan…" : "Simpan realisasi"}
           </Button>
         </DialogFooter>
+        <KonfirmasiRealisasiMelebihiTarget
+          open={konfirmasiTerbuka}
+          total={totalSetelah}
+          target={target}
+          onPeriksaKembali={() => setKonfirmasiTerbuka(false)}
+          onTetapSimpan={() => { setKonfirmasiTerbuka(false); void lakukanSimpan() }}
+        />
       </DialogContent>
     </Dialog>
   )
@@ -178,17 +200,23 @@ function RiwayatRealisasi({ baris, bolehUbah, onTutup, onTersimpan }: { baris: A
   const [keterangan, setKeterangan] = React.useState("")
   const [proses, setProses] = React.useState(false)
   const [galat, setGalat] = React.useState<string | null>(null)
+  const [konfirmasiEdit, setKonfirmasiEdit] = React.useState(false)
   const totalSetelahKoreksi = edit && Number.isFinite(Number(jumlah)) ? baris.realisasi - edit.jumlahRealisasi + Number(jumlah) : null
   const muat = React.useCallback(() => getRealisasiByIndikatorBidang(baris.indikatorBidangId).then(setData).catch((e) => setGalat(apiMessage(e, "Gagal memuat riwayat."))), [baris.indikatorBidangId])
   React.useEffect(() => { void muat() }, [muat])
   function mulaiEdit(item: RealisasiKegiatan) { setEdit(item); setTanggal(item.tanggalKegiatan); setJumlah(String(item.jumlahRealisasi)); setKeterangan(item.keterangan) }
-  async function simpanEdit() { if (!edit || !Number.isInteger(Number(jumlah)) || Number(jumlah) < 0) return; setProses(true); try { await ubahRealisasi(edit.id, { tanggalKegiatan: tanggal, jumlahRealisasi: Number(jumlah), keterangan }); setEdit(null); await muat(); onTersimpan() } catch (e) { setGalat(apiMessage(e, "Gagal mengubah realisasi.")) } finally { setProses(false) } }
+  async function lakukanSimpanEdit() { if (!edit) return; setProses(true); try { await ubahRealisasi(edit.id, { tanggalKegiatan: tanggal, jumlahRealisasi: Number(jumlah), keterangan }); setEdit(null); await muat(); onTersimpan() } catch (e) { setGalat(apiMessage(e, "Gagal mengubah realisasi.")) } finally { setProses(false) } }
+  function simpanEdit() { if (!edit || !Number.isSafeInteger(Number(jumlah)) || Number(jumlah) < 0 || totalSetelahKoreksi == null) return; if (baris.target > 0 && totalSetelahKoreksi > baris.target) { setKonfirmasiEdit(true); return } void lakukanSimpanEdit() }
   async function konfirmasiHapus() { if (!hapus) return; setProses(true); try { await hapusRealisasi(hapus.id); setHapus(null); await muat(); onTersimpan() } catch (e) { setGalat(apiMessage(e, "Gagal menghapus realisasi.")) } finally { setProses(false) } }
-  return <Dialog open onOpenChange={(o) => !o && onTutup()}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>Riwayat realisasi</DialogTitle><DialogDescription>{baris.namaAktifitas} · perubahan capaian dihitung ulang saat disimpan.</DialogDescription></DialogHeader><div className="space-y-2 max-h-72 overflow-auto">{data === null ? <p className="text-sm text-slate-500">Memuat…</p> : data.length === 0 ? <p className="text-sm text-slate-500">Belum ada catatan.</p> : data.map((item) => <div className="rounded-lg border p-3 text-sm" key={item.id}><div className="flex justify-between gap-2"><span>{item.tanggalKegiatan} · <b>{angka1(item.jumlahRealisasi)}</b></span>{bolehUbah && <span className="flex gap-1"><Button size="icon" variant="ghost" onClick={() => mulaiEdit(item)}><PencilLine className="size-4" /></Button><Button size="icon" variant="ghost" className="text-red-600" onClick={() => setHapus(item)}><Trash2 className="size-4" /></Button></span>}</div>{item.keterangan && <p className="mt-1 text-slate-500">{item.keterangan}</p>}</div>)}</div>{galat && <p className="text-sm text-red-600">{galat}</p>}{edit && <div className="space-y-2 border-t pt-3"><p className="font-medium text-sm">Koreksi catatan</p><div className="grid grid-cols-2 gap-2"><Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /><Input type="number" step="1" min="0" value={jumlah} onChange={(e) => setJumlah(e.target.value)} /></div><Textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="Keterangan" /><p className="text-xs text-slate-500">Pratinjau total aktivitas: {angka1(baris.realisasi)} → {totalSetelahKoreksi == null ? "—" : angka1(totalSetelahKoreksi)} dari {angka1(baris.target)}. Server menghitung ulang bobot dan capaian saat koreksi disimpan.</p><Button size="sm" disabled={proses} onClick={() => void simpanEdit()}>{proses ? "Menyimpan…" : "Simpan koreksi"}</Button></div>}{hapus && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm"><p>Hapus catatan {hapus.tanggalKegiatan} sebesar {angka1(hapus.jumlahRealisasi)}? Capaian aktivitas dan subkegiatan akan dihitung ulang.</p><div className="mt-2 flex gap-2"><Button size="sm" variant="outline" onClick={() => setHapus(null)}>Batal</Button><Button size="sm" variant="destructive" disabled={proses} onClick={() => void konfirmasiHapus()}>Hapus</Button></div></div>}<DialogFooter><Button variant="outline" onClick={onTutup}>Tutup</Button></DialogFooter></DialogContent></Dialog>
+  return <Dialog open onOpenChange={(o) => !o && onTutup()}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>Riwayat realisasi</DialogTitle><DialogDescription>{baris.namaAktifitas} · perubahan capaian dihitung ulang saat disimpan.</DialogDescription>{baris.realisasi > baris.target && <div className="pt-1"><MelebihiTargetBadge realisasi={baris.realisasi} target={baris.target} /></div>}</DialogHeader><div className="space-y-2 max-h-72 overflow-auto">{data === null ? <p className="text-sm text-slate-500">Memuat…</p> : data.length === 0 ? <p className="text-sm text-slate-500">Belum ada catatan.</p> : data.map((item) => <div className="rounded-lg border p-3 text-sm" key={item.id}><div className="flex justify-between gap-2"><span>{item.tanggalKegiatan} · <b>{angka1(item.jumlahRealisasi)}</b></span>{bolehUbah && <span className="flex gap-1"><Button size="icon" variant="ghost" onClick={() => mulaiEdit(item)}><PencilLine className="size-4" /></Button><Button size="icon" variant="ghost" className="text-red-600" onClick={() => setHapus(item)}><Trash2 className="size-4" /></Button></span>}</div>{item.keterangan && <p className="mt-1 text-slate-500">{item.keterangan}</p>}</div>)}</div>{galat && <p className="text-sm text-red-600">{galat}</p>}{edit && <div className="space-y-2 border-t pt-3"><p className="font-medium text-sm">Koreksi catatan</p><div className="grid grid-cols-2 gap-2"><Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /><Input type="number" step="1" min="0" max={Number.MAX_SAFE_INTEGER} value={jumlah} onChange={(e) => setJumlah(e.target.value)} /></div><Textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="Keterangan" /><p className="text-xs text-slate-500">Pratinjau total aktivitas: {angka1(baris.realisasi)} → {totalSetelahKoreksi == null ? "—" : angka1(totalSetelahKoreksi)} dari {angka1(baris.target)}. Server menghitung ulang bobot dan capaian saat koreksi disimpan.</p>{totalSetelahKoreksi != null && totalSetelahKoreksi > baris.target && <p className="text-xs text-amber-700">Koreksi ini melebihi target dan akan meminta konfirmasi sebelum disimpan.</p>}<Button size="sm" disabled={proses} onClick={() => simpanEdit()}>{proses ? "Menyimpan…" : "Simpan koreksi"}</Button></div>}{hapus && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm"><p>Hapus catatan {hapus.tanggalKegiatan} sebesar {angka1(hapus.jumlahRealisasi)}? Capaian aktivitas dan subkegiatan akan dihitung ulang.</p><div className="mt-2 flex gap-2"><Button size="sm" variant="outline" onClick={() => setHapus(null)}>Batal</Button><Button size="sm" variant="destructive" disabled={proses} onClick={() => void konfirmasiHapus()}>Hapus</Button></div></div>}<DialogFooter><Button variant="outline" onClick={onTutup}>Tutup</Button></DialogFooter><KonfirmasiRealisasiMelebihiTarget open={konfirmasiEdit} total={totalSetelahKoreksi ?? 0} target={baris.target} onPeriksaKembali={() => setKonfirmasiEdit(false)} onTetapSimpan={() => { setKonfirmasiEdit(false); void lakukanSimpanEdit() }} /></DialogContent></Dialog>
 }
 
 export default function CatatRealisasi() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const { peran, bidangId: bidangPeran } = usePeran()
+  const periodeTautan = Number(searchParams.get("periode"))
+  const aktivitasTautan = Number(searchParams.get("aktifitas"))
+  const tautanDiproses = React.useRef(false)
   const [periodes, setPeriodes] = React.useState<Periode[]>([])
   const [periodeId, setPeriodeId] = React.useState<number | null>(null)
   const [bidangs, setBidangs] = React.useState<Bidang[]>([])
@@ -207,11 +235,11 @@ export default function CatatRealisasi() {
     try {
       const [p, b] = await Promise.all([getPeriode(), sumberBidang])
       setPeriodes(p)
-      setPeriodeId((p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null)
+      setPeriodeId((p.find((x) => x.id === periodeTautan) ?? p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null)
       setBidangs(b)
       if (peran === "admin_aplikasi") setBidangId((v) => v ?? b[0]?.id ?? null)
     } catch (e) { setGalatMuat(apiMessage(e, "Gagal memuat periode atau bidang.")); setMemuat(false) }
-  }, [peran])
+  }, [peran, periodeTautan])
   React.useEffect(() => { void muatAwal() }, [muatAwal])
 
   const muat = React.useCallback(async () => {
@@ -229,6 +257,16 @@ export default function CatatRealisasi() {
   }, [bidangId, periodeId])
 
   React.useEffect(() => { void muat() }, [muat])
+  React.useEffect(() => {
+    if (tautanDiproses.current || !Number.isInteger(aktivitasTautan) || daftar.length === 0) return
+    const target = daftar.find((a) => a.indikatorBidangId === aktivitasTautan)
+    tautanDiproses.current = true
+    if (target) {
+      setSaring("semua")
+      setForm(target)
+    }
+    setSearchParams({}, { replace: true })
+  }, [aktivitasTautan, daftar, setSearchParams])
 
   const terlihat = daftar.filter((a) =>
     saring === "semua" ? true : saring === "selesai" ? a.selesai : !a.selesai
@@ -342,6 +380,7 @@ export default function CatatRealisasi() {
                     {angka1(a.realisasi)}
                   </span>
                   <span className="text-slate-400"> / {angka1(a.target)}</span>
+                  <div className="mt-1"><MelebihiTargetBadge realisasi={a.realisasi} target={a.target} /></div>
                 </td>
                 <td className="px-6 py-3 text-right">
                   <span className={`font-semibold tabular ${warnaCapaian(a.capaianSubkegiatan)}`}>

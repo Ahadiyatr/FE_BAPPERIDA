@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
-import { ChevronRight, Copy, Info } from "lucide-react"
+import { ChevronRight, Copy, Info, Undo2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -9,53 +9,66 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { Eyebrow } from "@/components/opera/primitives"
-import { getPapanKesiapan, getPeriode, salinRencana, ubahStatusPeriode } from "@/services"
+import { getPapanKesiapan, getPeriode, salinRencana, tandaiKesiapan, ubahStatusPeriode } from "@/services"
 import { apiMessage } from "@/services/api"
 import type { KesiapanBidang, Periode } from "@/services"
 import { cn } from "@/lib/utils"
 
-function KartuBidang({ b, onPilih }: { b: KesiapanBidang; onPilih: () => void }) {
+function KartuBidang({
+  b, dapatKembaliKeDraf, sedangMengubah, onPilih, onKembaliKeDraf,
+}: {
+  b: KesiapanBidang
+  dapatKembaliKeDraf: boolean
+  sedangMengubah: boolean
+  onPilih: () => void
+  onKembaliKeDraf: () => void
+}) {
   const siap = b.status === "SIAP"
   const persen = b.jumlahSubkegiatan ? (b.jumlahLengkap / b.jumlahSubkegiatan) * 100 : 0
 
   return (
-    <button
-      type="button"
-      onClick={onPilih}
+    <div
       className={cn(
         "group flex flex-col gap-2.5 rounded-xl border bg-card p-3.5 text-left shadow-sm transition-colors",
-        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none hover:border-emerald-600/50"
+        "hover:border-emerald-600/50"
       )}
     >
-      <div className="flex items-start gap-2">
-        <span className="min-w-0 flex-1 truncate font-bold text-sm font-bold">
-          {b.namaBidang}
-        </span>
-        <span
-          className={cn(
-            "shrink-0 rounded-xl px-1.5 py-0.5 font-mono text-[11px] tracking-[0.12em] uppercase",
-            siap ? "bg-slate-100 text-slate-600" : "bg-amber-50 text-amber-600"
-          )}
-        >
-          {siap ? "Siap" : "Draf"}
-        </span>
-      </div>
+      <button type="button" onClick={onPilih} className="text-left focus-visible:outline-none">
+        <div className="flex items-start gap-2">
+          <span className="min-w-0 flex-1 truncate text-sm font-bold">{b.namaBidang}</span>
+          <span
+            className={cn(
+              "shrink-0 rounded-xl px-1.5 py-0.5 font-mono text-[11px] tracking-[0.12em] uppercase",
+              siap ? "bg-slate-100 text-slate-600" : "bg-amber-50 text-amber-600"
+            )}
+          >
+            {siap ? "Siap" : "Draf"}
+          </span>
+        </div>
 
-      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-        <div
-          className={cn("h-full rounded-full", siap ? "bg-slate-400" : "bg-emerald-600")}
-          style={{ width: `${persen}%` }}
-        />
-      </div>
+        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-muted">
+          <div
+            className={cn("h-full rounded-full", siap ? "bg-slate-400" : "bg-emerald-600")}
+            style={{ width: `${persen}%` }}
+          />
+        </div>
 
-      <div className="tabular flex items-baseline gap-1 font-mono text-[11px] text-muted-foreground">
-        <b className="text-foreground">{b.jumlahLengkap}</b>
-        <span>dari</span>
-        <b className="text-foreground">{b.jumlahSubkegiatan}</b>
-        <span>subkegiatan lengkap</span>
-        <ChevronRight className="ml-auto size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
-      </div>
-    </button>
+        <div className="tabular mt-2.5 flex items-baseline gap-1 font-mono text-[11px] text-muted-foreground">
+          <b className="text-foreground">{b.jumlahLengkap}</b>
+          <span>dari</span>
+          <b className="text-foreground">{b.jumlahSubkegiatan}</b>
+          <span>subkegiatan lengkap</span>
+          <ChevronRight className="ml-auto size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+        </div>
+      </button>
+
+      {dapatKembaliKeDraf && (
+        <Button size="xs" variant="outline" onClick={onKembaliKeDraf} disabled={sedangMengubah}>
+          <Undo2 className="size-3.5" />
+          {sedangMengubah ? "Mengubah…" : "Kembali ke Draf"}
+        </Button>
+      )}
+    </div>
   )
 }
 
@@ -65,6 +78,7 @@ export default function PenyusunanRencana() {
   const [periodeId, setPeriodeId] = React.useState<number | null>(null)
   const [papan, setPapan] = React.useState<KesiapanBidang[] | null>(null)
   const [galat, setGalat] = React.useState<string | null>(null)
+  const [bidangDiubah, setBidangDiubah] = React.useState<number | null>(null)
 
   const [salinTerbuka, setSalinTerbuka] = React.useState(false)
   const [opsiSalin, setOpsiSalin] = React.useState({
@@ -135,6 +149,20 @@ export default function PenyusunanRencana() {
     }
   }
 
+  async function kembaliKeDraf(bidangId: number) {
+    if (periodeId == null) return
+    setBidangDiubah(bidangId)
+    setGalat(null)
+    try {
+      await tandaiKesiapan(bidangId, periodeId, "DRAFT")
+      await muat()
+    } catch (e) {
+      setGalat(apiMessage(e, "Gagal mengembalikan bidang ke draf."))
+    } finally {
+      setBidangDiubah(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -190,7 +218,10 @@ export default function PenyusunanRencana() {
           <KartuBidang
             key={b.bidangId}
             b={b}
+            dapatKembaliKeDraf={b.status === "SIAP" && periode?.status === "DRAFT"}
+            sedangMengubah={bidangDiubah === b.bidangId}
             onPilih={() => navigate(`/rencana/${b.bidangId}?periode=${periodeId}`)}
+            onKembaliKeDraf={() => void kembaliKeDraf(b.bidangId)}
           />
         ))}
       </div>

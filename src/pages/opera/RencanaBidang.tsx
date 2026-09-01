@@ -28,11 +28,13 @@ const persen = (n: number) =>
 /* ── kolom 3: pemeriksaan ──────────────────────────────────── */
 
 function PanelPemeriksaan({
-  hasil, status, statusPeriode, onTandai, sedangMenandai,
+  hasil, baris, status, statusPeriode, onPilih, onTandai, sedangMenandai,
 }: {
   hasil: HasilPemeriksaan | null
+  baris: BarisRencana[]
   status: "DRAFT" | "SIAP"
   statusPeriode: "DRAFT" | "OPEN" | "LOCKED"
+  onPilih: (id: number) => void
   onTandai: (s: "DRAFT" | "SIAP") => void
   sedangMenandai: boolean
 }) {
@@ -54,14 +56,33 @@ function PanelPemeriksaan({
           {!hasil && <Skeleton className="h-16" />}
           {hasil?.butir.map((b, i) => {
             const Ikon = IKON[b.nada]
-            return (
-              <div key={i} className={cn("flex gap-2 rounded-xl p-2.5 text-xs", NADA[b.nada])}>
+            const terkait = baris.find((r) => b.rincian.startsWith(`${r.kodeSubkegiatan}:`))
+            const isi = (
+              <>
                 <Ikon className="mt-0.5 size-3.5 shrink-0" />
-                <div className="min-w-0">
-                  <b className="block">{b.judul}</b>
-                  <span className="opacity-80">{b.rincian}</span>
+                <div className="min-w-0 flex-1">
+                  <b className="block">{terkait ? terkait.kodeSubkegiatan : b.judul}</b>
+                  {terkait && <span className="mb-1 block line-clamp-2 font-medium text-foreground/80">{terkait.namaSubkegiatan}</span>}
+                  <span className="opacity-80">
+                    {terkait ? b.rincian.slice(terkait.kodeSubkegiatan.length + 1).trim() : b.rincian}
+                  </span>
+                  {terkait && <span className="mt-1 block font-semibold underline underline-offset-2">Buka subkegiatan →</span>}
                 </div>
-              </div>
+              </>
+            )
+            return (
+              terkait ? (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onPilih(terkait.subkegiatanBidang.id)}
+                  className={cn("flex w-full gap-2 rounded-xl p-2.5 text-left text-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none", NADA[b.nada])}
+                >
+                  {isi}
+                </button>
+              ) : (
+                <div key={i} className={cn("flex gap-2 rounded-xl p-2.5 text-xs", NADA[b.nada])}>{isi}</div>
+              )
             )
           })}
         </div>
@@ -308,6 +329,15 @@ export default function RencanaBidang() {
 
   const terpilih = rencana?.baris.find((b) => b.subkegiatanBidang.id === pilih) ?? null
   const dapatDisunting = rencana?.periode.status === "DRAFT"
+  const kodeBermasalah = React.useMemo(
+    () => new Set((hasil?.butir ?? []).map((butir) => butir.rincian.split(":", 1)[0])),
+    [hasil]
+  )
+
+  React.useEffect(() => {
+    if (pilih == null) return
+    document.querySelector(`[data-rencana-id="${pilih}"]`)?.scrollIntoView({ block: "nearest" })
+  }, [pilih])
 
   async function tandai(s: "DRAFT" | "SIAP") {
     if (periodeId == null) return
@@ -426,10 +456,11 @@ export default function RencanaBidang() {
                 </p>
               )}
               {rencana?.baris.map((b) => {
-                const kurang = !b.subkegiatanBidang.target || !b.subkegiatanBidang.indikatorKinerja.trim()
+                const kurang = kodeBermasalah.has(b.kodeSubkegiatan)
                 return (
                   <button
                     key={b.subkegiatanBidang.id}
+                    data-rencana-id={b.subkegiatanBidang.id}
                     type="button"
                     onClick={() => setPilih(b.subkegiatanBidang.id)}
                     className={cn(
@@ -477,8 +508,10 @@ export default function RencanaBidang() {
 
         <PanelPemeriksaan
           hasil={hasil}
+          baris={rencana?.baris ?? []}
           status={rencana?.status ?? "DRAFT"}
           statusPeriode={rencana?.periode.status ?? "DRAFT"}
+          onPilih={setPilih}
           onTandai={(s) => void tandai(s)}
           sedangMenandai={menandai}
         />

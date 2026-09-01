@@ -453,9 +453,7 @@ export interface SimpanBidangInput {
   namaBidang: string
 }
 
-/** Alasan sebuah periode belum boleh dibuka. Kosong = boleh.
- * `bidangBelumSiap` disiapkan untuk pemeriksaan kesiapan per bidang (tiket P0-04);
- * untuk sekarang selalu kosong — satu-satunya syarat adalah tidak ada periode OPEN lain. */
+/** Alasan sebuah periode belum boleh dibuka. Kosong = boleh. */
 export interface SyaratBukaPeriode {
   boleh: boolean
   bidangBelumSiap: string[]

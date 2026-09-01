@@ -26,7 +26,6 @@ const semuaMenu = [
         name: 'Dashboard',
         href: '/dashboard',
         icon: LayoutDashboard,
-        catatan: 'Sebagian mock · daftar tertinggal',
       },
       { name: 'Monitoring Kinerja', href: '/monitoring', icon: Table2 },
       { name: 'Struktur Program', href: '/struktur', icon: Layers },
@@ -70,6 +69,7 @@ function judulDariPath(pathname: string) {
   if (pathname === '/capaian-program') return 'Capaian Program';
   if (pathname.startsWith('/monitoring/subkegiatan/')) return 'Detail Subkegiatan';
   if (pathname === '/monitoring') return 'Monitoring Kinerja';
+  if (pathname.startsWith('/rencana-saya/')) return 'Detail Rencana Saya';
   if (pathname === '/rencana-saya') return 'Rencana Saya';
   if (pathname.startsWith('/rencana/')) return 'Rencana Bidang';
   if (pathname === '/rencana') return 'Penyusunan Rencana';
@@ -167,24 +167,13 @@ export default function DashboardLayout() {
                     <Link
                       key={item.href}
                       to={item.href}
-                      title={
-                        ringkas
-                          ? `${item.name}${item.catatan ? ` — ${item.catatan}` : ''}`
-                          : undefined
-                      }
+                      title={ringkas ? item.name : undefined}
                       onClick={() => setTerbuka(false)}
                       className={`mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${aktif ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'} ${ringkas ? 'justify-center' : ''}`}
                     >
                       <Icon className="w-5 h-5 shrink-0" />
                       {!ringkas && (
-                        <span className="min-w-0">
-                          <span className="block">{item.name}</span>
-                          {item.catatan && (
-                            <span className="block text-[10px] font-normal leading-3 text-amber-600">
-                              {item.catatan}
-                            </span>
-                          )}
-                        </span>
+                        <span className="min-w-0">{item.name}</span>
                       )}
                     </Link>
                   );

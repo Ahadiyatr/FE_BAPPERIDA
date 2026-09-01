@@ -16,6 +16,7 @@ export interface MonitoringAktifitas {
   realisasi: number
   bobotRealisasi: number
   jumlahCatatan: number
+  jumlahLampiran: number
   flagAdhoc: boolean
   urutan: number
 }
@@ -83,6 +84,7 @@ type AktifitasRow = {
   realisasi: number
   bobot_realisasi: number
   jumlah_catatan: number
+  jumlah_lampiran?: number
   flag_adhoc: boolean
   urutan: number
 }
@@ -136,6 +138,7 @@ const aktifitas = (r: AktifitasRow): MonitoringAktifitas => ({
   realisasi: Number(r.realisasi),
   bobotRealisasi: Number(r.bobot_realisasi),
   jumlahCatatan: Number(r.jumlah_catatan),
+  jumlahLampiran: Number(r.jumlah_lampiran ?? 0),
   flagAdhoc: Boolean(r.flag_adhoc),
   urutan: r.urutan,
 })
@@ -255,7 +258,7 @@ type DetRealisasiRow = {
   lampiran?: DetLampiranRow[]
 }
 type DetAktifitasRow = AktifitasRow & { realisasi_kegiatan?: DetRealisasiRow[] }
-type DetSubRoot = {
+export type DetailSubkegiatanRow = {
   id: number
   kode_program: string
   nama_program: string
@@ -268,8 +271,8 @@ type DetSubRoot = {
   target: number
   satuan: string | null
   capaian: number
-  bidang: { id: number; nama_bidang: string } | null
-  periode: {
+  bidang?: { id: number; nama_bidang: string } | null
+  periode?: {
     id: number
     nama_periode: string
     status: StatusPeriode
@@ -302,9 +305,7 @@ const detAktifitas = (r: DetAktifitasRow): DetailAktifitas => ({
   catatan: (r.realisasi_kegiatan ?? []).map(detCatatan),
 })
 
-export async function getMonitoringSubkegiatan(id: number): Promise<DetailSubkegiatan> {
-  const s = dataOf<DetSubRoot>(await api.get(`/monitoring/subkegiatan/${id}`))
-  return {
+export const mapDetailSubkegiatan = (s: DetailSubkegiatanRow): DetailSubkegiatan => ({
     id: s.id,
     kodeProgram: s.kode_program,
     namaProgram: s.nama_program,
@@ -327,6 +328,9 @@ export async function getMonitoringSubkegiatan(id: number): Promise<DetailSubkeg
           tanggalSelesai: s.periode.tanggal_selesai,
         }
       : null,
-    aktifitas: (s.aktifitas ?? []).map(detAktifitas),
-  }
+  aktifitas: (s.aktifitas ?? []).map(detAktifitas),
+})
+
+export async function getMonitoringSubkegiatan(id: number): Promise<DetailSubkegiatan> {
+  return mapDetailSubkegiatan(dataOf<DetailSubkegiatanRow>(await api.get(`/monitoring/subkegiatan/${id}`)))
 }

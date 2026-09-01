@@ -1,4 +1,6 @@
 import { api,dataOf } from "./api"
+import { mapDetailSubkegiatan } from "./monitoring.service"
+import type { DetailSubkegiatan,DetailSubkegiatanRow } from "./monitoring.service"
 import type { AktifitasPencatatan,CatatanBukti,CatatRealisasiInput,PratinjauRealisasi,RealisasiKegiatan,RealisasiLampiran } from "./types"
 
 type LampiranRow={id:number;tipe_berkas:"FOTO"|"DOKUMEN";nama_berkas:string;ukuran_byte:number;preview_url:string}
@@ -19,6 +21,8 @@ const r=dataOf<RealisasiRow>(await api.post("/lampiran",form));return(r.lampiran
 export async function hapusLampiran(lampiranId:number):Promise<void>{await api.delete(`/lampiran/${lampiranId}`)}
 
 async function rencanaSaya(periodeId:number):Promise<RencanaRow[]>{return dataOf<RencanaRow[]>(await api.get("/bidang-saya/rencana",{params:{periode_id:periodeId}}))}
+export async function getRencanaSayaRingkas(periodeId:number):Promise<DetailSubkegiatan[]>{return dataOf<DetailSubkegiatanRow[]>(await api.get("/bidang-saya/rencana",{params:{periode_id:periodeId,ringkas:1}})).map(mapDetailSubkegiatan)}
+export async function getRencanaSayaDetail(id:number):Promise<DetailSubkegiatan>{return mapDetailSubkegiatan(dataOf<DetailSubkegiatanRow>(await api.get(`/bidang-saya/rencana/${id}`)))}
 export async function getAktifitasBidang(_bidangId:number,periodeId:number):Promise<AktifitasPencatatan[]>{
   const rows=await rencanaSaya(periodeId)
   return rows.flatMap(r=>r.aktifitas.map(a=>({

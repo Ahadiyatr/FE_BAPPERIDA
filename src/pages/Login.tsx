@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Activity, LogIn, Mail, Lock } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { apiMessage } from '../services/api';
@@ -8,18 +8,22 @@ import { DESIGN_COLOR } from '../lib/design-tokens';
 
 const AKUN_DEV = [
   { email: 'admin@opera.test', label: 'Admin Aplikasi' },
-  { email: 'bidang1@opera.test', label: 'Admin Bidang 1' },
-  { email: 'bidang2@opera.test', label: 'Admin Bidang 2' },
-  { email: 'bidang3@opera.test', label: 'Admin Bidang 3' },
-  { email: 'bidang4@opera.test', label: 'Admin Bidang 4' },
-  { email: 'bidang5@opera.test', label: 'Admin Bidang 5' },
+  { email: 'bidang1@ppm.test', label: 'Admin PPM' },
+  { email: 'bidang2@pik.test', label: 'Admin PIK' },
+  { email: 'bidang3@p2epd.test', label: 'Admin P2EPD' },
+  { email: 'bidang4@rinova.test', label: 'Admin RINOVA' },
+  { email: 'bidang5@sekre.test', label: 'Admin Sekretariat' },
+  { email: 'bidang.keuangan@opera.test', label: 'Admin Keuangan' },
+  {
+    email: 'bidang.perencanan@opera.test',
+    label: 'Admin Subbag Perencanaan',
+  },
 ];
 
 export default function Login() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login, user, memuat } = usePeran();
-  const [email, setEmail] = useState('admin@opera.test');
+  const [email, setEmail] = useState(AKUN_DEV[0].email);
   const [password, setPassword] = useState('password');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,14 +35,9 @@ export default function Login() {
 
     try {
       await login(email, password);
-      const dariState = (location.state as { dari?: unknown } | null)?.dari;
-      const dariSesi = sessionStorage.getItem('opera:redirect_after_login');
-      const tujuan = [dariState, dariSesi].find(
-        (nilai): nilai is string => typeof nilai === 'string' && nilai.startsWith('/') && !nilai.startsWith('//'),
-      ) ?? '/dashboard';
       sessionStorage.removeItem('opera:redirect_after_login');
       sessionStorage.removeItem('opera:session_expired');
-      navigate(tujuan, { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       console.error(err);
 
@@ -71,10 +70,11 @@ export default function Login() {
 
   React.useEffect(() => {
     if (!memuat && user) {
-      const dari = (location.state as { dari?: unknown } | null)?.dari;
-      navigate(typeof dari === 'string' && dari.startsWith('/') && !dari.startsWith('//') ? dari : '/dashboard', { replace: true });
+      sessionStorage.removeItem('opera:redirect_after_login');
+      sessionStorage.removeItem('opera:session_expired');
+      navigate('/dashboard', { replace: true });
     }
-  }, [location.state, memuat, navigate, user]);
+  }, [memuat, navigate, user]);
 
   return (
     <div className="flex flex-col justify-center min-h-screen py-12 font-sans bg-gradient-to-br from-emerald-50 via-slate-50 to-yellow-50 sm:px-6 lg:px-8">

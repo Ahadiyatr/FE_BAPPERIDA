@@ -10,9 +10,9 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { cekSyaratBuka, getPeriode, simpanPeriode, ubahStatusPeriode } from "@/services"
+import { cekSyaratBuka, getDokumen, getPeriode, simpanPeriode, ubahStatusPeriode } from "@/services"
 import { apiMessage } from "@/services/api"
-import type { Periode, StatusPeriode, SyaratBukaPeriode } from "@/services"
+import type { Dokumen, Periode, StatusPeriode, SyaratBukaPeriode } from "@/services"
 import { Panel, Th } from "./bagian/ui"
 
 const NADA: Record<StatusPeriode, string> = {
@@ -38,7 +38,7 @@ export default function PeriodeLayar() {
     try {
       const p = await getPeriode()
       setDaftar(p)
-      const s = await Promise.all(p.map((x) => cekSyaratBuka(x.id)))
+      const s = await Promise.all(p.map((x) => cekSyaratBuka(x.id, p)))
       setSyarat(Object.fromEntries(p.map((x, i) => [x.id, s[i]])))
     } finally {
       setMemuat(false)
@@ -83,7 +83,9 @@ export default function PeriodeLayar() {
               const halangan = s && !s.boleh
                 ? s.adaPeriodeLainTerbuka
                   ? `${s.adaPeriodeLainTerbuka} masih terbuka`
-                  : `${s.bidangBelumSiap.length} bidang belum siap`
+                  : s.bidangBelumSiap.length > 0
+                    ? `${s.bidangBelumSiap.length} bidang belum siap: ${s.bidangBelumSiap.join(", ")}`
+                    : "Belum ada pembagian rencana"
                 : null
               return (
                 <tr key={p.id} className="hover:bg-slate-50">
@@ -166,15 +168,35 @@ function FormPeriode({
   const [nama, setNama] = React.useState(awal?.namaPeriode ?? "")
   const [mulai, setMulai] = React.useState(awal?.tanggalMulai ?? "")
   const [selesai, setSelesai] = React.useState(awal?.tanggalSelesai ?? "")
+  const [dokumens, setDokumens] = React.useState<Dokumen[]>([])
+  const [dokumenId, setDokumenId] = React.useState<number | null>(awal?.dokumenId ?? null)
+  const [memuatDokumen, setMemuatDokumen] = React.useState(true)
   const [galat, setGalat] = React.useState<string | null>(null)
   const [menyimpan, setMenyimpan] = React.useState(false)
+
+  React.useEffect(() => {
+    let aktif = true
+    void getDokumen({ termasukNonaktif: true })
+      .then((daftar) => {
+        if (!aktif) return
+        setDokumens(daftar)
+        setDokumenId((id) => id ?? daftar.find((dokumen) => dokumen.status === "AKTIF")?.id ?? daftar[0]?.id ?? null)
+      })
+      .catch((e) => {
+        if (aktif) setGalat(apiMessage(e, "Gagal memuat dokumen perencanaan."))
+      })
+      .finally(() => {
+        if (aktif) setMemuatDokumen(false)
+      })
+    return () => { aktif = false }
+  }, [])
 
   async function simpan() {
     setMenyimpan(true); setGalat(null)
     try {
-      await simpanPeriode({ id: awal?.id, dokumenId: awal?.dokumenId ?? null, namaPeriode: nama, tanggalMulai: mulai, tanggalSelesai: selesai })
+      await simpanPeriode({ id: awal?.id, dokumenId, namaPeriode: nama, tanggalMulai: mulai, tanggalSelesai: selesai })
       onTersimpan(); onTutup()
-    } catch (e) { setGalat(e instanceof Error ? e.message : "Gagal menyimpan.") }
+    } catch (e) { setGalat(apiMessage(e, "Gagal menyimpan periode.")) }
     finally { setMenyimpan(false) }
   }
 
@@ -185,6 +207,22 @@ function FormPeriode({
           {awal ? "Ubah periode" : "Periode baru"}
         </DialogTitle></DialogHeader>
         <div className="space-y-3">
+          <label className="block">
+            <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">Dokumen perencanaan</span>
+            <select
+              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              value={dokumenId ?? ""}
+              onChange={(e) => setDokumenId(e.target.value ? Number(e.target.value) : null)}
+              disabled={memuatDokumen}
+            >
+              <option value="">{memuatDokumen ? "Memuat dokumen…" : "Pilih dokumen"}</option>
+              {dokumens.map((dokumen) => (
+                <option key={dokumen.id} value={dokumen.id}>
+                  {dokumen.nama}{dokumen.status === "ARSIP" ? " (Arsip)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="block">
             <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">Nama periode</span>
             <Input value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Triwulan I 2027" />
@@ -203,7 +241,7 @@ function FormPeriode({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onTutup}>Batal</Button>
-          <Button onClick={() => void simpan()} disabled={menyimpan || !nama || !mulai || !selesai}>
+          <Button onClick={() => void simpan()} disabled={menyimpan || memuatDokumen || dokumenId == null || !nama || !mulai || !selesai}>
             {menyimpan ? "Menyimpan…" : "Simpan"}
           </Button>
         </DialogFooter>

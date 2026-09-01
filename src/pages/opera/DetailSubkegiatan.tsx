@@ -11,6 +11,7 @@ import { getMonitoringSubkegiatan } from "@/services"
 import type { DetailAktifitas, DetailCatatanRealisasi, DetailSubkegiatan, RealisasiLampiran } from "@/services"
 import { apiMessage } from "@/services/api"
 import { BobotMeter, BobotMeterLegenda } from "@/components/opera/bobot-meter"
+import { MelebihiTargetBadge } from "@/components/opera/realisasi-status"
 import { LedgerCapaian } from "@/components/opera/bobot-ledger"
 import { Kode } from "@/components/opera/primitives"
 import {
@@ -98,6 +99,7 @@ function TabelAktifitas({
                   <td />
                   <td className="whitespace-nowrap px-4 py-2.5 text-right text-sm tabular text-slate-600">
                     {angka(a.realisasi)} <span className="text-slate-400">/ {angka(a.target)}</span>
+                    <div className="mt-1"><MelebihiTargetBadge realisasi={a.realisasi} target={a.target} /></div>
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-right text-sm">
                     <span className="font-semibold tabular text-slate-700">{persen1(a.bobotRealisasi)}</span>

@@ -33,6 +33,14 @@ export function PenyediaPeran({ children }: { children: React.ReactNode }) {
   const [memuat, setMemuat] = React.useState(true);
 
   React.useEffect(() => {
+    // Landing dan detail bidang memakai endpoint publik. Jangan memanggil `/me`
+    // pada kedua route ini karena pengunjung tanpa sesi akan selalu mendapat 401
+    // yang tidak diperlukan dan terlihat sebagai error di Network browser.
+    if (window.location.pathname === '/' || window.location.pathname === '/detail') {
+      setMemuat(false);
+      return;
+    }
+
     api
       .get('/me')
       .then(response => setUser(dataOf<PenggunaSesi>(response)))
@@ -62,7 +70,15 @@ export function PenyediaPeran({ children }: { children: React.ReactNode }) {
   }, []);
   const logout = React.useCallback(async () => {
     try {
-      await api.post('/logout');
+      // Logout tetap berhasil secara lokal jika sesi/CSRF di server sudah kedaluwarsa.
+      // Status tersebut sengaja dianggap respons final agar interceptor tidak mencoba
+      // ulang request logout lalu memancarkan galat 401 yang tidak relevan.
+      await api.post('/logout', undefined, {
+        validateStatus: status =>
+          (status >= 200 && status < 300) || status === 401 || status === 419,
+      });
+    } catch {
+      // Gangguan jaringan tidak boleh menahan pengguna pada sesi lokal.
     } finally {
       setUser(null);
     }

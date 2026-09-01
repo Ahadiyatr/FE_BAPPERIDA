@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useSearchParams } from "react-router-dom"
 import { RefreshCw, Upload } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -74,6 +75,8 @@ function KartuCatatan({
 }
 
 export default function BuktiKegiatan() {
+  const [searchParams] = useSearchParams()
+  const periodeTautan = Number(searchParams.get("periode"))
   const { peran, bidangId: bidangPeran } = usePeran()
   const [periodes, setPeriodes] = React.useState<Periode[]>([])
   const [periodeId, setPeriodeId] = React.useState<number | null>(null)
@@ -94,11 +97,11 @@ export default function BuktiKegiatan() {
     try {
       const [p, b] = await Promise.all([getPeriode(), sumberBidang])
       setPeriodes(p)
-      setPeriodeId((p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null)
+      setPeriodeId((p.find((x) => x.id === periodeTautan) ?? p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null)
       setBidangs(b)
       if (peran === "admin_aplikasi") setBidangId((v) => v ?? b[0]?.id ?? null)
     } catch (e) { setGalatMuat(apiMessage(e, "Gagal memuat periode atau bidang.")); setMemuat(false) }
-  }, [peran])
+  }, [peran, periodeTautan])
   React.useEffect(() => { void muatAwal() }, [muatAwal])
 
   const muat = React.useCallback(async () => {
