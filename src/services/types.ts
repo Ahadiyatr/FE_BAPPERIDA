@@ -105,6 +105,9 @@ export interface SimpanUserInput {
   email: string
   role: Exclude<PeranPengguna, "publik">
   bidangId: number | null
+  /** Wajib saat buat pengguna baru (min 8). Tidak dipakai saat ubah —
+   * reset lewat resetPasswordUser(). */
+  password?: string
 }
 
 /**
@@ -132,6 +135,12 @@ export interface IndikatorBidang {
   masterIndikatorId: number
   /** Aktivitas tambahan pada rencana; hanya jenis ini yang dapat dihapus. */
   flagAdhoc: boolean
+  /**
+   * Pendukung yang dipakai bidang pada periode ini. Yang tidak dipakai barisnya tetap ada
+   * (snapshot katalog tidak boleh putus) tetapi keluar dari pembagi 30/n dan bobotnya 0.
+   * Hanya layar penyusunan rencana yang menampilkannya; di tempat lain sudah disaring server.
+   */
+  dipakai: boolean
   tipeAktifitas: TipeAktifitas
   namaAktifitas: string
   /** Salinan beku: 70 untuk UTAMA, 30/n untuk PENDUKUNG saat rencana disusun. */
@@ -296,6 +305,67 @@ export interface RencanaBidangDetail {
   periode: Periode
   status: StatusKesiapan
   baris: BarisRencana[]
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Penunjukan bidang — layar yang memetakan katalog subkegiatan ke
+   bidang penanggung jawab untuk satu periode.
+
+   Berbeda dari KatalogTersedia (yang hanya memuat sisa yang belum
+   dipegang siapa pun): di sini SELURUH katalog ikut, lengkap dengan
+   bidang pemegangnya, supaya bisa dipindah dan dihitung progresnya.
+   ───────────────────────────────────────────────────────────── */
+
+export interface BarisPenunjukan {
+  subkegiatanId: number
+  /** ID TRANS_SUBKEGIATAN_BIDANG; null berarti belum ditugaskan. */
+  rencanaId: number | null
+  kode: string
+  nama: string
+  indikatorKinerja: string
+  targetAnjuran: number | null
+  /** Sering kosong — di katalog resmi hanya 3 dari 78 subkegiatan mengisinya. */
+  satuan: string | null
+  flagActive: boolean
+  bidangId: number | null
+  namaBidang: string | null
+  jumlahAktifitasUtama: number
+  jumlahAktifitasPendukung: number
+  /** Katalognya punya 1 UTAMA + ≥1 PENDUKUNG aktif, syarat rollup 70/30. */
+  dapatDitugaskan: boolean
+  /** Sudah ada realisasi tercatat — tidak boleh dipindah atau dilepas. */
+  adaRealisasi: boolean
+}
+
+export interface KegiatanPenunjukan {
+  kode: string
+  nama: string
+  subkegiatan: BarisPenunjukan[]
+}
+
+export interface ProgramPenunjukan {
+  kode: string
+  nama: string
+  kegiatan: KegiatanPenunjukan[]
+}
+
+export interface BebanBidang {
+  bidangId: number
+  namaBidang: string
+  jumlah: number
+}
+
+export interface RingkasanPenunjukan {
+  jumlahSubkegiatan: number
+  jumlahDitugaskan: number
+  jumlahBelum: number
+  perBidang: BebanBidang[]
+}
+
+export interface PenunjukanPeriode {
+  periode: Periode
+  ringkasan: RingkasanPenunjukan
+  program: ProgramPenunjukan[]
 }
 
 /** Subkegiatan di katalog yang belum dipegang bidang mana pun pada satu periode. */

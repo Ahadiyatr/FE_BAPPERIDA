@@ -114,6 +114,7 @@ function susunRencana(
         subkegiatanBidangId: skb.id,
         masterIndikatorId: a.id,
         flagAdhoc: false,
+        dipakai: true,
         tipeAktifitas: a.tipeAktifitas,
         namaAktifitas: a.namaIndikator,
         bobotTarget,

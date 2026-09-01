@@ -6,6 +6,7 @@ import {
   Calendar,
   CheckSquare,
   Database,
+  KeyRound,
   LayoutDashboard,
   Layers,
   LogOut,
@@ -16,6 +17,15 @@ import {
   Target,
   X,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { GantiKataSandiDialog } from '@/components/opera/ganti-kata-sandi-dialog';
 import { LABEL_PERAN, bolehAkses, usePeran } from '@/lib/peran';
 
 const semuaMenu = [
@@ -87,6 +97,7 @@ function judulDariPath(pathname: string) {
 export default function DashboardLayout() {
   const [terbuka, setTerbuka] = useState(false);
   const [ringkas, setRingkas] = useState(false);
+  const [dialogSandi, setDialogSandi] = useState(false);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { peran, user, memuat, logout } = usePeran();
@@ -229,19 +240,50 @@ export default function DashboardLayout() {
                 {user?.bidang[0] ? ` · ${user.bidang[0].nama_bidang}` : ''}
               </p>
             </div>
-            <span
-              className="grid w-10 h-10 text-sm font-bold rounded-full shrink-0 place-items-center bg-emerald-100 text-emerald-700"
-              aria-label={`Profil ${user?.name ?? 'pengguna'}`}
-              title={user?.name}
-            >
-              {inisialPengguna}
-            </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="grid w-10 h-10 text-sm font-bold rounded-full shrink-0 place-items-center bg-emerald-100 text-emerald-700 outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                  aria-label={`Menu profil ${user?.name ?? 'pengguna'}`}
+                  title={user?.name}
+                >
+                  {inisialPengguna}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <p className="text-sm font-medium text-slate-800">
+                    {user?.name}
+                  </p>
+                  <p className="text-xs font-normal text-slate-500">
+                    {user?.email}
+                  </p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {peran === 'admin_bidang' && (
+                  <DropdownMenuItem onClick={() => setDialogSandi(true)}>
+                    <KeyRound className="w-4 h-4" /> Ganti kata sandi
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => void keluar()}
+                >
+                  <LogOut className="w-4 h-4" /> Keluar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
         <main className="min-w-0 flex-1 overflow-y-auto rounded-[20px] pb-4 max-lg:px-0">
           <Outlet />
         </main>
       </section>
+
+      <GantiKataSandiDialog
+        terbuka={dialogSandi}
+        onTutup={() => setDialogSandi(false)}
+      />
     </div>
   );
 }

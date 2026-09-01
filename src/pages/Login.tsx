@@ -7,15 +7,15 @@ import { usePeran } from '../lib/peran';
 import { DESIGN_COLOR } from '../lib/design-tokens';
 
 const AKUN_DEV = [
-  { email: 'admin@opera.test', label: 'Admin Aplikasi' },
-  { email: 'bidang1@ppm.test', label: 'Admin PPM' },
-  { email: 'bidang2@pik.test', label: 'Admin PIK' },
-  { email: 'bidang3@p2epd.test', label: 'Admin P2EPD' },
-  { email: 'bidang4@rinova.test', label: 'Admin RINOVA' },
-  { email: 'bidang5@sekre.test', label: 'Admin Sekretariat' },
-  { email: 'bidang.keuangan@opera.test', label: 'Admin Keuangan' },
+  { email: 'admin@bapperida.test', label: 'Admin Aplikasi' },
+  { email: 'ppm@bapperida.test', label: 'Admin PPM' },
+  { email: 'pik@bapperida.test	', label: 'Admin PIK' },
+  { email: 'p2epd@bapperida.test ', label: 'Admin P2EPD' },
+  { email: 'rinova@bapperida.test', label: 'Admin RINOVA' },
+  { email: 'sekre@bapperida.test ', label: 'Admin Sekretariat' },
+  { email: 'keuangan@bapperida.test', label: 'Admin Keuangan' },
   {
-    email: 'bidang.perencanan@opera.test',
+    email: 'perencanan@bapperida.test',
     label: 'Admin Subbag Perencanaan',
   },
 ];

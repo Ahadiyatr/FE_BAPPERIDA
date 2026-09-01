@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { BobotLedger } from "@/components/opera/bobot-ledger"
+import { FilterJenisAktivitas } from "@/components/opera/filter-jenis-aktivitas"
 import { MelebihiTargetBadge } from "@/components/opera/realisasi-status"
 import {
   catatRealisasi, getAktifitasBidang, getBidang, getPeriode, pratinjauRealisasi, getRealisasiByIndikatorBidang, hapusRealisasi, ubahRealisasi,
@@ -18,11 +19,16 @@ import type {
 } from "@/services"
 import { usePeran } from "@/lib/peran"
 import { KonfirmasiRealisasiMelebihiTarget } from "@/lib/konfirmasi-realisasi"
+import {
+  hitungStatusAktivitas,
+  saringAktivitasRealisasi,
+  type FilterJenisAktivitas as JenisAktivitas,
+  type FilterStatusAktivitas,
+} from "@/lib/filter-aktivitas-realisasi"
 import { apiMessage } from "@/services/api"
 import { BarCapaian, Panel, PilihPeriode, Th, persen1, warnaCapaian } from "./bagian/ui"
 
-type Saring = "belum" | "semua" | "selesai"
-const TAB: { id: Saring; label: string }[] = [
+const TAB: { id: FilterStatusAktivitas; label: string }[] = [
   { id: "belum", label: "Belum lengkap" },
   { id: "semua", label: "Semua" },
   { id: "selesai", label: "Selesai" },
@@ -217,12 +223,14 @@ export default function CatatRealisasi() {
   const periodeTautan = Number(searchParams.get("periode"))
   const aktivitasTautan = Number(searchParams.get("aktifitas"))
   const tautanDiproses = React.useRef(false)
+  const urutanMuat = React.useRef(0)
   const [periodes, setPeriodes] = React.useState<Periode[]>([])
   const [periodeId, setPeriodeId] = React.useState<number | null>(null)
   const [bidangs, setBidangs] = React.useState<Bidang[]>([])
   const [bidangId, setBidangId] = React.useState<number | null>(bidangPeran)
   const [daftar, setDaftar] = React.useState<AktifitasPencatatan[]>([])
-  const [saring, setSaring] = React.useState<Saring>("belum")
+  const [saring, setSaring] = React.useState<FilterStatusAktivitas>("belum")
+  const [jenis, setJenis] = React.useState<JenisAktivitas>("semua")
   const [memuat, setMemuat] = React.useState(true)
   const [galatMuat, setGalatMuat] = React.useState<string | null>(null)
   const [form, setForm] = React.useState<AktifitasPencatatan | null>(null)
@@ -244,15 +252,20 @@ export default function CatatRealisasi() {
 
   const muat = React.useCallback(async () => {
     if (periodeId == null || bidangId == null) return
+    const urutan = ++urutanMuat.current
     setMemuat(true)
     setGalatMuat(null)
+    setDaftar([])
     try {
-      setDaftar(await getAktifitasBidang(bidangId, periodeId))
+      const hasil = await getAktifitasBidang(bidangId, periodeId)
+      if (urutan === urutanMuat.current) setDaftar(hasil)
     } catch (e) {
-      setDaftar([])
-      setGalatMuat(apiMessage(e, "Gagal memuat aktivitas realisasi."))
+      if (urutan === urutanMuat.current) {
+        setDaftar([])
+        setGalatMuat(apiMessage(e, "Gagal memuat aktivitas realisasi."))
+      }
     } finally {
-      setMemuat(false)
+      if (urutan === urutanMuat.current) setMemuat(false)
     }
   }, [bidangId, periodeId])
 
@@ -263,19 +276,14 @@ export default function CatatRealisasi() {
     tautanDiproses.current = true
     if (target) {
       setSaring("semua")
+      setJenis("semua")
       setForm(target)
     }
     setSearchParams({}, { replace: true })
   }, [aktivitasTautan, daftar, setSearchParams])
 
-  const terlihat = daftar.filter((a) =>
-    saring === "semua" ? true : saring === "selesai" ? a.selesai : !a.selesai
-  )
-  const jumlah = {
-    belum: daftar.filter((a) => !a.selesai).length,
-    semua: daftar.length,
-    selesai: daftar.filter((a) => a.selesai).length,
-  }
+  const terlihat = saringAktivitasRealisasi(daftar, saring, jenis)
+  const jumlah = hitungStatusAktivitas(daftar, jenis)
   const periodeTerpilih = periodes.find((p) => p.id === periodeId)
   const dapatMencatat = periodeTerpilih?.status === "OPEN"
 
@@ -302,23 +310,27 @@ export default function CatatRealisasi() {
         </div>
       </div>
 
-      <div className="flex gap-1 p-1 bg-white border w-fit border-slate-200 rounded-xl">
-        {TAB.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setSaring(t.id)}
-            className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
-              saring === t.id
-                ? "bg-emerald-600 font-medium text-white"
-                : "text-slate-600 hover:bg-slate-50"
-            }`}
-          >
-            {t.label}
-            <span className={`ml-1.5 tabular ${saring === t.id ? "text-emerald-100" : "text-slate-400"}`}>
-              {jumlah[t.id]}
-            </span>
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 p-1 bg-white border w-fit border-slate-200 rounded-xl">
+          {TAB.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSaring(t.id)}
+              className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                saring === t.id
+                  ? "bg-emerald-600 font-medium text-white"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {t.label}
+              <span className={`ml-1.5 tabular ${saring === t.id ? "text-emerald-100" : "text-slate-400"}`}>
+                {jumlah[t.id]}
+              </span>
+            </button>
+          ))}
+        </div>
+        <FilterJenisAktivitas nilai={jenis} onUbah={setJenis} />
+        <span className="text-xs text-slate-400">Jumlah status mengikuti jenis aktivitas.</span>
       </div>
 
       {!dapatMencatat && periodeTerpilih && (
@@ -348,7 +360,7 @@ export default function CatatRealisasi() {
             )}
             {!memuat && terlihat.length === 0 && (
               <tr><td colSpan={6} className="px-6 py-8 text-sm text-center text-slate-500">
-                Tidak ada aktivitas pada saringan ini.
+                Tidak ada aktivitas yang cocok dengan saringan status dan jenis yang dipilih.
               </td></tr>
             )}
             {!memuat && terlihat.map((a) => (

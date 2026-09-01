@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom"
 import { ArrowLeft, Check, Plus, TriangleAlert, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -14,12 +15,13 @@ import { BobotMeter } from "@/components/opera/bobot-meter"
 import { Eyebrow, Kode } from "@/components/opera/primitives"
 import {
   cabutSubkegiatanDariRencana, getKatalogTersedia, getPeriode, getRencanaBidang,
-  hapusAktifitasDariRencana, periksaKesiapan, tambahAktifitasKeRencana,
+  hapusAktifitasDariRencana, periksaKesiapan, setDipakaiAktifitas, tambahAktifitasKeRencana,
   tambahSubkegiatanKeRencana, tandaiKesiapan, ubahTargetAktifitas, ubahTargetSubkegiatan,
 } from "@/services"
 import type {
   BarisRencana, HasilPemeriksaan, KatalogTersedia, RencanaBidangDetail,
 } from "@/services"
+import { alasanCentangTerkunci, pendukungDipakai } from "@/lib/bobot-pendukung"
 import { cn } from "@/lib/utils"
 
 const persen = (n: number) =>
@@ -135,8 +137,11 @@ function Editor({
   React.useEffect(() => { setTarget(String(skb.target)) }, [skb.id, skb.target])
 
   const utama = baris.aktifitas.find((a) => a.tipeAktifitas === "UTAMA")
-  const pendukung = baris.aktifitas.filter((a) => a.tipeAktifitas === "PENDUKUNG")
-  const total = baris.aktifitas.reduce((a, x) => a + x.bobotTarget, 0)
+  // Meter dan Σ hanya memperhitungkan pendukung yang dipakai — yang tidak dipakai
+  // berbobot 0, jadi memasukkannya cuma menambah petak kosong tanpa arti.
+  const pendukung = pendukungDipakai(baris.aktifitas)
+  const total = (utama?.bobotTarget ?? 0) + pendukung.reduce((a, x) => a + x.bobotTarget, 0)
+  const jumlahTidakDipakai = baris.aktifitas.filter((a) => !a.dipakai).length
 
   async function bungkus(f: () => Promise<unknown>) {
     try { await f(); await onBerubah() }
@@ -193,44 +198,84 @@ function Editor({
       </div>
 
       <div className="space-y-2">
-        <Eyebrow>Aktivitas ({baris.aktifitas.length})</Eyebrow>
+        <div className="flex items-baseline gap-2">
+          <Eyebrow>Aktivitas ({baris.aktifitas.length})</Eyebrow>
+          {jumlahTidakDipakai > 0 && (
+            <span className="text-[11px] text-muted-foreground">
+              {jumlahTidakDipakai} tidak dipakai periode ini
+            </span>
+          )}
+        </div>
         <div className="divide-y rounded-xl border">
-          {baris.aktifitas.map((a) => (
-            <div key={a.id} className="flex items-center gap-2 px-3 py-2 text-sm">
-              <span
+          {baris.aktifitas.map((a) => {
+            const pendukungBaris = a.tipeAktifitas === "PENDUKUNG"
+            const terkunci = alasanCentangTerkunci(a, baris.aktifitas, !!dapatDisunting)
+            return (
+              <div
+                key={a.id}
                 className={cn(
-                  "shrink-0 rounded-xl px-1.5 py-0.5 font-mono text-[11px] tracking-[0.12em] uppercase",
-                  a.tipeAktifitas === "UTAMA" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-600"
+                  "flex items-center gap-2 px-3 py-2 text-sm",
+                  !a.dipakai && "bg-muted/30"
                 )}
               >
-                {a.tipeAktifitas === "UTAMA" ? "Utama" : "Pendukung"}
-              </span>
-              <span className="min-w-0 flex-1 truncate">{a.namaAktifitas}</span>
-              <Input
-                type="number" step="any" min={0}
-                className="tabular h-7 w-20 font-mono"
-                defaultValue={a.target}
-                disabled={!dapatDisunting}
-                onBlur={(e) => {
-                  const n = Number(e.target.value)
-                  if (Number.isFinite(n) && n !== a.target) void bungkus(() => ubahTargetAktifitas(a.id, n))
-                }}
-              />
-              <span className="tabular w-14 shrink-0 text-right font-mono text-xs text-muted-foreground">
-                {persen(a.bobotTarget)}
-              </span>
-              {dapatDisunting && a.flagAdhoc && a.tipeAktifitas === "PENDUKUNG" && (
-                <Button
-                  variant="ghost" size="icon-xs"
-                  title="Hapus aktivitas ad-hoc"
-                  onClick={() => void bungkus(() => hapusAktifitasDariRencana(a.id))}
+                {pendukungBaris ? (
+                  <Checkbox
+                    className="shrink-0"
+                    checked={a.dipakai}
+                    disabled={!!terkunci}
+                    title={terkunci ?? "Hilangkan centang kalau bidang tidak mengerjakannya periode ini"}
+                    aria-label={`Pakai ${a.namaAktifitas}`}
+                    onCheckedChange={(v) => void bungkus(() => setDipakaiAktifitas(a.id, v === true))}
+                  />
+                ) : (
+                  // Ruang sepadan supaya kolom nama tetap sejajar dengan baris pendukung.
+                  <span className="size-4 shrink-0" aria-hidden />
+                )}
+                <span
+                  className={cn(
+                    "shrink-0 rounded-xl px-1.5 py-0.5 font-mono text-[11px] tracking-[0.12em] uppercase",
+                    a.tipeAktifitas === "UTAMA" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-600",
+                    !a.dipakai && "opacity-60"
+                  )}
                 >
-                  <X className="size-3" />
-                </Button>
-              )}
-            </div>
-          ))}
+                  {a.tipeAktifitas === "UTAMA" ? "Utama" : "Pendukung"}
+                </span>
+                <span className={cn("min-w-0 flex-1 truncate", !a.dipakai && "text-muted-foreground line-through")}>
+                  {a.namaAktifitas}
+                </span>
+                <Input
+                  type="number" step="any" min={0}
+                  className="tabular h-7 w-20 font-mono"
+                  defaultValue={a.target}
+                  disabled={!dapatDisunting || !a.dipakai}
+                  onBlur={(e) => {
+                    const n = Number(e.target.value)
+                    if (Number.isFinite(n) && n !== a.target) void bungkus(() => ubahTargetAktifitas(a.id, n))
+                  }}
+                />
+                <span className="tabular w-14 shrink-0 text-right font-mono text-xs text-muted-foreground">
+                  {a.dipakai ? persen(a.bobotTarget) : "—"}
+                </span>
+                {dapatDisunting && a.flagAdhoc && pendukungBaris && (
+                  <Button
+                    variant="ghost" size="icon-xs"
+                    title="Hapus aktivitas ad-hoc permanen"
+                    onClick={() => void bungkus(() => hapusAktifitasDariRencana(a.id))}
+                  >
+                    <X className="size-3" />
+                  </Button>
+                )}
+              </div>
+            )
+          })}
         </div>
+        {dapatDisunting && (
+          <p className="text-[11px] text-muted-foreground">
+            Hilangkan centang untuk pendukung yang tidak dikerjakan bidang ini — 30% dibagi
+            ulang ke <b>{pendukung.length}</b> pendukung yang tersisa, dan centangnya bisa
+            dipasang lagi selama periode masih draf.
+          </p>
+        )}
       </div>
 
       {dapatDisunting ? (

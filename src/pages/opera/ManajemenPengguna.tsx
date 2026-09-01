@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Plus } from 'lucide-react';
+import { Copy, KeyRound, Plus } from 'lucide-react';
 
 import {
   AlertDialog,
@@ -12,6 +12,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -21,8 +29,16 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getBidang, getUsers, setAktifUser, simpanUser } from '@/services';
+import {
+  getBidang,
+  getUsers,
+  resetPasswordUser,
+  setAktifUser,
+  simpanUser,
+} from '@/services';
 import type { Bidang, PeranPengguna, User } from '@/services';
+import { apiMessage } from '@/services/api';
+import { Toast } from '@/utils/toast';
 import { Panel, Th } from './bagian/ui';
 
 type PeranAkun = Exclude<PeranPengguna, 'publik'>;
@@ -37,6 +53,7 @@ export default function ManajemenPengguna() {
   const [galat, setGalat] = React.useState<string | null>(null);
   const [laci, setLaci] = React.useState<User | null | undefined>(undefined);
   const [konfirmasi, setKonfirmasi] = React.useState<User | null>(null);
+  const [resetUntuk, setResetUntuk] = React.useState<User | null>(null);
 
   const muat = React.useCallback(async () => {
     const [u, b] = await Promise.all([
@@ -126,6 +143,15 @@ export default function ManajemenPengguna() {
                   <Button size="sm" variant="ghost" onClick={() => setLaci(u)}>
                     Ubah
                   </Button>
+                  {u.flagActive && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setResetUntuk(u)}
+                    >
+                      <KeyRound className="w-3.5 h-3.5" /> Reset sandi
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"
@@ -175,6 +201,13 @@ export default function ManajemenPengguna() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {resetUntuk && (
+        <DialogResetSandi
+          pengguna={resetUntuk}
+          onTutup={() => setResetUntuk(null)}
+        />
+      )}
     </div>
   );
 }
@@ -198,12 +231,26 @@ function LaciPengguna({
   const [bidangId, setBidangId] = React.useState<number | null>(
     awal?.bidangId ?? bidangs[0]?.id ?? null,
   );
+  const [sandi, setSandi] = React.useState('');
+  const [konfirmasiSandi, setKonfirmasiSandi] = React.useState('');
   const [galat, setGalat] = React.useState<string | null>(null);
+
+  const membuat = awal == null;
+  const sandiCukup = sandi.length >= 8;
+  const sandiCocok = sandi === konfirmasiSandi;
+  const sandiValid = !membuat || (sandiCukup && sandiCocok);
 
   async function simpan() {
     setGalat(null);
     try {
-      await simpanUser({ id: awal?.id, name, email, role, bidangId });
+      await simpanUser({
+        id: awal?.id,
+        name,
+        email,
+        role,
+        bidangId,
+        password: membuat ? sandi : undefined,
+      });
       onTersimpan();
       onTutup();
     } catch (e) {
@@ -272,6 +319,40 @@ function LaciPengguna({
               </select>
             </label>
           )}
+          {membuat && (
+            <>
+              <label className="block">
+                <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">
+                  Kata sandi
+                </span>
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  value={sandi}
+                  onChange={e => setSandi(e.target.value)}
+                />
+              </label>
+              <label className="block">
+                <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">
+                  Konfirmasi kata sandi
+                </span>
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  value={konfirmasiSandi}
+                  onChange={e => setKonfirmasiSandi(e.target.value)}
+                />
+              </label>
+              {sandi.length > 0 && !sandiCukup && (
+                <p className="text-xs text-amber-600">Minimal 8 karakter.</p>
+              )}
+              {konfirmasiSandi.length > 0 && !sandiCocok && (
+                <p className="text-xs text-amber-600">
+                  Konfirmasi kata sandi belum cocok.
+                </p>
+              )}
+            </>
+          )}
           {galat && (
             <p className="px-3 py-2 text-sm text-red-600 border border-red-100 bg-red-50 rounded-xl">
               {galat}
@@ -280,7 +361,10 @@ function LaciPengguna({
         </div>
 
         <SheetFooter>
-          <Button onClick={() => void simpan()} disabled={!name || !email}>
+          <Button
+            onClick={() => void simpan()}
+            disabled={!name || !email || !sandiValid}
+          >
             Simpan
           </Button>
           <Button variant="ghost" onClick={onTutup}>
@@ -289,5 +373,164 @@ function LaciPengguna({
         </SheetFooter>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function DialogResetSandi({
+  pengguna,
+  onTutup,
+}: {
+  pengguna: User;
+  onTutup: () => void;
+}) {
+  const [mode, setMode] = React.useState<'manual' | 'auto'>('manual');
+  const [sandi, setSandi] = React.useState('');
+  const [konfirmasi, setKonfirmasi] = React.useState('');
+  const [menyimpan, setMenyimpan] = React.useState(false);
+  const [galat, setGalat] = React.useState<string | null>(null);
+  const [hasil, setHasil] = React.useState<string | null>(null);
+
+  const cukup = sandi.length >= 8;
+  const cocok = sandi === konfirmasi;
+  const bolehKirim =
+    !menyimpan && (mode === 'auto' || (cukup && cocok));
+
+  async function kirim() {
+    setGalat(null);
+    setMenyimpan(true);
+    try {
+      const dibuat = await resetPasswordUser(
+        pengguna.id,
+        mode === 'manual' ? sandi : undefined,
+      );
+      if (dibuat) {
+        setHasil(dibuat);
+      } else {
+        Toast.fire({ icon: 'success', title: 'Kata sandi direset.' });
+        onTutup();
+      }
+    } catch (e) {
+      setGalat(apiMessage(e, 'Gagal mereset kata sandi.'));
+    } finally {
+      setMenyimpan(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={o => !o && onTutup()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reset kata sandi</DialogTitle>
+          <DialogDescription>
+            Untuk <span className="font-medium">{pengguna.name}</span> (
+            {pengguna.email}).
+          </DialogDescription>
+        </DialogHeader>
+
+        {hasil ? (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">
+              Kata sandi baru — salin sekarang, tidak akan ditampilkan lagi:
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 px-3 py-2 font-mono text-sm rounded-lg bg-slate-100 text-slate-800 break-all">
+                {hasil}
+              </code>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(hasil);
+                  Toast.fire({ icon: 'success', title: 'Disalin.' });
+                }}
+              >
+                <Copy className="w-3.5 h-3.5" /> Salin
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button onClick={onTutup}>Selesai</Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={mode === 'manual' ? 'default' : 'outline'}
+                onClick={() => setMode('manual')}
+              >
+                Ketik sandi baru
+              </Button>
+              <Button
+                size="sm"
+                variant={mode === 'auto' ? 'default' : 'outline'}
+                onClick={() => setMode('auto')}
+              >
+                Buatkan otomatis
+              </Button>
+            </div>
+
+            {mode === 'manual' && (
+              <>
+                <label className="block">
+                  <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">
+                    Kata sandi baru
+                  </span>
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    value={sandi}
+                    onChange={e => setSandi(e.target.value)}
+                  />
+                </label>
+                <label className="block">
+                  <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">
+                    Konfirmasi
+                  </span>
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    value={konfirmasi}
+                    onChange={e => setKonfirmasi(e.target.value)}
+                  />
+                </label>
+                {sandi.length > 0 && !cukup && (
+                  <p className="text-xs text-amber-600">Minimal 8 karakter.</p>
+                )}
+                {konfirmasi.length > 0 && !cocok && (
+                  <p className="text-xs text-amber-600">Konfirmasi belum cocok.</p>
+                )}
+              </>
+            )}
+
+            {mode === 'auto' && (
+              <p className="text-sm text-slate-600">
+                Sistem membuat kata sandi acak. Ditampilkan sekali setelah reset
+                untuk Anda salin dan sampaikan ke pengguna.
+              </p>
+            )}
+
+            {galat && (
+              <p className="px-3 py-2 text-sm text-red-600 border border-red-100 bg-red-50 rounded-xl">
+                {galat}
+              </p>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={onTutup}
+                disabled={menyimpan}
+              >
+                Batal
+              </Button>
+              <Button onClick={() => void kirim()} disabled={!bolehKirim}>
+                {menyimpan ? 'Memproses…' : 'Reset'}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

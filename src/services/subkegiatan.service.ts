@@ -10,4 +10,4 @@ export async function setAktifSubkegiatan(id:number,aktif:boolean):Promise<Indik
 export async function getSubkegiatanByBidang():Promise<SubkegiatanBidang[]>{return []}
 export async function getSubkegiatanBidangById():Promise<SubkegiatanBidang|null>{return null}
 export async function getCapaian():Promise<CapaianDetail|null>{return null}
-export const mapAktifitasTrans=(r:any):IndikatorBidang=>({id:r.id,subkegiatanBidangId:r.subkegiatan_bidang_id??0,masterIndikatorId:r.aktifitas_master_id??0,flagAdhoc:Boolean(r.flag_adhoc),tipeAktifitas:r.tipe_aktifitas,namaAktifitas:r.nama_aktifitas,bobotTarget:Number(r.bobot_target),target:Number(r.target),realisasi:Number(r.realisasi),bobotRealisasi:Number(r.bobot_realisasi),urutan:r.urutan})
+export const mapAktifitasTrans=(r:any):IndikatorBidang=>({id:r.id,subkegiatanBidangId:r.subkegiatan_bidang_id??0,masterIndikatorId:r.aktifitas_master_id??0,flagAdhoc:Boolean(r.flag_adhoc),dipakai:r.dipakai??true,tipeAktifitas:r.tipe_aktifitas,namaAktifitas:r.nama_aktifitas,bobotTarget:Number(r.bobot_target),target:Number(r.target),realisasi:Number(r.realisasi),bobotRealisasi:Number(r.bobot_realisasi),urutan:r.urutan})
