@@ -6,6 +6,28 @@ type AktivitasDapatDisaring = {
   tipeAktifitas: "UTAMA" | "PENDUKUNG"
 }
 
+type AktivitasDapatDicari = {
+  kodeSubkegiatan: string
+  namaSubkegiatan: string
+  namaAktifitas: string
+}
+
+export function cariAktivitasRealisasi<T extends AktivitasDapatDicari>(
+  daftar: T[],
+  kataKunci: string,
+) {
+  const kata = kataKunci.trim().toLocaleLowerCase("id-ID")
+  if (!kata) return daftar
+
+  return daftar.filter((aktivitas) =>
+    [
+      aktivitas.kodeSubkegiatan,
+      aktivitas.namaSubkegiatan,
+      aktivitas.namaAktifitas,
+    ].some((nilai) => nilai.toLocaleLowerCase("id-ID").includes(kata))
+  )
+}
+
 export function saringAktivitasRealisasi<T extends AktivitasDapatDisaring>(
   daftar: T[],
   status: FilterStatusAktivitas,

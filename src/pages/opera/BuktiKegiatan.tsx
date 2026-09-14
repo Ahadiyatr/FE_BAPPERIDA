@@ -89,6 +89,7 @@ export default function BuktiKegiatan() {
   const [mengunggah, setMengunggah] = React.useState<number | null>(null)
   const [menghapus, setMenghapus] = React.useState<number | null>(null)
   const [pratinjau, setPratinjau] = React.useState<RealisasiLampiran | null>(null)
+  const urutanMuat = React.useRef(0)
 
   const muatAwal = React.useCallback(async () => {
     setGalatMuat(null)
@@ -96,25 +97,31 @@ export default function BuktiKegiatan() {
     const sumberBidang = peran === "admin_aplikasi" ? getBidang() : Promise.resolve<Bidang[]>([])
     try {
       const [p, b] = await Promise.all([getPeriode(), sumberBidang])
+      const periodeBerikut = (p.find((x) => x.id === periodeTautan) ?? p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null
       setPeriodes(p)
-      setPeriodeId((p.find((x) => x.id === periodeTautan) ?? p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null)
+      setPeriodeId(periodeBerikut)
       setBidangs(b)
-      if (peran === "admin_aplikasi") setBidangId((v) => v ?? b[0]?.id ?? null)
+      if (peran === "admin_aplikasi") setBidangId((v) => b.some((bidang) => bidang.id === v) ? v : b[0]?.id ?? null)
+      if (periodeBerikut == null || (peran === "admin_aplikasi" ? b.length === 0 : bidangPeran == null)) setMemuat(false)
     } catch (e) { setGalatMuat(apiMessage(e, "Gagal memuat periode atau bidang.")); setMemuat(false) }
-  }, [peran, periodeTautan])
+  }, [bidangPeran, peran, periodeTautan])
   React.useEffect(() => { void muatAwal() }, [muatAwal])
 
   const muat = React.useCallback(async () => {
+    const urutan = ++urutanMuat.current
     if (periodeId == null || bidangId == null) return
     setMemuat(true)
     setGalatMuat(null)
     try {
-      setCatatan(await getBuktiByBidang(bidangId, periodeId))
+      const hasil = await getBuktiByBidang(bidangId, periodeId)
+      if (urutan === urutanMuat.current) setCatatan(hasil)
     } catch (e) {
-      setCatatan([])
-      setGalatMuat(apiMessage(e, "Gagal memuat bukti kegiatan."))
+      if (urutan === urutanMuat.current) {
+        setCatatan([])
+        setGalatMuat(apiMessage(e, "Gagal memuat bukti kegiatan."))
+      }
     } finally {
-      setMemuat(false)
+      if (urutan === urutanMuat.current) setMemuat(false)
     }
   }, [bidangId, periodeId])
 
@@ -122,6 +129,8 @@ export default function BuktiKegiatan() {
 
   const terlihat = hanyaBerlampiran ? catatan.filter((c) => c.lampirans.length > 0) : catatan
   const totalBerkas = catatan.reduce((a, c) => a + c.lampirans.length, 0)
+  const belumAdaPeriode = !memuat && !galatMuat && periodeId == null
+  const belumAdaBidang = !memuat && !galatMuat && periodeId != null && bidangId == null
 
   async function unggah(realisasiId: number, files: FileList) {
     const sebelum = catatan.find((c) => c.realisasiId === realisasiId)?.lampirans.length ?? 0
@@ -201,7 +210,11 @@ export default function BuktiKegiatan() {
 
       {!memuat && !galatMuat && terlihat.length === 0 && (
         <Panel><p className="p-8 text-sm text-center text-slate-500">
-          Belum ada catatan realisasi pada periode ini.
+          {belumAdaPeriode
+            ? "Belum ada periode yang dapat ditampilkan."
+            : belumAdaBidang
+              ? "Akun ini belum ditempatkan pada bidang. Hubungi admin aplikasi untuk menetapkan bidang Anda."
+              : "Belum ada catatan realisasi pada periode ini."}
         </p></Panel>
       )}
 

@@ -11,6 +11,9 @@ describe("KonfirmasiRealisasiMelebihiTarget", () => {
 
     expect(screen.getByText(/Total realisasi akan menjadi/).textContent).toContain("3")
     expect(screen.getByText(/Total realisasi akan menjadi/).textContent).toContain("1")
+    expect(screen.getByText(/Kelebihan tetap dicatat/).textContent).toContain(
+      "tidak menambah capaian di atas batas bobot/100%",
+    )
     expect(document.activeElement).toBe(await screen.findByRole("button", { name: "Periksa kembali" }))
   })
 

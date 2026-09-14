@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest"
 
 import { FilterJenisAktivitas } from "@/components/opera/filter-jenis-aktivitas"
 import {
+  cariAktivitasRealisasi,
   hitungStatusAktivitas,
   saringAktivitasRealisasi,
   type FilterJenisAktivitas as Jenis,
@@ -20,6 +21,28 @@ const daftar = [
 ]
 
 describe("filter aktivitas realisasi", () => {
+  it("mencari tanpa membedakan kapital pada kode, subkegiatan, dan aktivitas", () => {
+    const data = [
+      {
+        id: "satu",
+        kodeSubkegiatan: "5.1.2.01",
+        namaSubkegiatan: "Penyusunan RKPD",
+        namaAktifitas: "Rapat koordinasi",
+      },
+      {
+        id: "dua",
+        kodeSubkegiatan: "5.1.3.02",
+        namaSubkegiatan: "Evaluasi pembangunan",
+        namaAktifitas: "Menyusun laporan",
+      },
+    ]
+
+    expect(cariAktivitasRealisasi(data, "5.1.2").map((item) => item.id)).toEqual(["satu"])
+    expect(cariAktivitasRealisasi(data, "rkpd").map((item) => item.id)).toEqual(["satu"])
+    expect(cariAktivitasRealisasi(data, "LAPORAN").map((item) => item.id)).toEqual(["dua"])
+    expect(cariAktivitasRealisasi(data, "  ")).toBe(data)
+  })
+
   it.each<[Jenis, Status, string[]]>([
     ["semua", "semua", ["utama-belum", "utama-selesai", "pendukung-belum", "pendukung-selesai"]],
     ["semua", "belum", ["utama-belum", "pendukung-belum"]],

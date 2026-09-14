@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { BobotLedger } from "@/components/opera/bobot-ledger"
 import { FilterJenisAktivitas } from "@/components/opera/filter-jenis-aktivitas"
+import { SearchInput } from "@/components/opera/search-input"
 import { MelebihiTargetBadge } from "@/components/opera/realisasi-status"
 import {
   catatRealisasi, getAktifitasBidang, getBidang, getPeriode, pratinjauRealisasi, getRealisasiByIndikatorBidang, hapusRealisasi, ubahRealisasi,
@@ -18,8 +19,10 @@ import type {
   AktifitasPencatatan, Bidang, Periode, PratinjauRealisasi, RealisasiKegiatan,
 } from "@/services"
 import { usePeran } from "@/lib/peran"
+import { kunciTanggal } from "@/lib/kalender"
 import { KonfirmasiRealisasiMelebihiTarget } from "@/lib/konfirmasi-realisasi"
 import {
+  cariAktivitasRealisasi,
   hitungStatusAktivitas,
   saringAktivitasRealisasi,
   type FilterJenisAktivitas as JenisAktivitas,
@@ -45,7 +48,7 @@ function FormCatat({
   onTersimpan: () => void
 }) {
   const { bidangId } = usePeran()
-  const [tanggal, setTanggal] = React.useState(new Date().toISOString().slice(0, 10))
+  const [tanggal, setTanggal] = React.useState(() => kunciTanggal(new Date()))
   const [jumlah, setJumlah] = React.useState("1")
   const [keterangan, setKeterangan] = React.useState("")
   const [bukti, setBukti] = React.useState<File[]>([])
@@ -79,7 +82,7 @@ function FormCatat({
         keterangan: keterangan.trim(),
         createdBy: bidangId ?? 1,
         fotos: bukti.filter((f) => f.type.startsWith("image/")),
-        dokumen: bukti.find((f) => !f.type.startsWith("image/")) ?? null,
+        dokumens: bukti.filter((f) => !f.type.startsWith("image/")),
       })
       onTersimpan()
       onTutup()
@@ -231,6 +234,7 @@ export default function CatatRealisasi() {
   const [daftar, setDaftar] = React.useState<AktifitasPencatatan[]>([])
   const [saring, setSaring] = React.useState<FilterStatusAktivitas>("belum")
   const [jenis, setJenis] = React.useState<JenisAktivitas>("semua")
+  const [pencarian, setPencarian] = React.useState("")
   const [memuat, setMemuat] = React.useState(true)
   const [galatMuat, setGalatMuat] = React.useState<string | null>(null)
   const [form, setForm] = React.useState<AktifitasPencatatan | null>(null)
@@ -242,12 +246,14 @@ export default function CatatRealisasi() {
     const sumberBidang = peran === "admin_aplikasi" ? getBidang() : Promise.resolve<Bidang[]>([])
     try {
       const [p, b] = await Promise.all([getPeriode(), sumberBidang])
+      const periodeBerikut = (p.find((x) => x.id === periodeTautan) ?? p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null
       setPeriodes(p)
-      setPeriodeId((p.find((x) => x.id === periodeTautan) ?? p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null)
+      setPeriodeId(periodeBerikut)
       setBidangs(b)
-      if (peran === "admin_aplikasi") setBidangId((v) => v ?? b[0]?.id ?? null)
+      if (peran === "admin_aplikasi") setBidangId((v) => b.some((bidang) => bidang.id === v) ? v : b[0]?.id ?? null)
+      if (periodeBerikut == null || (peran === "admin_aplikasi" ? b.length === 0 : bidangPeran == null)) setMemuat(false)
     } catch (e) { setGalatMuat(apiMessage(e, "Gagal memuat periode atau bidang.")); setMemuat(false) }
-  }, [peran, periodeTautan])
+  }, [bidangPeran, peran, periodeTautan])
   React.useEffect(() => { void muatAwal() }, [muatAwal])
 
   const muat = React.useCallback(async () => {
@@ -282,10 +288,15 @@ export default function CatatRealisasi() {
     setSearchParams({}, { replace: true })
   }, [aktivitasTautan, daftar, setSearchParams])
 
-  const terlihat = saringAktivitasRealisasi(daftar, saring, jenis)
+  const terlihat = cariAktivitasRealisasi(
+    saringAktivitasRealisasi(daftar, saring, jenis),
+    pencarian,
+  )
   const jumlah = hitungStatusAktivitas(daftar, jenis)
   const periodeTerpilih = periodes.find((p) => p.id === periodeId)
   const dapatMencatat = periodeTerpilih?.status === "OPEN"
+  const belumAdaPeriode = !memuat && !galatMuat && periodeId == null
+  const belumAdaBidang = !memuat && !galatMuat && periodeId != null && bidangId == null
 
   return (
     <div className="space-y-6">
@@ -311,6 +322,13 @@ export default function CatatRealisasi() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
+        <SearchInput
+          value={pencarian}
+          onValueChange={setPencarian}
+          placeholder="Cari kode, subkegiatan, atau aktivitas…"
+          aria-label="Cari aktivitas realisasi"
+          className="sm:w-80"
+        />
         <div className="flex gap-1 p-1 bg-white border w-fit border-slate-200 rounded-xl">
           {TAB.map((t) => (
             <button
@@ -342,7 +360,10 @@ export default function CatatRealisasi() {
 
       {galatMuat && <Panel><div className="p-8 text-center"><p className="text-sm text-red-600">{galatMuat}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => { if (periodeId == null) void muatAwal(); else void muat() }}><RefreshCw className="size-3.5" /> Coba lagi</Button></div></Panel>}
 
-      {!galatMuat && <Panel>
+      {belumAdaPeriode && <Panel><p className="p-8 text-sm text-center text-slate-500">Belum ada periode yang dapat ditampilkan.</p></Panel>}
+      {belumAdaBidang && <Panel><p className="p-8 text-sm text-center text-slate-500">Akun ini belum ditempatkan pada bidang. Hubungi admin aplikasi untuk menetapkan bidang Anda.</p></Panel>}
+
+      {!galatMuat && !belumAdaPeriode && !belumAdaBidang && <Panel>
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
@@ -360,7 +381,9 @@ export default function CatatRealisasi() {
             )}
             {!memuat && terlihat.length === 0 && (
               <tr><td colSpan={6} className="px-6 py-8 text-sm text-center text-slate-500">
-                Tidak ada aktivitas yang cocok dengan saringan status dan jenis yang dipilih.
+                {pencarian.trim()
+                  ? `Tidak ada aktivitas yang cocok dengan pencarian “${pencarian.trim()}”.`
+                  : "Tidak ada aktivitas yang cocok dengan saringan status dan jenis yang dipilih."}
               </td></tr>
             )}
             {!memuat && terlihat.map((a) => (

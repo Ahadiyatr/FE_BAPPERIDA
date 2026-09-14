@@ -2,7 +2,7 @@ import { Download, Eye, FileText, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { AuthedImage, DocumentPreview, downloadAuthedFile } from "@/components/AuthedMedia"
 import { apiMessage } from "@/services/api"
@@ -42,6 +42,9 @@ export function PratinjauLampiran({
       <DialogContent className="sm:max-w-3xl lg:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="pr-8 text-base break-all">{lampiran.namaBerkas}</DialogTitle>
+          <DialogDescription>
+            Pratinjau bukti lampiran. Berkas dapat diunduh melalui tombol di bawah.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="overflow-hidden rounded-xl bg-slate-100">

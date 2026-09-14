@@ -3,18 +3,18 @@ import { mapDetailSubkegiatan } from "./monitoring.service"
 import type { DetailSubkegiatan,DetailSubkegiatanRow } from "./monitoring.service"
 import type { AktifitasPencatatan,CatatanBukti,CatatRealisasiInput,PratinjauRealisasi,RealisasiKegiatan,RealisasiLampiran } from "./types"
 
-type LampiranRow={id:number;tipe_berkas:"FOTO"|"DOKUMEN";nama_berkas:string;ukuran_byte:number;preview_url:string}
+type LampiranRow={id:number;tipe_berkas:"FOTO"|"DOKUMEN";nama_berkas:string;mime_type?:string|null;ukuran_byte:number;created_by?:number|null;preview_url:string}
 type RealisasiRow={id:number;aktifitas_bidang_id:number;tanggal_kegiatan:string;jumlah_realisasi:number;keterangan:string|null;created_by:number;log_entry_name:string;lampiran?:LampiranRow[]}
 type RencanaRow={id:number;kode_subkegiatan:string;nama_subkegiatan:string;capaian:number;aktifitas:{id:number;nama_aktifitas:string;tipe_aktifitas:"UTAMA"|"PENDUKUNG";bobot_target:number;target:number;realisasi:number;bobot_realisasi:number;jumlah_catatan?:number;jumlah_lampiran?:number;realisasi_kegiatan?:RealisasiRow[]}[]}
 const realisasi=(r:RealisasiRow):RealisasiKegiatan=>({id:r.id,indikatorBidangId:r.aktifitas_bidang_id,tanggalKegiatan:r.tanggal_kegiatan,jumlahRealisasi:Number(r.jumlah_realisasi),keterangan:r.keterangan??"",createdBy:r.created_by,logEntryName:r.log_entry_name})
-const lampiran=(r:LampiranRow,realisasiId:number):RealisasiLampiran=>({id:r.id,realisasiId,tipeBerkas:r.tipe_berkas,namaBerkas:r.nama_berkas,pathBerkas:r.preview_url,ukuranByte:r.ukuran_byte})
+const lampiran=(r:LampiranRow,realisasiId:number):RealisasiLampiran=>({id:r.id,realisasiId,tipeBerkas:r.tipe_berkas,namaBerkas:r.nama_berkas,mimeType:r.mime_type??null,pathBerkas:r.preview_url,ukuranByte:r.ukuran_byte,createdBy:r.created_by??null})
 
 export async function getRealisasiByIndikatorBidang(id:number):Promise<RealisasiKegiatan[]>{return dataOf<RealisasiRow[]>(await api.get("/realisasi-kegiatan",{params:{aktifitas_bidang_id:id}})).map(realisasi)}
 export async function getLampiranByRealisasi(id:number):Promise<RealisasiLampiran[]>{const r=dataOf<RealisasiRow>(await api.get(`/realisasi-kegiatan/${id}`));return(r.lampiran??[]).map(x=>lampiran(x,id))}
-export async function catatRealisasi(i:CatatRealisasiInput):Promise<RealisasiKegiatan>{const form=new FormData();form.append("aktifitas_bidang_id",String(i.indikatorBidangId));form.append("tanggal_kegiatan",i.tanggalKegiatan);form.append("jumlah_realisasi",String(i.jumlahRealisasi));if(i.keterangan)form.append("keterangan",i.keterangan);for(const f of i.fotos??[])form.append("fotos[]",f);if(i.dokumen)form.append("dokumen",i.dokumen);return realisasi(dataOf<RealisasiRow>(await api.post("/realisasi-kegiatan",form)))}
+export async function catatRealisasi(i:CatatRealisasiInput):Promise<RealisasiKegiatan>{const form=new FormData();form.append("aktifitas_bidang_id",String(i.indikatorBidangId));form.append("tanggal_kegiatan",i.tanggalKegiatan);form.append("jumlah_realisasi",String(i.jumlahRealisasi));if(i.keterangan)form.append("keterangan",i.keterangan);for(const f of i.fotos??[])form.append("fotos[]",f);for(const f of i.dokumens??[])form.append("dokumens[]",f);return realisasi(dataOf<RealisasiRow>(await api.post("/realisasi-kegiatan",form)))}
 export async function ubahRealisasi(id:number,input:{tanggalKegiatan:string;jumlahRealisasi:number;keterangan:string}):Promise<RealisasiKegiatan>{return realisasi(dataOf<RealisasiRow>(await api.put(`/realisasi-kegiatan/${id}`,{tanggal_kegiatan:input.tanggalKegiatan,jumlah_realisasi:input.jumlahRealisasi,keterangan:input.keterangan})))}
 export async function hapusRealisasi(id:number):Promise<void>{await api.delete(`/realisasi-kegiatan/${id}`)}
-export async function uploadLampiran(realisasiId:number,files:File[]):Promise<RealisasiLampiran[]>{const form=new FormData();form.append("realisasi_id",String(realisasiId));for(const f of files){if(f.type.startsWith("image/"))form.append("fotos[]",f);else form.append("dokumen",f)}
+export async function uploadLampiran(realisasiId:number,files:File[]):Promise<RealisasiLampiran[]>{const form=new FormData();form.append("realisasi_id",String(realisasiId));for(const f of files){if(f.type.startsWith("image/"))form.append("fotos[]",f);else form.append("dokumens[]",f)}
 // POST /lampiran mengembalikan realisasi + seluruh lampiran-nya (TransRealisasiKegiatanResource),
 // bukan array lampiran. Ambil daftar lampiran terbaru dari situ.
 const r=dataOf<RealisasiRow>(await api.post("/lampiran",form));return(r.lampiran??[]).map(x=>lampiran(x,realisasiId))}
