@@ -7,6 +7,7 @@ import Login from "./pages/Login"
 import BuktiKegiatan from "./pages/opera/BuktiKegiatan"
 import CapaianProgram from "./pages/opera/CapaianProgram"
 import CatatRealisasi from "./pages/opera/CatatRealisasi"
+import KalenderRencana from "./pages/opera/KalenderRencana"
 import DashboardUmum from "./pages/opera/DashboardUmum"
 import DataMaster from "./pages/opera/DataMaster"
 import DetailSubkegiatan from "./pages/opera/DetailSubkegiatan"
@@ -46,6 +47,7 @@ export default function App() {
             <Route path="/rencana/:bidangId" element={jaga(<RencanaBidang />)} />
             <Route path="/rencana-saya" element={jaga(<RencanaSaya />)} />
             <Route path="/rencana-saya/:id" element={jaga(<RencanaSayaDetail />)} />
+            <Route path="/kalender" element={jaga(<KalenderRencana />)} />
             <Route path="/realisasi" element={jaga(<CatatRealisasi />)} />
             <Route path="/bukti" element={jaga(<BuktiKegiatan />)} />
             <Route path="/log" element={jaga(<LogAktivitas />)} />

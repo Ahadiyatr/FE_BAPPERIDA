@@ -4,6 +4,7 @@ import {
   Activity,
   BarChart2,
   Calendar,
+  CalendarDays,
   CheckSquare,
   Database,
   KeyRound,
@@ -53,6 +54,7 @@ const semuaMenu = [
   {
     label: 'Pelaksanaan',
     items: [
+      { name: 'Kalender Program', href: '/kalender', icon: CalendarDays },
       { name: 'Catat Realisasi', href: '/realisasi', icon: CheckSquare },
       { name: 'Bukti Kegiatan', href: '/bukti', icon: Database },
     ],
@@ -77,12 +79,14 @@ function judulDariPath(pathname: string) {
   if (pathname.startsWith('/bidang/')) return 'Kinerja Bidang';
   if (pathname === '/struktur') return 'Struktur Program';
   if (pathname === '/capaian-program') return 'Capaian Program';
-  if (pathname.startsWith('/monitoring/subkegiatan/')) return 'Detail Subkegiatan';
+  if (pathname.startsWith('/monitoring/subkegiatan/'))
+    return 'Detail Subkegiatan';
   if (pathname === '/monitoring') return 'Monitoring Kinerja';
   if (pathname.startsWith('/rencana-saya/')) return 'Detail Rencana Saya';
   if (pathname === '/rencana-saya') return 'Rencana Saya';
   if (pathname.startsWith('/rencana/')) return 'Rencana Bidang';
   if (pathname === '/rencana') return 'Penyusunan Rencana';
+  if (pathname === '/kalender') return 'Kalender Rencana Pelaksanaan';
   if (pathname === '/realisasi') return 'Catat Realisasi';
   if (pathname === '/bukti') return 'Bukti Kegiatan';
   if (pathname === '/log') return 'Log Aktivitas';
@@ -183,9 +187,7 @@ export default function DashboardLayout() {
                       className={`mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${aktif ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'} ${ringkas ? 'justify-center' : ''}`}
                     >
                       <Icon className="w-5 h-5 shrink-0" />
-                      {!ringkas && (
-                        <span className="min-w-0">{item.name}</span>
-                      )}
+                      {!ringkas && <span className="min-w-0">{item.name}</span>}
                     </Link>
                   );
                 })}
@@ -205,7 +207,7 @@ export default function DashboardLayout() {
       </aside>
       <section className="flex min-w-0 flex-1 flex-col gap-2.5">
         <header className="flex h-[76px] shrink-0 items-center justify-between rounded-[20px] border border-slate-200 bg-white px-4 shadow-sm sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex items-center min-w-0 gap-3">
             <button
               aria-label="Buka menu"
               className="p-2 transition-colors rounded-xl text-slate-600 hover:bg-slate-100 lg:hidden"
@@ -225,7 +227,7 @@ export default function DashboardLayout() {
               )}
             </button>
             {judulHalaman && (
-              <h1 className="truncate text-lg font-bold text-slate-900 sm:text-xl">
+              <h1 className="text-lg font-bold truncate text-slate-900 sm:text-xl">
                 {judulHalaman}
               </h1>
             )}
@@ -243,7 +245,7 @@ export default function DashboardLayout() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="grid w-10 h-10 text-sm font-bold rounded-full shrink-0 place-items-center bg-emerald-100 text-emerald-700 outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                  className="grid w-10 h-10 text-sm font-bold transition-shadow rounded-full outline-none shrink-0 place-items-center bg-emerald-100 text-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-500/50"
                   aria-label={`Menu profil ${user?.name ?? 'pengguna'}`}
                   title={user?.name}
                 >
@@ -275,7 +277,7 @@ export default function DashboardLayout() {
             </DropdownMenu>
           </div>
         </header>
-        <main className="min-w-0 flex-1 overflow-y-auto rounded-[20px] pb-4 max-lg:px-0">
+        <main className="flex-1 min-w-0 pb-4 overflow-y-auto max-lg:px-0">
           <Outlet />
         </main>
       </section>

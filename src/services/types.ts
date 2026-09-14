@@ -169,8 +169,10 @@ export interface RealisasiLampiran {
   realisasiId: number
   tipeBerkas: TipeBerkas
   namaBerkas: string
+  mimeType?: string | null
   pathBerkas: string
   ukuranByte: number
+  createdBy?: number | null
 }
 
 /** Rincian 70/30 siap-tayang untuk BobotMeter/BobotLedger — bukan tabel ERD,
@@ -189,7 +191,7 @@ export interface CatatRealisasiInput {
   keterangan: string
   createdBy: number
   fotos?: File[]
-  dokumen?: File | null
+  dokumens?: File[]
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -687,4 +689,82 @@ export interface SaringLog {
   /** Cari di ringkasan dan nama pelaku. */
   cari?: string
   batas?: number
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Kalender rencana pelaksanaan (TRANS_JADWAL_KEGIATAN)
+
+   Agenda adalah RENCANA. `jumlahRencana` tidak pernah menyumbang
+   capaian — capaian tetap murni dari realisasi yang punya bukti.
+   ───────────────────────────────────────────────────────────── */
+
+export type StatusAgenda = "RENCANA" | "SELESAI" | "BATAL"
+
+/** "Baris ini milik pekerjaan yang mana" — dipakai agenda DAN realisasi di kalender. */
+export interface KonteksAgenda {
+  bidangId: number | null
+  namaBidang: string | null
+  subkegiatanBidangId: number | null
+  kodeSubkegiatan: string
+  namaSubkegiatan: string
+  namaAktifitas: string
+  tipeAktifitas: "UTAMA" | "PENDUKUNG"
+  satuan: string | null
+}
+
+export interface AgendaKegiatan {
+  id: number
+  aktifitasBidangId: number
+  judulAgenda: string
+  /** Kunci tanggal lokal "YYYY-MM-DD". Agenda satu hari mengulang tanggalMulai. */
+  tanggalMulai: string
+  tanggalSelesai: string
+  jumlahRencana: number
+  lokasi: string
+  keterangan: string
+  status: StatusAgenda
+  /** Sudah lewat tapi masih berstatus RENCANA. */
+  terlewat: boolean
+  /** Salinan beku nama penyusun saat agenda dibuat. */
+  logEntryName: string
+  konteks: KonteksAgenda | null
+}
+
+/** Realisasi yang ditumpangkan di kalender — bentuk ringkas, bukan RealisasiKegiatan penuh. */
+export interface RealisasiKalender {
+  id: number
+  aktifitasBidangId: number
+  tanggalKegiatan: string
+  jumlahRealisasi: number
+  keterangan: string
+  logEntryName: string
+  jumlahLampiran: number
+  konteks: KonteksAgenda | null
+}
+
+export interface KalenderBulan {
+  periode: Periode
+  /** "YYYY-MM" */
+  bulan: string
+  /** Jendela grid yang dikirim server (Senin…Minggu), bukan batas bulan kalender. */
+  rentang: { dari: string; sampai: string }
+  /** Satu-satunya gerbang tulis — dihitung server dari peran + status periode. */
+  dapatMenjadwalkan: boolean
+  bidang: { id: number; namaBidang: string }[]
+  ringkasan: { jumlahAgenda: number; jumlahRealisasi: number; agendaTerlewat: number }
+  agenda: AgendaKegiatan[]
+  realisasi: RealisasiKalender[]
+}
+
+export interface SimpanAgendaInput {
+  /** null = buat baru (POST); terisi = ubah (PATCH). */
+  id: number | null
+  aktifitasBidangId: number
+  judulAgenda: string
+  tanggalMulai: string
+  tanggalSelesai: string
+  jumlahRencana: number
+  lokasi: string
+  keterangan: string
+  status?: StatusAgenda
 }
