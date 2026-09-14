@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom"
 import { getPeriode, getRankingBidang, getRencanaBidang } from "@/services"
 import type { CapaianBidang, Periode, RencanaBidangDetail } from "@/services"
 import { BobotMeter } from "@/components/opera/bobot-meter"
+import { teksSatuanKinerja } from "@/lib/metadata-kinerja"
 import { BarCapaian, KartuKpi, Panel, PilihPeriode, Th, persen1, warnaCapaian } from "./bagian/ui"
 
 export default function KinerjaBidang() {
@@ -101,7 +102,7 @@ export default function KinerjaBidang() {
                       <td className="max-w-sm px-6 py-3 text-sm text-slate-700">
                         <span className="line-clamp-2">{b.namaSubkegiatan}</span>
                         <p className="mt-0.5 text-xs text-slate-400">
-                          target {b.subkegiatanBidang.target} {b.subkegiatanBidang.satuan}
+                          target {b.subkegiatanBidang.target} · {teksSatuanKinerja(b.subkegiatanBidang.satuan)}
                           {" · "}{pendukung.length} aktivitas pendukung
                         </p>
                       </td>

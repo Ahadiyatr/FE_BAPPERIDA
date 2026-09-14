@@ -22,6 +22,7 @@ import type {
   BarisRencana, HasilPemeriksaan, KatalogTersedia, RencanaBidangDetail,
 } from "@/services"
 import { alasanCentangTerkunci, pendukungDipakai } from "@/lib/bobot-pendukung"
+import { teksSatuanKinerja } from "@/lib/metadata-kinerja"
 import { cn } from "@/lib/utils"
 
 const persen = (n: number) =>
@@ -161,7 +162,7 @@ function Editor({
           <p className="text-sm">{skb.indikatorKinerja || <em className="text-red-600">belum diisi</em>}</p>
         </div>
         <div className="space-y-1.5">
-          <Eyebrow>Target · {skb.satuan}</Eyebrow>
+          <Eyebrow>Target · {teksSatuanKinerja(skb.satuan)}</Eyebrow>
           <Input
             type="number" step="any" min={0}
             className="tabular h-8 w-32 font-mono"

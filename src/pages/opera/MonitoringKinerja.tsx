@@ -4,8 +4,8 @@ import {
   ArrowUpRight,
   ChevronDown,
   ChevronRight,
-  Search,
 } from 'lucide-react';
+import { SearchInput } from '@/components/opera/search-input';
 
 import { getMonitoringKinerja, getPeriode } from '@/services';
 import type {
@@ -16,6 +16,7 @@ import type {
   Periode,
 } from '@/services';
 import { usePeran } from '@/lib/peran';
+import { teksOutputKinerja, teksSatuanKinerja } from '@/lib/metadata-kinerja';
 import {
   BarCapaian,
   KartuKpi,
@@ -251,15 +252,13 @@ export default function MonitoringKinerja() {
         }
       >
         <div className="flex flex-col gap-3 p-4 border-b border-slate-100 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute w-4 h-4 -translate-y-1/2 pointer-events-none left-3 top-1/2 text-slate-400" />
-            <input
-              value={cari}
-              onChange={e => setCari(e.target.value)}
-              placeholder="Cari program, kegiatan, subkegiatan, atau aktivitas…"
-              className="w-full py-2 pr-3 text-sm border rounded-xl border-slate-200 pl-9 text-slate-700 focus:border-emerald-500 focus:outline-none"
-            />
-          </div>
+          <SearchInput
+            value={cari}
+            onValueChange={setCari}
+            placeholder="Cari program, kegiatan, subkegiatan, atau aktivitas…"
+            aria-label="Cari monitoring kinerja"
+            className="flex-1"
+          />
           <select
             value={bidangPilih}
             onChange={e => setBidangPilih(e.target.value)}
@@ -417,11 +416,9 @@ export default function MonitoringKinerja() {
                                                 {s.indikatorKinerja}
                                               </span>
                                             )}
-                                            {s.outputKinerja && (
-                                              <span className="mt-0.5 block text-xs text-slate-500">
-                                                Output: {s.outputKinerja}
-                                              </span>
-                                            )}
+                                            <span className="mt-0.5 block text-xs text-slate-500">
+                                              Output: {teksOutputKinerja(s.outputKinerja)}
+                                            </span>
                                           </span>
                                         </div>
                                       </td>
@@ -439,7 +436,7 @@ export default function MonitoringKinerja() {
                                       </td>
                                       <td className="px-4 py-2 text-sm text-right whitespace-nowrap tabular text-slate-600">
                                         {s.target
-                                          ? `${angka(s.target)} ${s.satuan}`.trim()
+                                          ? `${angka(s.target)} · ${teksSatuanKinerja(s.satuan)}`
                                           : '—'}
                                       </td>
                                       <td className="px-4 py-2 text-right whitespace-nowrap">

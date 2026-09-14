@@ -8,6 +8,7 @@ import { getPeriode, getRencanaSayaRingkas } from "@/services"
 import type { DetailSubkegiatan, Periode } from "@/services"
 import { apiMessage } from "@/services/api"
 import { usePeran } from "@/lib/peran"
+import { teksSatuanKinerja } from "@/lib/metadata-kinerja"
 import { BarCapaian, Panel, PilihPeriode, Th, persen1, warnaCapaian } from "./bagian/ui"
 
 type Mode = "subkegiatan" | "aktivitas"
@@ -96,7 +97,7 @@ function TabelSubkegiatan({ rows }: { rows: DetailSubkegiatan[] }) {
       const jumlahLampiran = r.aktifitas.reduce((n, a) => n + a.jumlahLampiran, 0)
       return <tr key={r.id} className="hover:bg-slate-50">
         <td className="max-w-sm px-5 py-3"><p className="font-mono text-xs text-slate-400">{r.kodeSubkegiatan}</p><p className="text-sm font-medium text-slate-700">{r.namaSubkegiatan}</p></td>
-        <td className="max-w-sm px-5 py-3"><p className="line-clamp-2 text-sm text-slate-600">{r.indikatorKinerja || "—"}</p><p className="mt-1 text-xs text-slate-400">Target {angka(r.target)} {r.satuan}</p></td>
+        <td className="max-w-sm px-5 py-3"><p className="line-clamp-2 text-sm text-slate-600">{r.indikatorKinerja || "—"}</p><p className="mt-1 text-xs text-slate-400">Target {angka(r.target)} · {teksSatuanKinerja(r.satuan)}</p></td>
         <td className="px-5 py-3 text-right text-sm tabular">{r.aktifitas.length}</td>
         <td className="px-5 py-3 text-right text-sm tabular"><span>{jumlahCatatan}</span><span className="text-slate-300"> / </span><span>{jumlahLampiran}</span></td>
         <td className="min-w-28 px-5 py-3 text-right"><span className={`font-semibold tabular ${warnaCapaian(r.capaian)}`}>{persen1(r.capaian)}</span><div className="ml-auto mt-1.5 w-20"><BarCapaian persen={r.capaian} /></div></td>

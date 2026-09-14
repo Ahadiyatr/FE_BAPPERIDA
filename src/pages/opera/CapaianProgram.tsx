@@ -16,6 +16,7 @@ import type {
 } from '@/services';
 import { BobotMeter } from '@/components/opera/bobot-meter';
 import { usePeran } from '@/lib/peran';
+import { teksOutputKinerja, teksSatuanKinerja } from '@/lib/metadata-kinerja';
 import {
   BarCapaian,
   KartuKpi,
@@ -57,10 +58,10 @@ function KartuSubkegiatan({
                 ◀ Bidang Anda
               </span>
             )}
-            {' · '}target {angka(s.target)} {s.satuan}
+            {' · '}target {angka(s.target)} · {teksSatuanKinerja(s.satuan)}
             {' · '}
             {s.indikatorKinerja}
-            {s.outputKinerja && ` · Output: ${s.outputKinerja}`}
+            {' · '}Output: {teksOutputKinerja(s.outputKinerja)}
           </p>
         </div>
         <div className="w-24 text-right shrink-0">
@@ -176,13 +177,17 @@ function BarisKegiatan({
 }) {
   const [buka, setBuka] = React.useState(false);
   const [rinci, setRinci] = React.useState<SubkegiatanRinci[] | null>(null);
+  const [galatRinci, setGalatRinci] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!buka || rinci) return;
     let batal = false;
-    getRincianKegiatan(k.kegiatanId, periodeId).then(
-      d => !batal && setRinci(d),
-    );
+    setGalatRinci(null);
+    getRincianKegiatan(k.kegiatanId, periodeId)
+      .then(d => !batal && setRinci(d))
+      .catch(() => {
+        if (!batal) setGalatRinci('Gagal memuat rincian kegiatan.');
+      });
     return () => {
       batal = true;
     };
@@ -222,7 +227,9 @@ function BarisKegiatan({
       {buka && (
         <div className="px-4 pb-4 pl-10 space-y-3">
           {!rinci && (
-            <p className="py-3 text-xs text-slate-400">Memuat rincian…</p>
+            <p className={`py-3 text-xs ${galatRinci ? 'text-red-600' : 'text-slate-400'}`}>
+              {galatRinci ?? 'Memuat rincian…'}
+            </p>
           )}
           {rinci?.length === 0 && (
             <p className="py-3 text-xs text-slate-500">

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { getRencanaSayaDetail } from "@/services"
 import type { DetailSubkegiatan } from "@/services"
 import { apiMessage } from "@/services/api"
+import { teksOutputKinerja, teksSatuanKinerja } from "@/lib/metadata-kinerja"
 import { BarCapaian, Panel, Th, persen1, warnaCapaian } from "./bagian/ui"
 
 const angka = (n: number) => n.toLocaleString("id-ID", { maximumFractionDigits: 2 })
@@ -53,11 +54,11 @@ export default function RencanaSayaDetail() {
         <div><p className="font-mono text-xs text-slate-400">{data.kodeProgram} · {data.kodeKegiatan} · {data.kodeSubkegiatan}</p><h2 className="mt-1 text-lg font-bold text-slate-900">{data.namaSubkegiatan}</h2><p className="mt-1 text-sm text-slate-500">{data.namaProgram} · {data.namaKegiatan}</p></div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Fakta label="Indikator" nilai={data.indikatorKinerja || "—"} />
-          <Fakta label="Output" nilai={data.outputKinerja || "—"} />
-          <Fakta label="Target" nilai={`${angka(data.target)} ${data.satuan}`} />
+          <Fakta label="Output" nilai={teksOutputKinerja(data.outputKinerja)} />
+          <Fakta label="Target" nilai={`${angka(data.target)} · ${teksSatuanKinerja(data.satuan)}`} />
           <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Capaian</p><p className={`mt-1 text-xl font-bold tabular ${warnaCapaian(data.capaian)}`}>{persen1(data.capaian)}</p><div className="mt-2"><BarCapaian persen={data.capaian} /></div></div>
         </div>
-        {utama && <div><div className="mb-2 flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pembagian bobot</p><span className="text-xs text-slate-400">{jumlahCatatan} catatan · {jumlahLampiran} bukti</span></div><BobotMeter utama={{ nama: utama.namaAktifitas, target: utama.target, realisasi: utama.realisasi, bobotTarget: utama.bobotTarget }} pendukung={pendukung.map((a) => ({ nama: a.namaAktifitas, target: a.target, realisasi: a.realisasi, bobotTarget: a.bobotTarget }))} /><BobotMeterLegenda bobotPendukung={pendukung.map((a) => a.bobotTarget)} /></div>}
+        {utama && <div><div className="mb-2 flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pembagian bobot</p><span className="text-xs text-slate-400">{jumlahCatatan} catatan · {jumlahLampiran} bukti</span></div><BobotMeter utama={{ nama: utama.namaAktifitas, target: utama.target, realisasi: utama.realisasi, bobotTarget: utama.bobotTarget }} pendukung={pendukung.map((a) => ({ nama: a.namaAktifitas, target: a.target, realisasi: a.realisasi, bobotTarget: a.bobotTarget }))} tinggi={14} /><BobotMeterLegenda bobotUtama={utama.bobotTarget} bobotPendukung={pendukung.map((a) => a.bobotTarget)} /></div>}
       </div>
     </Panel>
 

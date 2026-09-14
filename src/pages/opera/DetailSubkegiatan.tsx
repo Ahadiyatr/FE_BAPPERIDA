@@ -10,6 +10,7 @@ import { AuthedImage } from "@/components/AuthedMedia"
 import { getMonitoringSubkegiatan } from "@/services"
 import type { DetailAktifitas, DetailCatatanRealisasi, DetailSubkegiatan, RealisasiLampiran } from "@/services"
 import { apiMessage } from "@/services/api"
+import { teksSatuanKinerja } from "@/lib/metadata-kinerja"
 import { BobotMeter, BobotMeterLegenda } from "@/components/opera/bobot-meter"
 import { MelebihiTargetBadge } from "@/components/opera/realisasi-status"
 import { LedgerCapaian } from "@/components/opera/bobot-ledger"
@@ -429,7 +430,7 @@ export default function DetailSubkegiatan() {
                 </Fakta>
                 <Fakta label="Target">
                   <span className="tabular">{angka(data.target)}</span>
-                  {data.satuan ? ` ${data.satuan}` : ""}
+                  {` · ${teksSatuanKinerja(data.satuan)}`}
                 </Fakta>
                 <Fakta label="Indikator">{data.indikatorKinerja || "—"}</Fakta>
                 <Fakta label="Isi">
@@ -452,7 +453,7 @@ export default function DetailSubkegiatan() {
                       nama: a.namaAktifitas, target: a.target, realisasi: a.realisasi, bobotTarget: a.bobotTarget,
                     }))}
                   />
-                  <BobotMeterLegenda bobotPendukung={pendukung.map((a) => a.bobotTarget)} />
+                  <BobotMeterLegenda bobotUtama={utama.bobotTarget} bobotPendukung={pendukung.map((a) => a.bobotTarget)} />
                 </div>
                 <div className="max-w-md xl:max-w-none">
                   <LedgerCapaian

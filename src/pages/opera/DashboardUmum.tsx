@@ -1,7 +1,7 @@
 import * as React from "react"
 
 import { Link } from "react-router-dom"
-import { Download } from "lucide-react"
+import { Download, RefreshCw } from "lucide-react"
 import {
   getPeriode, getRankingBidang, getRankingProgram, getRingkasanDashboard,
   getSubkegiatanTertinggal, getTrenCapaian,
@@ -11,6 +11,7 @@ import type {
   CapaianBidang, CapaianProgram, Periode, RingkasanDashboard, SubkegiatanTertinggal, TrenCapaian,
 } from "@/services"
 import { usePeran } from "@/lib/peran"
+import { apiMessage } from "@/services/api"
 import { Button } from "@/components/ui/button"
 import {
   BarCapaian, KartuKpi, Panel, PilihPeriode, TautanBidang, Th, persen1, warnaCapaian,
@@ -27,15 +28,32 @@ export default function DashboardUmum() {
   const [tren, setTren] = React.useState<TrenCapaian[]>([])
   const [memuat, setMemuat] = React.useState(true)
   const [galat, setGalat] = React.useState<string | null>(null)
+  const [muatUlang, setMuatUlang] = React.useState(0)
+  const urutanAwal = React.useRef(0)
+
+  const muatAwal = React.useCallback(async () => {
+    const urutan = ++urutanAwal.current
+    setMemuat(true)
+    setGalat(null)
+    try {
+      const p = await getPeriode()
+      if (urutan !== urutanAwal.current) return
+      const id = (p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null
+      setPeriodes(p)
+      setPeriodeId(id)
+      if (id == null) setMemuat(false)
+    } catch (e) {
+      if (urutan !== urutanAwal.current) return
+      setPeriodes([])
+      setPeriodeId(null)
+      setGalat(apiMessage(e, "Gagal memuat periode."))
+      setMemuat(false)
+    }
+  }, [])
 
   React.useEffect(() => {
-    getPeriode()
-      .then((p) => {
-        setPeriodes(p)
-        setPeriodeId((p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null)
-      })
-      .catch(() => setGalat("Gagal memuat periode."))
-  }, [])
+    void muatAwal()
+  }, [muatAwal])
 
   React.useEffect(() => {
     if (periodeId == null) return
@@ -55,7 +73,12 @@ export default function DashboardUmum() {
       .catch(() => !batal && setGalat("Gagal memuat capaian."))
       .finally(() => !batal && setMemuat(false))
     return () => { batal = true }
-  }, [periodeId])
+  }, [muatUlang, periodeId])
+
+  const cobaLagi = () => {
+    if (periodeId == null) void muatAwal()
+    else setMuatUlang((nilai) => nilai + 1)
+  }
 
   return (
     <div className="space-y-6">
@@ -76,24 +99,30 @@ export default function DashboardUmum() {
       </div>
 
       {galat && (
-        <div className="p-4 text-red-600 border border-red-100 bg-red-50 rounded-xl">{galat}</div>
+        <div className="p-4 text-center text-red-600 border border-red-100 bg-red-50 rounded-xl">
+          <p>{galat}</p>
+          <Button className="mt-3" size="sm" variant="outline" onClick={cobaLagi}>
+            <RefreshCw className="size-3.5" /> Coba lagi
+          </Button>
+        </div>
       )}
 
-      {peran === "admin_bidang" && bidangId != null && (
+      {peran === "admin_bidang" && (
         <div className="p-4 text-sm border bg-emerald-50 border-emerald-100 rounded-xl text-emerald-800">
-          Anda masuk sebagai admin bidang.{" "}
-          <Link to="/rencana-saya" className="font-medium text-emerald-700 hover:underline">
-            Lihat rencana bidang Anda →
-          </Link>
+          {bidangId == null ? (
+            <>Akun ini belum ditempatkan pada bidang. Hubungi admin aplikasi untuk menetapkan bidang Anda.</>
+          ) : (
+            <>Anda masuk sebagai admin bidang.{" "}<Link to="/rencana-saya" className="font-medium text-emerald-700 hover:underline">Lihat rencana bidang Anda →</Link></>
+          )}
         </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {memuat || !ringkas ? (
+        {memuat ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-[104px] bg-white border border-slate-200 rounded-2xl animate-pulse" />
           ))
-        ) : (
+        ) : ringkas ? (
           <>
             <KartuKpi
               label="Capaian perangkat daerah"
@@ -116,6 +145,10 @@ export default function DashboardUmum() {
               satuan="catatan"
             />
           </>
+        ) : (
+          <div className="p-8 text-sm text-center text-slate-500 bg-white border border-slate-200 rounded-2xl sm:col-span-2 lg:col-span-4">
+            {periodeId == null ? "Belum ada periode yang dapat ditampilkan." : "Data dashboard belum tersedia."}
+          </div>
         )}
       </div>
 

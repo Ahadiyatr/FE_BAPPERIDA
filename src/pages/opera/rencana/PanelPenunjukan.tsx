@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { Copy, Info, Lock, Search } from 'lucide-react';
+import { Copy, Info, Lock } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Eyebrow, Kode } from '@/components/opera/primitives';
+import { SearchInput } from '@/components/opera/search-input';
 import {
   cabutSubkegiatanDariRencana,
   getBidang,
@@ -22,6 +22,7 @@ import {
   rencanaAksiKegiatan,
 } from '@/lib/aksi-penunjukan';
 import { cn } from '@/lib/utils';
+import { teksSatuanKinerja } from '@/lib/metadata-kinerja';
 import { DialogSalinRencana } from './DialogSalinRencana';
 
 const KELAS_SELECT =
@@ -318,15 +319,13 @@ export function PanelPenunjukan({
             {b.namaBidang}
           </Button>
         ))}
-        <div className="relative ml-auto">
-          <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="h-8 w-56 pl-8"
-            placeholder="Cari kode atau nama…"
-            value={cari}
-            onChange={e => setCari(e.target.value)}
-          />
-        </div>
+        <SearchInput
+          className="ml-auto sm:w-64"
+          placeholder="Cari kode atau nama…"
+          aria-label="Cari penugasan subkegiatan"
+          value={cari}
+          onValueChange={setCari}
+        />
       </div>
 
       <p className="text-[11px] text-muted-foreground">
@@ -423,7 +422,7 @@ export function PanelPenunjukan({
                                   <span className="tabular font-mono">
                                     {b.targetAnjuran.toLocaleString('id-ID')}
                                   </span>
-                                  {b.satuan ? ` ${b.satuan}` : ''}
+                                  {' · '}{teksSatuanKinerja(b.satuan)}
                                 </>
                               )}
                             </p>

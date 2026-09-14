@@ -65,7 +65,10 @@ export async function getRankingProgram(periodeId: number): Promise<CapaianProgr
  */
 export async function getCapaianProgram(periodeId: number): Promise<ProgramBerurusan[]> {
   const [kinerja, programMaster, kegiatanMaster, bidang] = await Promise.all([
-    getKinerja(periodeId), getProgram(), getKegiatan(), getBidang(),
+    getKinerja(periodeId),
+    getProgram({ termasukNonaktif: true }),
+    getKegiatan({ termasukNonaktif: true }),
+    getBidang({ termasukNonaktif: true }),
   ])
   const programId = new Map(programMaster.map(p => [p.kodeProgram, p.id]))
   const kegiatanId = new Map(kegiatanMaster.map(k => [k.kodeKegiatan, k.id]))
@@ -135,6 +138,7 @@ export async function getStrukturSubkegiatan(
   kegiatanId: number,
   periodeId: number
 ): Promise<SubkegiatanStruktur[]> {
+  if (!Number.isInteger(kegiatanId) || kegiatanId <= 0) return []
   const [kegiatan, kinerja] = await Promise.all([getKegiatanById(kegiatanId), getKinerja(periodeId)])
   if (!kegiatan) return []
   const subkegiatan = kinerja.program.flatMap(p => p.kegiatan)
@@ -155,6 +159,7 @@ export async function getRincianKegiatan(
   kegiatanId: number,
   periodeId: number
 ): Promise<SubkegiatanRinci[]> {
+  if (!Number.isInteger(kegiatanId) || kegiatanId <= 0) return []
   const [kegiatan, kinerja] = await Promise.all([getKegiatanById(kegiatanId), getKinerja(periodeId)])
   if (!kegiatan) return []
   const rincian = kinerja.program.flatMap(p => p.kegiatan)
