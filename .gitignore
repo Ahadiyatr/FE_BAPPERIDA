@@ -4,6 +4,7 @@ node_modules/
 
 # hasil build
 dist
+opera-ink-fe-bundle/
 
 # dokumentasi internal
 docs/
