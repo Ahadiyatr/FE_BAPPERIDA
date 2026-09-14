@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Plus } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react"
 
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -8,7 +8,8 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { getBidang, setAktifBidang, simpanBidang } from "@/services"
+import { getBidang, hapusBidang, setAktifBidang, simpanBidang } from "@/services"
+import { apiMessage } from "@/services/api"
 import type { Bidang } from "@/services"
 import { Panel, Th } from "./bagian/ui"
 
@@ -17,11 +18,13 @@ export default function MasterBidang() {
   const [galat, setGalat] = React.useState<string | null>(null)
   const [form, setForm] = React.useState<Bidang | null | undefined>(undefined)
   const [konfirmasi, setKonfirmasi] = React.useState<Bidang | null>(null)
+  const [konfirmasiHapus, setKonfirmasiHapus] = React.useState<Bidang | null>(null)
+  const [tampilkanSemua, setTampilkanSemua] = React.useState(false)
 
   const muat = React.useCallback(async () => {
-    const b = await getBidang({ termasukNonaktif: true })
+    const b = await getBidang({ termasukNonaktif: tampilkanSemua })
     setBidangs(b)
-  }, [])
+  }, [tampilkanSemua])
   React.useEffect(() => { void muat() }, [muat])
 
   async function ubahAktif(b: Bidang) {
@@ -29,6 +32,18 @@ export default function MasterBidang() {
     try { await setAktifBidang(b.id, !b.flagActive); await muat() }
     catch (e) { setGalat(e instanceof Error ? e.message : "Gagal mengubah status.") }
     finally { setKonfirmasi(null) }
+  }
+
+  async function hapus(b: Bidang) {
+    setGalat(null)
+    try {
+      await hapusBidang(b.id)
+      await muat()
+    } catch (e) {
+      setGalat(apiMessage(e, "Gagal menghapus bidang."))
+    } finally {
+      setKonfirmasiHapus(null)
+    }
   }
 
   return (
@@ -45,7 +60,19 @@ export default function MasterBidang() {
 
       {galat && <div className="p-4 text-sm text-red-600 border border-red-100 bg-red-50 rounded-xl">{galat}</div>}
 
-      <Panel judul="Bidang">
+      <Panel
+        judul="Bidang"
+        aksi={
+          <Button
+            size="sm"
+            variant={tampilkanSemua ? "secondary" : "outline"}
+            aria-pressed={tampilkanSemua}
+            onClick={() => setTampilkanSemua((nilai) => !nilai)}
+          >
+            {tampilkanSemua ? "Tampilkan bidang aktif" : "Tampilkan semua bidang"}
+          </Button>
+        }
+      >
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr><Th>Kode</Th><Th>Nama bidang</Th><Th>Status</Th><Th kanan>Tindakan</Th></tr>
@@ -64,6 +91,14 @@ export default function MasterBidang() {
                   <Button size="sm" variant="ghost" onClick={() => setForm(b)}>Ubah</Button>
                   <Button size="sm" variant="ghost" onClick={() => setKonfirmasi(b)}>
                     {b.flagActive ? "Nonaktifkan" : "Aktifkan"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => setKonfirmasiHapus(b)}
+                    title="Hanya bidang yang belum digunakan yang dapat dihapus"
+                  >
+                    <Trash2 /> Hapus
                   </Button>
                 </td>
               </tr>
@@ -95,6 +130,32 @@ export default function MasterBidang() {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={() => konfirmasi && void ubahAktif(konfirmasi)}>
               {konfirmasi?.flagActive ? "Nonaktifkan" : "Aktifkan"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={konfirmasiHapus !== null}
+        onOpenChange={(terbuka) => !terbuka && setKonfirmasiHapus(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Hapus bidang {konfirmasiHapus?.namaBidang}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Bidang hanya akan dihapus jika belum memiliki pengguna, rencana,
+              atau capaian. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => konfirmasiHapus && void hapus(konfirmasiHapus)}
+            >
+              Hapus bidang
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/opera/search-input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -168,11 +169,12 @@ export default function DataMaster() {
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <Input
+        <SearchInput
           value={cari}
-          onChange={(ev) => setCari(ev.target.value)}
+          onValueChange={setCari}
           placeholder="Cari nama atau kode…"
-          className="h-8 w-full sm:w-64"
+          aria-label={`Cari ${def.label.toLowerCase()}`}
+          className="sm:w-72"
         />
         <Button
           variant={tampilNonaktif ? "secondary" : "outline"}

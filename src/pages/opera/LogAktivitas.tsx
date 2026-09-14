@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ShieldCheck } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/opera/search-input';
 import { getLog, getPeriode, getRingkasanLog } from '@/services';
 import type { AksiLog, LogAktivitas as Baris, Periode } from '@/services';
 import { usePeran } from '@/lib/peran';
@@ -128,11 +128,12 @@ export default function LogAktivitasLayar() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Input
+        <SearchInput
           value={cari}
-          onChange={e => setCari(e.target.value)}
+          onValueChange={setCari}
           placeholder="Cari kejadian atau nama pelaku…"
-          className="w-full h-9 sm:w-72"
+          aria-label="Cari log aktivitas"
+          className="sm:w-80"
         />
         <select
           className={gaya}
@@ -183,14 +184,13 @@ export default function LogAktivitasLayar() {
               <Th>Pelaku</Th>
               <Th>Tindakan</Th>
               <Th>Kejadian</Th>
-              <Th>Tabel</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {memuat && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={4}
                   className="px-6 py-8 text-sm text-center text-slate-400"
                 >
                   Memuat…
@@ -199,7 +199,7 @@ export default function LogAktivitasLayar() {
             )}
             {!memuat && baris.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-10 text-center">
+                <td colSpan={4} className="px-6 py-10 text-center">
                   <p className="text-sm text-slate-600">
                     {cari || aksi || periodeId !== ''
                       ? 'Tidak ada kejadian yang cocok dengan saringan.'
@@ -239,9 +239,6 @@ export default function LogAktivitasLayar() {
                   </td>
                   <td className="px-6 py-3 text-sm text-slate-700">
                     {l.ringkasan}
-                  </td>
-                  <td className="px-6 py-3 font-mono text-xs whitespace-nowrap text-slate-400">
-                    {l.entitas}
                   </td>
                 </tr>
               ))}

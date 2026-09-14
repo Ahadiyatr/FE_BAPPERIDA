@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/opera/search-input';
 import {
   getBidang,
   getUsers,
@@ -42,6 +43,7 @@ import { Toast } from '@/utils/toast';
 import { Panel, Th } from './bagian/ui';
 
 type PeranAkun = Exclude<PeranPengguna, 'publik'>;
+type FilterStatus = 'semua' | 'aktif' | 'nonaktif';
 const LABEL: Record<PeranAkun, string> = {
   admin_aplikasi: 'Admin aplikasi',
   admin_bidang: 'Admin bidang',
@@ -54,6 +56,10 @@ export default function ManajemenPengguna() {
   const [laci, setLaci] = React.useState<User | null | undefined>(undefined);
   const [konfirmasi, setKonfirmasi] = React.useState<User | null>(null);
   const [resetUntuk, setResetUntuk] = React.useState<User | null>(null);
+  const [cari, setCari] = React.useState('');
+  const [filterPeran, setFilterPeran] = React.useState<PeranAkun | 'semua'>('semua');
+  const [filterBidang, setFilterBidang] = React.useState<number | 'semua'>('semua');
+  const [filterStatus, setFilterStatus] = React.useState<FilterStatus>('semua');
 
   const muat = React.useCallback(async () => {
     const [u, b] = await Promise.all([
@@ -67,8 +73,36 @@ export default function ManajemenPengguna() {
     void muat();
   }, [muat]);
 
-  const namaBidang = (id: number | null) =>
-    id == null ? '—' : (bidangs.find(b => b.id === id)?.namaBidang ?? `#${id}`);
+  const namaBidang = React.useCallback(
+    (id: number | null) =>
+      id == null ? '—' : (bidangs.find(b => b.id === id)?.namaBidang ?? `#${id}`),
+    [bidangs],
+  );
+
+  const penggunaTersaring = React.useMemo(() => {
+    const kata = cari.trim().toLocaleLowerCase('id-ID');
+    return users.filter(user => {
+      const cocokPencarian =
+        !kata ||
+        [user.name, user.email, namaBidang(user.bidangId)]
+          .some(teks => teks.toLocaleLowerCase('id-ID').includes(kata));
+      const cocokPeran = filterPeran === 'semua' || user.role === filterPeran;
+      const cocokBidang = filterBidang === 'semua' || user.bidangId === filterBidang;
+      const cocokStatus =
+        filterStatus === 'semua' ||
+        (filterStatus === 'aktif' ? user.flagActive : !user.flagActive);
+      return cocokPencarian && cocokPeran && cocokBidang && cocokStatus;
+    });
+  }, [cari, filterBidang, filterPeran, filterStatus, namaBidang, users]);
+
+  const adaSaringan =
+    !!cari ||
+    filterPeran !== 'semua' ||
+    filterBidang !== 'semua' ||
+    filterStatus !== 'semua';
+
+  const gayaFilter =
+    'h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm outline-none transition-[border-color,box-shadow] hover:border-slate-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10';
 
   async function ubahAktif(u: User) {
     setGalat(null);
@@ -84,17 +118,78 @@ export default function ManajemenPengguna() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Button onClick={() => setLaci(null)}>
-          <Plus className="w-3.5 h-3.5" /> Tambah pengguna
-        </Button>
-      </div>
-
       {galat && (
         <div className="p-4 text-sm text-red-600 border border-red-100 bg-red-50 rounded-xl">
           {galat}
         </div>
       )}
+
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+        <SearchInput
+          value={cari}
+          onValueChange={setCari}
+          placeholder="Cari nama, email, atau bidang…"
+          aria-label="Cari pengguna"
+          className="lg:w-72 lg:shrink-0"
+        />
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex">
+          <select
+            aria-label="Filter peran pengguna"
+            className={gayaFilter}
+            value={filterPeran}
+            onChange={event => setFilterPeran(event.target.value as PeranAkun | 'semua')}
+          >
+            <option value="semua">Semua peran</option>
+            <option value="admin_aplikasi">Admin aplikasi</option>
+            <option value="admin_bidang">Admin bidang</option>
+          </select>
+          <select
+            aria-label="Filter bidang pengguna"
+            className={gayaFilter}
+            value={filterBidang}
+            onChange={event => setFilterBidang(event.target.value === 'semua' ? 'semua' : Number(event.target.value))}
+          >
+            <option value="semua">Semua bidang</option>
+            {bidangs.map(bidang => (
+              <option key={bidang.id} value={bidang.id}>{bidang.namaBidang}</option>
+            ))}
+          </select>
+          <select
+            aria-label="Filter status pengguna"
+            className={gayaFilter}
+            value={filterStatus}
+            onChange={event => setFilterStatus(event.target.value as FilterStatus)}
+          >
+            <option value="semua">Semua status</option>
+            <option value="aktif">Aktif</option>
+            <option value="nonaktif">Nonaktif</option>
+          </select>
+        </div>
+        {adaSaringan && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="self-start lg:self-auto"
+            onClick={() => {
+              setCari('');
+              setFilterPeran('semua');
+              setFilterBidang('semua');
+              setFilterStatus('semua');
+            }}
+          >
+            Bersihkan saringan
+          </Button>
+        )}
+        <p className="text-xs text-slate-500 lg:ml-auto">
+          {penggunaTersaring.length} dari {users.length} pengguna
+        </p>
+        <Button
+          className="shrink-0 self-start lg:self-auto"
+          onClick={() => setLaci(null)}
+        >
+          <Plus className="w-3.5 h-3.5" /> Tambah pengguna
+        </Button>
+      </div>
 
       <Panel>
         <table className="min-w-full divide-y divide-slate-200">
@@ -109,7 +204,7 @@ export default function ManajemenPengguna() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {users.map(u => (
+            {penggunaTersaring.map(u => (
               <tr
                 key={u.id}
                 className={u.flagActive ? 'hover:bg-slate-50' : 'opacity-55'}
@@ -162,6 +257,15 @@ export default function ManajemenPengguna() {
                 </td>
               </tr>
             ))}
+            {penggunaTersaring.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-10 text-center text-sm text-slate-500">
+                  {adaSaringan
+                    ? 'Tidak ada pengguna yang cocok dengan pencarian dan filter.'
+                    : 'Belum ada pengguna.'}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </Panel>

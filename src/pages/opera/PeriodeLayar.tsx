@@ -6,7 +6,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -203,9 +203,16 @@ function FormPeriode({
   return (
     <Dialog open onOpenChange={(o) => !o && onTutup()}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle className="text-base">
-          {awal ? "Ubah periode" : "Periode baru"}
-        </DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="text-base">
+            {awal ? "Ubah periode" : "Periode baru"}
+          </DialogTitle>
+          <DialogDescription>
+            {awal
+              ? "Sesuaikan dokumen, nama, dan rentang tanggal periode."
+              : "Pilih dokumen perencanaan, lalu tentukan nama dan rentang tanggal periode."}
+          </DialogDescription>
+        </DialogHeader>
         <div className="space-y-3">
           <label className="block">
             <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">Dokumen perencanaan</span>

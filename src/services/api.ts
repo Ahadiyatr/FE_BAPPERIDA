@@ -5,6 +5,14 @@ export interface ApiEnvelope<T> {
   data: T
   message?: string
   errors?: Record<string, string[]>
+  meta?: PaginationMeta
+}
+
+export interface PaginationMeta {
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
 }
 
 const appUrl = (import.meta.env.VITE_BACKEND_URL || "http://localhost:8000").replace(/\/$/, "")
@@ -52,6 +60,8 @@ export function dataOf<T>(response: { data: ApiEnvelope<T> }): T {
 export function apiMessage(error: unknown, fallback = "Terjadi kesalahan."): string {
   if (axios.isAxiosError(error)) {
     const body = error.response?.data as Partial<ApiEnvelope<unknown>> | undefined
+    const validationMessages = Object.values(body?.errors ?? {}).flat().filter(Boolean)
+    if (validationMessages.length > 0) return validationMessages.join(" ")
     return body?.message || fallback
   }
   return error instanceof Error ? error.message : fallback
