@@ -1,4 +1,5 @@
 import * as React from "react"
+import { ChevronRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -142,53 +143,78 @@ export function ChainNav({
   return (
     <nav
       className={cn(
-        "flex overflow-hidden rounded-xl border bg-card shadow-sm",
+        "overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm",
         className
       )}
       aria-label="Tingkat data master"
     >
-      {mata.map((m) => {
-        const dipilih = m.id === aktif
-        return (
-          <button
-            key={m.id}
-            type="button"
-            onClick={() => onPilih(m.id)}
-            aria-current={dipilih ? "page" : undefined}
-            className={cn(
-              "relative min-w-0 flex-1 border-r px-3.5 py-2.5 text-left last:border-r-0",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              dipilih ? "bg-primary text-primary-foreground" : "hover:bg-muted/50"
-            )}
-          >
-            {m.bermasalah && (
-              <span
-                className="absolute right-2 top-2 size-1.5 rounded-full bg-amber-500"
-                title="Bertumpang tindih dengan master lain"
-              />
-            )}
-            <span
-              className={cn(
-                "block font-mono text-[9.5px] uppercase tracking-[0.14em]",
-                dipilih ? "text-emerald-600" : "text-muted-foreground"
+      <ol className="flex min-w-[680px] items-center">
+        {mata.map((m, index) => {
+          const dipilih = m.id === aktif
+          return (
+            <li key={m.id} className="flex min-w-0 flex-1 items-center">
+              <button
+                type="button"
+                onClick={() => onPilih(m.id)}
+                aria-current={dipilih ? "step" : undefined}
+                className={cn(
+                  "group relative flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  dipilih
+                    ? "bg-emerald-50 text-emerald-900 ring-1 ring-inset ring-emerald-200"
+                    : "text-slate-700 hover:bg-slate-50"
+                )}
+              >
+                <span
+                  className={cn(
+                    "grid size-8 shrink-0 place-items-center rounded-lg text-sm font-bold tabular transition-colors",
+                    dipilih
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
+                  )}
+                >
+                  {index + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={cn(
+                      "block font-mono text-[9.5px] uppercase tracking-[0.14em]",
+                      dipilih ? "text-emerald-700" : "text-slate-400"
+                    )}
+                  >
+                    {m.tingkat}
+                  </span>
+                  <span className="mt-0.5 block truncate text-sm font-semibold tracking-[-0.01em]">
+                    {m.label}
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    "tabular shrink-0 rounded-md px-2 py-1 font-mono text-[10.5px]",
+                    dipilih
+                      ? "bg-white/80 text-emerald-700"
+                      : "bg-slate-50 text-slate-500"
+                  )}
+                >
+                  {m.jumlah} baris
+                </span>
+                {m.bermasalah && (
+                  <span
+                    className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-amber-500"
+                    title="Bertumpang tindih dengan master lain"
+                  />
+                )}
+              </button>
+              {index < mata.length - 1 && (
+                <ChevronRight
+                  aria-hidden="true"
+                  className="mx-1 size-4 shrink-0 text-slate-300"
+                />
               )}
-            >
-              {m.tingkat}
-            </span>
-            <span className="mt-1 block truncate font-bold text-[12.5px] font-bold tracking-[-0.01em]">
-              {m.label}
-            </span>
-            <span
-              className={cn(
-                "tabular mt-0.5 block font-mono text-[10.5px]",
-                dipilih ? "text-primary-foreground/55" : "text-muted-foreground"
-              )}
-            >
-              {m.jumlah} baris
-            </span>
-          </button>
-        )
-      })}
+            </li>
+          )
+        })}
+      </ol>
     </nav>
   )
 }
