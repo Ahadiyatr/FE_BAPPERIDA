@@ -1,6 +1,17 @@
 import * as React from 'react';
+import { LogIn } from 'lucide-react';
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { api, dataOf, ensureCsrf } from '@/services/api';
-import { Toast } from '@/utils/toast';
 
 export type Peran = 'publik' | 'admin_bidang' | 'admin_aplikasi';
 export interface PenggunaSesi {
@@ -31,12 +42,17 @@ const KonteksPeran = React.createContext<NilaiPeran | null>(null);
 export function PenyediaPeran({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<PenggunaSesi | null>(null);
   const [memuat, setMemuat] = React.useState(true);
+  const [sesiBerakhir, setSesiBerakhir] = React.useState(false);
 
   React.useEffect(() => {
-    // Landing dan detail bidang memakai endpoint publik. Jangan memanggil `/me`
-    // pada kedua route ini karena pengunjung tanpa sesi akan selalu mendapat 401
+    // Landing, detail bidang, dan login memakai endpoint publik. Jangan memanggil `/me`
+    // pada route ini karena pengunjung tanpa sesi akan selalu mendapat 401
     // yang tidak diperlukan dan terlihat sebagai error di Network browser.
-    if (window.location.pathname === '/' || window.location.pathname === '/detail') {
+    if (
+      window.location.pathname === '/' ||
+      window.location.pathname === '/detail' ||
+      window.location.pathname === '/login'
+    ) {
       setMemuat(false);
       return;
     }
@@ -51,10 +67,7 @@ export function PenyediaPeran({ children }: { children: React.ReactNode }) {
     const unauthorized = () => {
       setUser(null);
       setMemuat(false);
-      Toast.fire({
-        icon: 'info',
-        title: 'Sesi berakhir. Silakan masuk kembali.',
-      });
+      setSesiBerakhir(true);
     };
     window.addEventListener('opera:unauthorized', unauthorized);
     return () => window.removeEventListener('opera:unauthorized', unauthorized);
@@ -96,7 +109,26 @@ export function PenyediaPeran({ children }: { children: React.ReactNode }) {
     [user, memuat, login, logout],
   );
   return (
-    <KonteksPeran.Provider value={nilai}>{children}</KonteksPeran.Provider>
+    <KonteksPeran.Provider value={nilai}>
+      {children}
+      <AlertDialog open={sesiBerakhir} onOpenChange={setSesiBerakhir}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-amber-50 text-amber-700">
+              <LogIn />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Sesi berakhir</AlertDialogTitle>
+            <AlertDialogDescription>
+              Masa aktif sesi Anda telah habis. Silakan masuk kembali untuk
+              melanjutkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Masuk kembali</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </KonteksPeran.Provider>
   );
 }
 
@@ -110,6 +142,8 @@ export const AKSES: { awalan: string; peran: Peran[] }[] = [
   { awalan: '/bidang', peran: ['admin_aplikasi'] },
   { awalan: '/struktur', peran: ['admin_aplikasi'] },
   { awalan: '/capaian-program', peran: ['admin_aplikasi'] },
+  // Kalender dibaca kedua peran; aksi tulisnya dikunci server lewat `dapat_menjadwalkan`.
+  { awalan: '/kalender', peran: ['admin_bidang', 'admin_aplikasi'] },
   { awalan: '/realisasi', peran: ['admin_bidang'] },
   { awalan: '/bukti', peran: ['admin_bidang'] },
   { awalan: '/log', peran: ['admin_aplikasi'] },

@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Activity, LogIn, Mail, Lock } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { apiMessage } from '../services/api';
-import { usePeran } from '../lib/peran';
+import { peranYangBoleh, usePeran, type Peran } from '../lib/peran';
 import { DESIGN_COLOR } from '../lib/design-tokens';
+import { pathnameTujuanLogin, pilihTujuanLogin } from '../lib/tujuan-login';
 
 const AKUN_DEV = [
   { email: 'admin@bapperida.test', label: 'Admin Aplikasi' },
   { email: 'ppm@bapperida.test', label: 'Admin PPM' },
-  { email: 'pik@bapperida.test	', label: 'Admin PIK' },
-  { email: 'p2epd@bapperida.test ', label: 'Admin P2EPD' },
+  { email: 'pik@bapperida.test', label: 'Admin PIK' },
+  { email: 'p2epd@bapperida.test', label: 'Admin P2EPD' },
   { email: 'rinova@bapperida.test', label: 'Admin RINOVA' },
-  { email: 'sekre@bapperida.test ', label: 'Admin Sekretariat' },
+  { email: 'sekre@bapperida.test', label: 'Admin Sekretariat' },
   { email: 'keuangan@bapperida.test', label: 'Admin Keuangan' },
   {
     email: 'perencanan@bapperida.test',
@@ -22,11 +23,30 @@ const AKUN_DEV = [
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, user, memuat } = usePeran();
   const [email, setEmail] = useState(AKUN_DEV[0].email);
   const [password, setPassword] = useState('password');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const sudahDialihkan = React.useRef(false);
+
+  const alihkanSetelahLogin = React.useCallback((peran: Exclude<Peran, 'publik'>) => {
+    if (sudahDialihkan.current) return;
+    sudahDialihkan.current = true;
+
+    const dariState = (location.state as { dari?: unknown } | null)?.dari;
+    const tujuan = pilihTujuanLogin(
+      sessionStorage.getItem('opera:redirect_after_login'),
+      dariState,
+    );
+    const peranTujuan = peranYangBoleh(pathnameTujuanLogin(tujuan));
+    const tujuanBerizin = peranTujuan?.includes(peran) ? tujuan : '/dashboard';
+
+    sessionStorage.removeItem('opera:redirect_after_login');
+    sessionStorage.removeItem('opera:session_expired');
+    navigate(tujuanBerizin, { replace: true });
+  }, [location.state, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,13 +54,9 @@ export default function Login() {
     setError('');
 
     try {
-      await login(email, password);
-      sessionStorage.removeItem('opera:redirect_after_login');
-      sessionStorage.removeItem('opera:session_expired');
-      navigate('/dashboard', { replace: true });
-    } catch (err: any) {
-      console.error(err);
-
+      const pengguna = await login(email, password);
+      alihkanSetelahLogin(pengguna.role);
+    } catch (err: unknown) {
       const errorMessage = apiMessage(err, 'Login gagal');
       setError(errorMessage);
 
@@ -70,11 +86,9 @@ export default function Login() {
 
   React.useEffect(() => {
     if (!memuat && user) {
-      sessionStorage.removeItem('opera:redirect_after_login');
-      sessionStorage.removeItem('opera:session_expired');
-      navigate('/dashboard', { replace: true });
+      alihkanSetelahLogin(user.role);
     }
-  }, [memuat, navigate, user]);
+  }, [alihkanSetelahLogin, memuat, user]);
 
   return (
     <div className="flex flex-col justify-center min-h-screen py-12 font-sans bg-gradient-to-br from-emerald-50 via-slate-50 to-yellow-50 sm:px-6 lg:px-8">
