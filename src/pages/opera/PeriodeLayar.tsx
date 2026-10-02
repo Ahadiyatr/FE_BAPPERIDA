@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Lock, LockOpen, Plus } from "lucide-react"
+import { Calculator, Lock, LockOpen, Plus, Trash2 } from "lucide-react"
 
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -10,7 +10,10 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { cekSyaratBuka, getDokumen, getPeriode, simpanPeriode, ubahStatusPeriode } from "@/services"
+import {
+  cekSyaratBuka, getCapaianPeriode, getDokumen, getPeriode, hapusPeriode, hitungUlangCapaian,
+  simpanPeriode, ubahStatusPeriode,
+} from "@/services"
 import { apiMessage } from "@/services/api"
 import type { Dokumen, Periode, StatusPeriode, SyaratBukaPeriode } from "@/services"
 import { Panel, Th } from "./bagian/ui"
@@ -30,8 +33,14 @@ export default function PeriodeLayar() {
   const [syarat, setSyarat] = React.useState<Record<number, SyaratBukaPeriode>>({})
   const [memuat, setMemuat] = React.useState(true)
   const [galat, setGalat] = React.useState<string | null>(null)
+  const [pesan, setPesan] = React.useState<string | null>(null)
+  const [capaian, setCapaian] = React.useState<Record<number, number>>({})
   const [form, setForm] = React.useState<Periode | null | undefined>(undefined)
   const [konfirmasi, setKonfirmasi] = React.useState<{ p: Periode; ke: StatusPeriode } | null>(null)
+  const [hitungUlang, setHitungUlang] = React.useState<Periode | null>(null)
+  const [akanDihapus, setAkanDihapus] = React.useState<Periode | null>(null)
+  const [sedangMenghitung, setSedangMenghitung] = React.useState(false)
+  const [sedangMenghapus, setSedangMenghapus] = React.useState(false)
 
   const muat = React.useCallback(async () => {
     setMemuat(true)
@@ -40,6 +49,11 @@ export default function PeriodeLayar() {
       setDaftar(p)
       const s = await Promise.all(p.map((x) => cekSyaratBuka(x.id, p)))
       setSyarat(Object.fromEntries(p.map((x, i) => [x.id, s[i]])))
+      const hasilCapaian = await Promise.all(p.filter((x) => x.status !== "DRAFT").map(async (x) => {
+        try { return [x.id, (await getCapaianPeriode(x.id)).capaianPd] as const }
+        catch { return null }
+      }))
+      setCapaian(Object.fromEntries(hasilCapaian.filter((x): x is readonly [number, number] => x !== null)))
     } finally {
       setMemuat(false)
     }
@@ -51,6 +65,31 @@ export default function PeriodeLayar() {
     try { await ubahStatusPeriode(p.id, ke); await muat() }
     catch (e) { setGalat(apiMessage(e, "Gagal mengubah status periode.")) }
     finally { setKonfirmasi(null) }
+  }
+
+  async function jalankanHitungUlang() {
+    if (!hitungUlang) return
+    setSedangMenghitung(true); setGalat(null); setPesan(null)
+    try {
+      const hasil = await hitungUlangCapaian(hitungUlang.id)
+      setCapaian((lama) => ({ ...lama, [hitungUlang.id]: hasil.capaianPd }))
+      setPesan(`Capaian ${hitungUlang.namaPeriode} berhasil dihitung ulang.`)
+      setHitungUlang(null)
+    } catch (e) { setGalat(apiMessage(e, "Gagal menghitung ulang capaian.")) }
+    finally { setSedangMenghitung(false) }
+  }
+
+  async function jalankanHapus() {
+    if (!akanDihapus) return
+    setSedangMenghapus(true); setGalat(null); setPesan(null)
+    try {
+      const nama = akanDihapus.namaPeriode
+      await hapusPeriode(akanDihapus.id)
+      setAkanDihapus(null)
+      setPesan(`Periode ${nama} berhasil dihapus.`)
+      await muat()
+    } catch (e) { setGalat(apiMessage(e, "Gagal menghapus periode.")) }
+    finally { setSedangMenghapus(false) }
   }
 
   return (
@@ -70,14 +109,15 @@ export default function PeriodeLayar() {
       {galat && (
         <div className="p-4 text-sm text-red-600 border border-red-100 bg-red-50 rounded-xl">{galat}</div>
       )}
+      {pesan && <div className="p-4 text-sm text-emerald-700 border border-emerald-100 bg-emerald-50 rounded-xl">{pesan}</div>}
 
       <Panel>
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
-            <tr><Th>Periode</Th><Th>Mulai</Th><Th>Selesai</Th><Th>Status</Th><Th kanan>Tindakan</Th></tr>
+            <tr><Th>Periode</Th><Th>Mulai</Th><Th>Selesai</Th><Th>Status</Th><Th kanan>Capaian PD</Th><Th kanan>Tindakan</Th></tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {memuat && <tr><td colSpan={5} className="px-6 py-8 text-sm text-center text-slate-400">Memuat…</td></tr>}
+            {memuat && <tr><td colSpan={6} className="px-6 py-8 text-sm text-center text-slate-400">Memuat…</td></tr>}
             {!memuat && daftar.map((p) => {
               const s = syarat[p.id]
               const halangan = s && !s.boleh
@@ -97,6 +137,9 @@ export default function PeriodeLayar() {
                       {LABEL[p.status]}
                     </span>
                   </td>
+                  <td className="px-6 py-3 text-right text-sm font-semibold tabular">
+                    {p.status === "DRAFT" ? "—" : capaian[p.id] === undefined ? "Tidak tersedia" : `${capaian[p.id].toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`}
+                  </td>
                   <td className="px-6 py-3 text-right whitespace-nowrap">
                     {p.status === "DRAFT" && (
                       <Button
@@ -113,6 +156,11 @@ export default function PeriodeLayar() {
                         <Lock className="w-3.5 h-3.5" /> Kunci
                       </Button>
                     )}
+                    {p.status !== "DRAFT" && (
+                      <Button size="sm" variant="outline" className="ml-1" onClick={() => setHitungUlang(p)}>
+                        <Calculator className="w-3.5 h-3.5" /> Hitung ulang
+                      </Button>
+                    )}
                     <Button
                       size="sm" variant="ghost" className="ml-1"
                       disabled={p.status === "LOCKED"}
@@ -121,6 +169,11 @@ export default function PeriodeLayar() {
                     >
                       Ubah
                     </Button>
+                    {p.status === "DRAFT" && p.jumlahRencana === 0 && (
+                      <Button size="sm" variant="ghost" className="ml-1 text-red-600 hover:text-red-700" onClick={() => setAkanDihapus(p)}>
+                        <Trash2 className="w-3.5 h-3.5" /> Hapus
+                      </Button>
+                    )}
                     {halangan && <p className="mt-1 text-xs text-amber-600">{halangan}</p>}
                   </td>
                 </tr>
@@ -154,6 +207,40 @@ export default function PeriodeLayar() {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={() => konfirmasi && void ubah(konfirmasi.p, konfirmasi.ke)}>
               {konfirmasi?.ke === "OPEN" ? "Buka periode" : "Kunci periode"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={hitungUlang !== null} onOpenChange={(o) => !o && !sedangMenghitung && setHitungUlang(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hitung ulang capaian?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Seluruh realisasi, bobot aktivitas, capaian subkegiatan, dan capaian bidang pada {hitungUlang?.namaPeriode} akan dihitung ulang dari transaksi tersimpan. Gunakan tindakan ini sebagai pemulihan jika angka diduga tidak sinkron.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={sedangMenghitung}>Batal</AlertDialogCancel>
+            <AlertDialogAction disabled={sedangMenghitung} onClick={(event) => { event.preventDefault(); void jalankanHitungUlang() }}>
+              {sedangMenghitung ? "Menghitung…" : "Hitung ulang"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={akanDihapus !== null} onOpenChange={(o) => !o && !sedangMenghapus && setAkanDihapus(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus periode kosong?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Periode {akanDihapus?.namaPeriode} akan dihapus permanen. Aksi ini hanya berhasil untuk periode Draf yang belum memiliki pembagian rencana maupun capaian.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={sedangMenghapus}>Batal</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" disabled={sedangMenghapus} onClick={(event) => { event.preventDefault(); void jalankanHapus() }}>
+              {sedangMenghapus ? "Menghapus…" : "Hapus periode"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

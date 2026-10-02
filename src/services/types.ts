@@ -84,6 +84,8 @@ export interface Periode {
   tanggalMulai: string // ISO date
   tanggalSelesai: string // ISO date
   status: StatusPeriode
+  /** Jumlah penugasan subkegiatan; dipakai untuk menentukan DRAFT kosong yang dapat dibersihkan. */
+  jumlahRencana?: number
 }
 
 /** USERS. Satu user memegang SATU bidang (keputusan produk 28 Agustus 2026),

@@ -397,3 +397,14 @@ export async function salinRencana(
     jumlahBidangDitimpa: 0,
   };
 }
+
+type RiwayatRencanaRow = { periode_id: number };
+
+/** Periode LOCKED yang benar-benar mempunyai rencana milik bidang pengguna. */
+export async function getPeriodeRiwayatRencanaSaya(): Promise<Set<number>> {
+  const rows = dataOf<RiwayatRencanaRow[]>(
+    await api.get('/bidang-saya/riwayat'),
+  );
+
+  return new Set(rows.map(row => row.periode_id));
+}

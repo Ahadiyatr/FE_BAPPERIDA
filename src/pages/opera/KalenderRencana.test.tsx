@@ -263,7 +263,7 @@ describe('KalenderRencana', () => {
     tampilkan();
     await waitFor(() => expect(getKalenderBulan).toHaveBeenCalled());
 
-    await userEvent.click(screen.getByRole('button', { name: 'Tahunan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Periode' }));
 
     expect(await screen.findByText('Preview tahun 2026')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Buka Januari 2026' })).toBeTruthy();

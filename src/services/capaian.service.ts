@@ -16,6 +16,47 @@ export interface TrenCapaian {
   jumlahSubkegiatan: number
 }
 
+export interface CapaianPeriode {
+  periodeId: number
+  capaianPd: number
+  rincian: Array<{
+    bidangId: number
+    namaBidang: string
+    capaianBidang: number
+    dihitungPada: string | null
+  }>
+}
+
+type CapaianPeriodeRow = {
+  periode_id: number
+  capaian_pd: number
+  rincian: Array<{
+    bidang_id: number
+    capaian_bidang: number
+    dihitung_pada: string | null
+    bidang?: { nama_bidang: string }
+  }>
+}
+
+const mapCapaianPeriode = (row: CapaianPeriodeRow): CapaianPeriode => ({
+  periodeId: row.periode_id,
+  capaianPd: Number(row.capaian_pd),
+  rincian: row.rincian.map((item) => ({
+    bidangId: item.bidang_id,
+    namaBidang: item.bidang?.nama_bidang ?? "Bidang tidak diketahui",
+    capaianBidang: Number(item.capaian_bidang),
+    dihitungPada: item.dihitung_pada,
+  })),
+})
+
+export async function getCapaianPeriode(periodeId: number): Promise<CapaianPeriode> {
+  return mapCapaianPeriode(dataOf<CapaianPeriodeRow>(await api.get(`/periode/${periodeId}/capaian`)))
+}
+
+export async function hitungUlangCapaian(periodeId: number): Promise<CapaianPeriode> {
+  return mapCapaianPeriode(dataOf<CapaianPeriodeRow>(await api.post(`/periode/${periodeId}/hitung-ulang`)))
+}
+
 /**
  * Rollup capaian.
  *

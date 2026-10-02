@@ -78,8 +78,16 @@ describe('Login', () => {
     );
   }
 
+  // Sejak P0-R03 kolom email dan password tidak lagi terisi otomatis dengan kredensial dev,
+  // jadi tes harus mengisinya sendiri seperti pengguna sungguhan.
+  async function isiKredensial(email = 'admin@bapperida.test', sandi = 'rahasia-sekali') {
+    await userEvent.type(screen.getByLabelText('Alamat Email'), email);
+    await userEvent.type(screen.getByLabelText('Password'), sandi);
+  }
+
   async function masukSebagai(pengguna: typeof adminAplikasi | typeof adminBidang) {
     login.mockResolvedValue(pengguna);
+    await isiKredensial();
     await userEvent.click(screen.getByRole('button', { name: 'Masuk' }));
   }
 
@@ -100,9 +108,7 @@ describe('Login', () => {
 
     renderLogin();
 
-    const password = screen.getByLabelText('Password');
-    await userEvent.clear(password);
-    await userEvent.type(password, 'rahasia-sekali');
+    await isiKredensial('admin@bapperida.test', 'rahasia-sekali');
     await userEvent.click(screen.getByRole('button', { name: 'Masuk' }));
 
     expect(await screen.findByText('Email atau password salah.')).toBeTruthy();

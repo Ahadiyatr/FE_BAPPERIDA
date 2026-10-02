@@ -4,7 +4,7 @@ import { Link } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
 import { MelebihiTargetBadge } from "@/components/opera/realisasi-status"
-import { getPeriode, getRencanaSayaRingkas } from "@/services"
+import { getPeriode, getPeriodeRiwayatRencanaSaya, getRencanaSayaRingkas } from "@/services"
 import type { DetailSubkegiatan, Periode } from "@/services"
 import { apiMessage } from "@/services/api"
 import { usePeran } from "@/lib/peran"
@@ -27,11 +27,13 @@ export default function RencanaSaya() {
   React.useEffect(() => {
     let batal = false
     setMemuat(true)
-    getPeriode()
-      .then((p) => {
+    Promise.all([getPeriode(), getPeriodeRiwayatRencanaSaya()])
+      .then(([p, periodeRiwayat]) => {
         if (batal) return
-        setPeriodes(p)
-        setPeriodeId((p.find((x) => x.status === "OPEN") ?? p[0])?.id ?? null)
+        const tersedia = p.filter((periode) =>
+          periode.status !== "LOCKED" || periodeRiwayat.has(periode.id))
+        setPeriodes(tersedia)
+        setPeriodeId((tersedia.find((x) => x.status === "OPEN") ?? tersedia[0])?.id ?? null)
       })
       .catch((e) => {
         if (!batal) {

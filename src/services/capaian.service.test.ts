@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   apiGet: vi.fn(),
+  apiPost: vi.fn(),
   getProgram: vi.fn(),
   getKegiatan: vi.fn(),
   getKegiatanById: vi.fn(),
@@ -9,7 +10,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('./api', () => ({
-  api: { get: (...args: unknown[]) => mocks.apiGet(...args) },
+  api: {
+    get: (...args: unknown[]) => mocks.apiGet(...args),
+    post: (...args: unknown[]) => mocks.apiPost(...args),
+  },
   dataOf: (response: { data: { data: unknown } }) => response.data.data,
 }));
 vi.mock('./program.service', () => ({ getProgram: mocks.getProgram }));
@@ -20,11 +24,45 @@ vi.mock('./kegiatan.service', () => ({
 vi.mock('./bidang.service', () => ({ getBidang: mocks.getBidang }));
 vi.mock('./periode.service', () => ({ getPeriode: vi.fn() }));
 
-import { getCapaianProgram, getRincianKegiatan } from './capaian.service';
+import {
+  getCapaianPeriode,
+  getCapaianProgram,
+  getRincianKegiatan,
+  hitungUlangCapaian,
+} from './capaian.service';
 
 beforeEach(() => vi.clearAllMocks());
 
 describe('capaian service', () => {
+  it('membaca snapshot dan menjalankan pemulihan capaian periode', async () => {
+    const response = {
+      data: {
+        data: {
+          periode_id: 4,
+          capaian_pd: 65.39,
+          rincian: [{
+            bidang_id: 2,
+            capaian_bidang: 70,
+            dihitung_pada: '2026-10-02T12:00:00+07:00',
+            bidang: { nama_bidang: 'P2EPD' },
+          }],
+        },
+      },
+    };
+    mocks.apiGet.mockResolvedValue(response);
+    mocks.apiPost.mockResolvedValue(response);
+
+    await expect(getCapaianPeriode(4)).resolves.toMatchObject({
+      periodeId: 4,
+      capaianPd: 65.39,
+      rincian: [{ namaBidang: 'P2EPD', capaianBidang: 70 }],
+    });
+    await expect(hitungUlangCapaian(4)).resolves.toMatchObject({ capaianPd: 65.39 });
+
+    expect(mocks.apiGet).toHaveBeenCalledWith('/periode/4/capaian');
+    expect(mocks.apiPost).toHaveBeenCalledWith('/periode/4/hitung-ulang');
+  });
+
   it('memakai master termasuk nonaktif untuk mendapatkan ID kegiatan historis', async () => {
     mocks.getProgram.mockResolvedValue([
       { id: 7, kodeProgram: 'P-1', namaProgram: 'Program', flagActive: false },

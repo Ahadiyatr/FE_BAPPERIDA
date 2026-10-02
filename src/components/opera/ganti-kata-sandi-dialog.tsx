@@ -12,6 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { gantiKataSandi } from '@/services';
 import { apiMessage } from '@/services/api';
+import {
+  memenuhiKebijakanKataSandi,
+  PETUNJUK_KEBIJAKAN_KATA_SANDI,
+} from '@/utils/kata-sandi';
 import { Toast } from '@/utils/toast';
 
 /** Dialog ganti kata sandi sendiri — dipakai admin bidang lewat dropdown avatar. */
@@ -38,7 +42,7 @@ export function GantiKataSandiDialog({
     }
   }, [terbuka]);
 
-  const cukup = baru.length >= 8;
+  const cukup = memenuhiKebijakanKataSandi(baru);
   const cocok = baru === konfirmasi;
   const beda = baru !== lama;
   const boleh = !menyimpan && lama.length > 0 && cukup && cocok && beda;
@@ -48,7 +52,9 @@ export function GantiKataSandiDialog({
     setMenyimpan(true);
     try {
       await gantiKataSandi(lama, baru);
-      Toast.fire({ icon: 'success', title: 'Kata sandi diperbarui.' });
+      // Sejak P0-R01 backend ikut mencabut sesi lain, jadi pengguna perlu diberi tahu —
+      // kalau tidak, perangkatnya yang lain tiba-tiba terlempar ke layar login tanpa sebab.
+      Toast.fire({ icon: 'success', title: 'Kata sandi diperbarui. Sesi lain dikeluarkan.' });
       onTutup();
     } catch (e) {
       setGalat(apiMessage(e, 'Gagal mengganti kata sandi.'));
@@ -63,8 +69,8 @@ export function GantiKataSandiDialog({
         <DialogHeader>
           <DialogTitle>Ganti kata sandi</DialogTitle>
           <DialogDescription>
-            Masukkan kata sandi saat ini lalu kata sandi baru (minimal 8
-            karakter).
+            Masukkan kata sandi saat ini lalu kata sandi baru (minimal 12
+            karakter, berisi huruf dan angka).
           </DialogDescription>
         </DialogHeader>
 
@@ -104,7 +110,9 @@ export function GantiKataSandiDialog({
           </label>
 
           {baru.length > 0 && !cukup && (
-            <p className="text-xs text-amber-600">Minimal 8 karakter.</p>
+            <p className="text-xs text-amber-600">
+              {PETUNJUK_KEBIJAKAN_KATA_SANDI}
+            </p>
           )}
           {konfirmasi.length > 0 && !cocok && (
             <p className="text-xs text-amber-600">Konfirmasi belum cocok.</p>

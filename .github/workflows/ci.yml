@@ -1,0 +1,74 @@
+# Gerbang kualitas otomatis — tiket P2-R01.
+#
+# Keempat perintah di bawah sudah hijau hari ini, jadi gerbang ini menjaga keadaan yang
+# sudah tercapai, bukan menuntut pekerjaan baru.
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gerbang:
+    name: Gerbang rilis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Menyamai versi yang dipakai pengembangan lokal; package.json tidak mematok engines.
+          node-version: '24'
+          cache: npm
+
+      - name: Pasang dependensi
+        # `npm ci` menghormati package-lock.json apa adanya — kalau lock dan package.json
+        # tidak sinkron, langkah ini gagal, dan itu memang yang diinginkan.
+        run: npm ci
+
+      - name: Lint
+        # Nol peringatan, bukan sekadar nol error: ambang yang sudah dicapai hari ini.
+        run: npm run lint -- --max-warnings=0
+
+      - name: Pemeriksaan tipe
+        run: npx tsc -b --force
+
+      - name: Tes
+        run: npm test
+
+      - name: Build produksi
+        run: npm run build
+
+      - name: Panel kredensial developer tidak boleh ikut terbit
+        # Pagar khusus untuk P0-R03. Panel isi-otomatis di layar login dikurung
+        # `import.meta.env.DEV` sehingga Vite membuangnya saat build. Pemeriksaan ini
+        # menangkap bila pagar itu kelak dilepas tanpa sengaja — kesalahan yang pernah
+        # lolos dari dua audit karena pencarian manualnya terlalu sempit.
+        run: |
+          if grep -rl "bapperida.test" dist/ 2>/dev/null; then
+            echo "::error::Akun developer ikut terbit ke bundel produksi. Lihat tiket P0-R03."
+            exit 1
+          fi
+          echo "Bersih: tidak ada akun developer di dalam dist/."
+
+  kerentanan:
+    name: Kerentanan dependensi (informasi)
+    runs-on: ubuntu-latest
+    # Tidak memblokir: advisory baru bisa terbit kapan saja di hulu, dan itu bukan kesalahan
+    # pull request yang sedang jalan. Tetap dijalankan supaya terlihat.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev

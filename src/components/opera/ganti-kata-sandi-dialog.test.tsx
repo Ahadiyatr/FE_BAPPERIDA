@@ -29,24 +29,24 @@ describe('GantiKataSandiDialog', () => {
     render(<GantiKataSandiDialog terbuka onTutup={onTutup} />);
 
     await userEvent.type(screen.getByLabelText('Kata sandi saat ini'), 'lamasekali');
-    await userEvent.type(screen.getByLabelText('Kata sandi baru'), 'barusekali1');
-    await userEvent.type(screen.getByLabelText('Konfirmasi kata sandi baru'), 'barusekali1');
+    await userEvent.type(screen.getByLabelText('Kata sandi baru'), 'SandiBaru1234');
+    await userEvent.type(screen.getByLabelText('Konfirmasi kata sandi baru'), 'SandiBaru1234');
     await userEvent.click(screen.getByRole('button', { name: 'Simpan' }));
 
-    await waitFor(() => expect(gantiKataSandi).toHaveBeenCalledWith('lamasekali', 'barusekali1'));
+    await waitFor(() => expect(gantiKataSandi).toHaveBeenCalledWith('lamasekali', 'SandiBaru1234'));
     await waitFor(() => expect(onTutup).toHaveBeenCalled());
   });
 
-  it('menonaktifkan Simpan saat sandi baru kurang dari 8 karakter atau konfirmasi tidak cocok', async () => {
+  it('menonaktifkan Simpan saat sandi baru tidak memenuhi kebijakan atau konfirmasi tidak cocok', async () => {
     render(<GantiKataSandiDialog terbuka onTutup={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText('Kata sandi saat ini'), 'lamasekali');
     await userEvent.type(screen.getByLabelText('Kata sandi baru'), 'pendek');
-    expect(screen.getByText('Minimal 8 karakter.')).toBeTruthy();
+    expect(screen.getByText('Minimal 12 karakter, berisi huruf dan angka.')).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Simpan' }) as HTMLButtonElement).disabled).toBe(true);
 
     await userEvent.clear(screen.getByLabelText('Kata sandi baru'));
-    await userEvent.type(screen.getByLabelText('Kata sandi baru'), 'barusekali1');
+    await userEvent.type(screen.getByLabelText('Kata sandi baru'), 'SandiBaru1234');
     await userEvent.type(screen.getByLabelText('Konfirmasi kata sandi baru'), 'beda12345');
     expect(screen.getByText('Konfirmasi belum cocok.')).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Simpan' }) as HTMLButtonElement).disabled).toBe(true);
@@ -55,9 +55,9 @@ describe('GantiKataSandiDialog', () => {
   it('menolak kata sandi baru yang sama dengan kata sandi lama', async () => {
     render(<GantiKataSandiDialog terbuka onTutup={vi.fn()} />);
 
-    await userEvent.type(screen.getByLabelText('Kata sandi saat ini'), 'samasekali1');
-    await userEvent.type(screen.getByLabelText('Kata sandi baru'), 'samasekali1');
-    await userEvent.type(screen.getByLabelText('Konfirmasi kata sandi baru'), 'samasekali1');
+    await userEvent.type(screen.getByLabelText('Kata sandi saat ini'), 'SamaSekali123');
+    await userEvent.type(screen.getByLabelText('Kata sandi baru'), 'SamaSekali123');
+    await userEvent.type(screen.getByLabelText('Konfirmasi kata sandi baru'), 'SamaSekali123');
 
     expect(screen.getByText('Kata sandi baru harus berbeda dari yang sekarang.')).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Simpan' }) as HTMLButtonElement).disabled).toBe(true);
@@ -70,8 +70,8 @@ describe('GantiKataSandiDialog', () => {
     render(<GantiKataSandiDialog terbuka onTutup={onTutup} />);
 
     await userEvent.type(screen.getByLabelText('Kata sandi saat ini'), 'lamasekali');
-    await userEvent.type(screen.getByLabelText('Kata sandi baru'), 'barusekali1');
-    await userEvent.type(screen.getByLabelText('Konfirmasi kata sandi baru'), 'barusekali1');
+    await userEvent.type(screen.getByLabelText('Kata sandi baru'), 'SandiBaru1234');
+    await userEvent.type(screen.getByLabelText('Konfirmasi kata sandi baru'), 'SandiBaru1234');
     await userEvent.click(screen.getByRole('button', { name: 'Simpan' }));
 
     expect(await screen.findByText('Gagal mengganti kata sandi.')).toBeTruthy();

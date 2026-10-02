@@ -232,6 +232,27 @@ export default function KalenderRencana() {
     }
   }
 
+  const pengalihTampilan = (
+    <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1">
+      <Button
+        size="sm"
+        variant={tampilan === "bulan" ? "default" : "ghost"}
+        aria-pressed={tampilan === "bulan"}
+        onClick={() => setTampilan("bulan")}
+      >
+        Bulanan
+      </Button>
+      <Button
+        size="sm"
+        variant={tampilan === "tahun" ? "default" : "ghost"}
+        aria-pressed={tampilan === "tahun"}
+        onClick={() => setTampilan("tahun")}
+      >
+        Periode
+      </Button>
+    </div>
+  )
+
   if (!memuat && periodes.length === 0) {
     return (
       <Panel judul="Kalender Rencana Pelaksanaan">
@@ -287,66 +308,48 @@ export default function KalenderRencana() {
         </div>
       )}
 
-      <div className="flex justify-end">
-        <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1">
-          <Button
-            size="sm"
-            variant={tampilan === "bulan" ? "default" : "ghost"}
-            aria-pressed={tampilan === "bulan"}
-            onClick={() => setTampilan("bulan")}
-          >
-            Bulanan
-          </Button>
-          <Button
-            size="sm"
-            variant={tampilan === "tahun" ? "default" : "ghost"}
-            aria-pressed={tampilan === "tahun"}
-            onClick={() => setTampilan("tahun")}
-          >
-            Tahunan
-          </Button>
-        </div>
-      </div>
-
       {tampilan === "bulan" ? (
       <div className="grid gap-4 lg:grid-cols-[1fr_24rem]">
         <Panel
           judul={bulan ? labelBulan(bulan) : "Kalender"}
           aksi={
-            <div className="flex items-center gap-1.5">
-              <select
-                value={bulan ? kunciDariBulan(bulan) : ""}
-                onChange={(e) => {
-                  setBulan(bulanDariKunci(e.target.value))
-                  setTerpilih(null)
-                }}
-                aria-label="Pilih bulan"
-                className="h-7 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none focus:border-emerald-500"
-              >
-                {daftarBulan.map((item) => (
-                  <option key={kunciDariBulan(item)} value={kunciDariBulan(item)}>
-                    {labelBulan(item)}
-                  </option>
-                ))}
-              </select>
-              <Button
-                size="icon-xs"
-                variant="outline"
-                aria-label="Bulan sebelumnya"
-                disabled={!adaSebelum}
-                onClick={() => bulan && setBulan(geserBulan(bulan, -1))}
-              >
-                <ChevronLeft className="size-3.5" />
-              </Button>
-              <Button
-                size="icon-xs"
-                variant="outline"
-                aria-label="Bulan berikutnya"
-                disabled={!adaSesudah}
-                onClick={() => bulan && setBulan(geserBulan(bulan, 1))}
-              >
-                <ChevronRight className="size-3.5" />
-              </Button>
+            <div className="flex items-center gap-2">
+              {pengalihTampilan}
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={bulan ? kunciDariBulan(bulan) : ""}
+                  onChange={(e) => {
+                    setBulan(bulanDariKunci(e.target.value))
+                    setTerpilih(null)
+                  }}
+                  aria-label="Pilih bulan"
+                  className="h-7 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none focus:border-emerald-500"
+                >
+                  {daftarBulan.map((item) => (
+                    <option key={kunciDariBulan(item)} value={kunciDariBulan(item)}>
+                      {labelBulan(item)}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  size="icon-xs"
+                  variant="outline"
+                  aria-label="Bulan sebelumnya"
+                  disabled={!adaSebelum}
+                  onClick={() => bulan && setBulan(geserBulan(bulan, -1))}
+                >
+                  <ChevronLeft className="size-3.5" />
+                </Button>
+                <Button
+                  size="icon-xs"
+                  variant="outline"
+                  aria-label="Bulan berikutnya"
+                  disabled={!adaSesudah}
+                  onClick={() => bulan && setBulan(geserBulan(bulan, 1))}
+                >
+                  <ChevronRight className="size-3.5" />
+                </Button>
+              </div>
             </div>
           }
         >
@@ -372,7 +375,7 @@ export default function KalenderRencana() {
         />
       </div>
       ) : data && bulan ? (
-        <Panel judul={`Preview tahun ${bulan.tahun}`}>
+        <Panel judul={`Preview tahun ${bulan.tahun}`} aksi={pengalihTampilan}>
           <div className="p-4">
             <PreviewTahun
               tahun={bulan.tahun}

@@ -40,6 +40,10 @@ import {
 import type { Bidang, PeranPengguna, User } from '@/services';
 import { apiMessage } from '@/services/api';
 import { Toast } from '@/utils/toast';
+import {
+  memenuhiKebijakanKataSandi,
+  PETUNJUK_KEBIJAKAN_KATA_SANDI,
+} from '@/utils/kata-sandi';
 import { Panel, Th } from './bagian/ui';
 
 type PeranAkun = Exclude<PeranPengguna, 'publik'>;
@@ -340,7 +344,7 @@ function LaciPengguna({
   const [galat, setGalat] = React.useState<string | null>(null);
 
   const membuat = awal == null;
-  const sandiCukup = sandi.length >= 8;
+  const sandiCukup = memenuhiKebijakanKataSandi(sandi);
   const sandiCocok = sandi === konfirmasiSandi;
   const sandiValid = !membuat || (sandiCukup && sandiCocok);
 
@@ -448,7 +452,9 @@ function LaciPengguna({
                 />
               </label>
               {sandi.length > 0 && !sandiCukup && (
-                <p className="text-xs text-amber-600">Minimal 8 karakter.</p>
+                <p className="text-xs text-amber-600">
+                  {PETUNJUK_KEBIJAKAN_KATA_SANDI}
+                </p>
               )}
               {konfirmasiSandi.length > 0 && !sandiCocok && (
                 <p className="text-xs text-amber-600">
@@ -494,7 +500,7 @@ function DialogResetSandi({
   const [galat, setGalat] = React.useState<string | null>(null);
   const [hasil, setHasil] = React.useState<string | null>(null);
 
-  const cukup = sandi.length >= 8;
+  const cukup = memenuhiKebijakanKataSandi(sandi);
   const cocok = sandi === konfirmasi;
   const bolehKirim =
     !menyimpan && (mode === 'auto' || (cukup && cocok));
@@ -599,7 +605,9 @@ function DialogResetSandi({
                   />
                 </label>
                 {sandi.length > 0 && !cukup && (
-                  <p className="text-xs text-amber-600">Minimal 8 karakter.</p>
+                  <p className="text-xs text-amber-600">
+                    {PETUNJUK_KEBIJAKAN_KATA_SANDI}
+                  </p>
                 )}
                 {konfirmasi.length > 0 && !cocok && (
                   <p className="text-xs text-amber-600">Konfirmasi belum cocok.</p>

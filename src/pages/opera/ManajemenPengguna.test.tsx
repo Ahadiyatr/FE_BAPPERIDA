@@ -77,11 +77,11 @@ describe('ManajemenPengguna', () => {
     await userEvent.click(within(barisBudi).getByRole('button', { name: /Reset sandi/ }));
 
     expect(await screen.findByText('Reset kata sandi')).toBeTruthy();
-    await userEvent.type(screen.getByLabelText('Kata sandi baru'), 'sandibaru1');
-    await userEvent.type(screen.getByLabelText('Konfirmasi'), 'sandibaru1');
+    await userEvent.type(screen.getByLabelText('Kata sandi baru'), 'SandiBaru1234');
+    await userEvent.type(screen.getByLabelText('Konfirmasi'), 'SandiBaru1234');
     await userEvent.click(screen.getByRole('button', { name: 'Reset' }));
 
-    await waitFor(() => expect(resetPasswordUser).toHaveBeenCalledWith(2, 'sandibaru1'));
+    await waitFor(() => expect(resetPasswordUser).toHaveBeenCalledWith(2, 'SandiBaru1234'));
     await waitFor(() => expect(screen.queryByText('Reset kata sandi')).toBeNull());
   });
 
