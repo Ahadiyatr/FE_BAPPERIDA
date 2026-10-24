@@ -1,321 +1,601 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Activity } from "lucide-react";
+import { ArrowRight, CalendarClock, CalendarDays, ChartBar, ChartColumn, ChartPie, List, ListChecks, Pentagon } from "lucide-react";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
   Bar,
-  XAxis,
-  YAxis,
+  BarChart,
   CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
+  Cell,
+  LabelList,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
   Radar,
   RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// Subset latin saja — cukup untuk teks Indonesia, tanpa berkas devanagari/cyrillic.
+import "@fontsource/lora/latin-400-italic.css";
+import "@fontsource/lora/latin-600.css";
+import "@fontsource/lora/latin-700.css";
+import "@fontsource/poppins/latin-400.css";
+import "@fontsource/poppins/latin-500.css";
+import "@fontsource/poppins/latin-600.css";
+import "@fontsource/poppins/latin-700.css";
+import "./landing.css";
+import logoTabalong from "../assets/logo-tabalong.png";
 import { apiMessage } from "../services/api";
-import { getLandingPublik } from "../services/public-dashboard.service";
-import { CHART_PALETTE, DESIGN_COLOR } from "../lib/design-tokens";
+import { persen1 } from "../lib/format-angka";
+import { getLandingPublik, type LandingPublik, type SebaranCapaianPublik } from "../services/public-dashboard.service";
 
-// Modern Green to Yellow Palette
-const COLORS = [...CHART_PALETTE, ...CHART_PALETTE];
-
-const ringkasNamaBidang = (nama: string) => {
-  const label: Record<string, string> = {
-    "Pemerintahan dan Pembangunan Manusia": "Pemerintahan & SDM",
-    "Perekonomian, Infrastruktur dan Kewilayahan": "Ekonomi & Infrastruktur",
-    "Perencanaan, Pengendalian dan Evaluasi Pembangunan Daerah": "Perencanaan & Evaluasi",
-    "Riset dan Inovasi Daerah": "Riset & Inovasi",
-  };
-
-  return label[nama] ?? nama;
+// Palet hijau–emas tema Tabalong; kecerahan berselang-seling supaya potongan donut
+// yang bersebelahan tetap terbedakan. Nilainya hidup di landing.css.
+const WARNA_BIDANG = ["var(--lp-c1)", "var(--lp-c2)", "var(--lp-c3)", "var(--lp-c4)", "var(--lp-c5)", "var(--lp-c6)", "var(--lp-c7)"];
+const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const NAMA_BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const RENTANG: Record<SebaranCapaianPublik["rentang"], { label: string; deskripsi: string }> = {
+  "0": { label: "0%", deskripsi: "Belum dimulai" },
+  "1-24": { label: "1–24", deskripsi: "Capaian 1–24%" },
+  "25-49": { label: "25–49", deskripsi: "Capaian 25–49%" },
+  "50-74": { label: "50–74", deskripsi: "Capaian 50–74%" },
+  "75-99": { label: "75–99", deskripsi: "Capaian 75–99%" },
+  "100": { label: "100%", deskripsi: "Tuntas" },
 };
+const TEKS_SUMBU = { fontSize: 11, fill: "var(--lp-fg-3)", fontWeight: 500 };
 
-const DonutTooltip = ({ active, payload }: any) => {
-  const bidang = payload?.[0]?.payload;
+const angka = (n: number) => n.toLocaleString("id-ID");
+// Nama program di katalog ditulis kapital semua; tampilkan sebagai huruf judul, kata sambung tetap kecil.
+const KATA_SAMBUNG = new Set(["dan", "atau", "di", "ke", "dari", "untuk", "yang"]);
+const hurufJudul = (teks: string) =>
+  teks
+    .toLowerCase()
+    .split(" ")
+    .map((kata, i) => (i > 0 && KATA_SAMBUNG.has(kata) ? kata : kata.replace(/(^|\/)(\p{L})/gu, (_, awal: string, huruf: string) => awal + huruf.toUpperCase())))
+    .join(" ");
+// Batang hitungan bernilai 0 tidak digambar; batang bernilai kecil tetap terlihat.
+const tinggiMinimal = (nilai: number | null | undefined) => (Number(nilai) > 0 ? 3 : 0);
 
-  if (!active || !bidang) return null;
+/** Skala sumbu Y yang bulat: empat langkah sama besar, minimal 0–4. */
+function skalaBulat(nilaiMaks: number) {
+  if (nilaiMaks <= 4) return { maks: 4, ticks: [0, 1, 2, 3, 4] };
+  const pangkat = 10 ** Math.floor(Math.log10(nilaiMaks / 4));
+  const langkah = [1, 2, 2.5, 5, 10].map((x) => x * pangkat).find((x) => x * 4 >= nilaiMaks) ?? pangkat * 10;
+  return { maks: langkah * 4, ticks: [0, 1, 2, 3, 4].map((i) => i * langkah) };
+}
 
+type BidangTampil = { id: number; nama: string; jumlahSubkegiatan: number; capaian: number; porsi: number; warna: string };
+
+function KepalaBagian({ ikon, eyebrow, judul, keterangan, id }: { ikon: ReactNode; eyebrow: string; judul: string; keterangan: string; id: string }) {
   return (
-    <div className="max-w-64 rounded-xl border border-emerald-100 bg-white px-4 py-3 shadow-xl shadow-slate-900/10">
-      <p className="text-sm font-bold leading-snug text-slate-800">{bidang.name}</p>
-      <p className="mt-1 text-xs font-semibold text-emerald-700">
-        Proporsi subkegiatan: {Number(bidang.distribution).toFixed(2)}%
-      </p>
+    <div className="lp-sec-head">
+      <div>
+        <p className="lp-eyebrow">{ikon}{eyebrow}</p>
+        <h2 id={id}>{judul}</h2>
+        <p className="lp-sub">{keterangan}</p>
+      </div>
     </div>
   );
-};
+}
+
+function KotakTooltip({ judul, isi }: { judul: string; isi: string }) {
+  return (
+    <div className="lp-tip">
+      <b>{judul}</b>
+      {isi}
+    </div>
+  );
+}
 
 export default function Landing() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState<any>(null);
-  const [bidang, setBidang] = useState<any[]>([]);
-  const [distribusi, setDistribusi] = useState<any[]>([]);
-  const [radar, setRadar] = useState<any[]>([]);
+  const [data, setData] = useState<LandingPublik | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [aktif, setAktif] = useState<number | null>(null);
 
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const data = await getLandingPublik();
-        setSummary(data.summary);
-        setBidang(data.bidang.map((b, i) => ({ ...b, name: b.nama_bidang, label: ringkasNamaBidang(b.nama_bidang), achievement: b.capaian_bidang, color: COLORS[i % COLORS.length] })));
-        setDistribusi(data.distribusi.map((d, i) => ({ ...d, name: d.nama_bidang, distribution: d.persentase, color: COLORS[i % COLORS.length] })));
-        setRadar(data.radar.map((r) => ({ name: ringkasNamaBidang(r.label), achievement: r.value })));
-      } catch (err) {
+    getLandingPublik()
+      .then(setData)
+      .catch((err) => {
         console.error("Failed to fetch dashboard data", err);
         setError(apiMessage(err, "Gagal memuat dashboard publik."));
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchDashboard();
+      })
+      .finally(() => setLoading(false));
   }, []);
 
+  const bidang = useMemo<BidangTampil[]>(() => {
+    if (!data) return [];
+    const porsi = new Map(data.distribusi.map((d) => [d.bidang_id, d.persentase]));
+    return data.bidang.map((b, i) => ({
+      id: b.bidang_id,
+      nama: b.nama_bidang,
+      jumlahSubkegiatan: b.jumlah_subkegiatan,
+      capaian: Number(b.capaian_bidang),
+      porsi: Number(porsi.get(b.bidang_id) ?? 0),
+      warna: WARNA_BIDANG[i % WARNA_BIDANG.length],
+    }));
+  }, [data]);
+
+  const program = useMemo(
+    () =>
+      (data?.program ?? []).map((p) => ({
+        kode: p.kode_program,
+        nama: hurufJudul(p.nama_program),
+        jumlahSubkegiatan: p.jumlah_subkegiatan,
+        capaian: Number(p.capaian),
+      })),
+    [data],
+  );
+
+  const realisasi = useMemo(() => {
+    const baris = (data?.realisasi_bulanan ?? []).map((b) => {
+      const [tahun, bulan] = b.bulan.split("-");
+      const i = Number(bulan) - 1;
+      return { label: BULAN[i], nama: `${NAMA_BULAN[i]} ${tahun}`, jumlah: b.jumlah, berjalan: b.sudah_berjalan };
+    });
+    const berjalan = baris.filter((b) => b.berjalan);
+    const total = berjalan.reduce((t, b) => t + b.jumlah, 0);
+    const puncak = berjalan.reduce<(typeof baris)[number] | null>((p, b) => (b.jumlah > (p?.jumlah ?? 0) ? b : p), null);
+    const skala = skalaBulat(Math.max(0, ...berjalan.map((b) => b.jumlah)));
+    // Bulan yang belum berjalan digambar setinggi sumbu dengan arsiran, bukan batang nol.
+    const grafik = baris.map((b) => ({ ...b, tinggi: b.berjalan ? b.jumlah : skala.maks, puncak: b === puncak }));
+    return { baris, grafik, berjalan: berjalan.length, total, puncak, skala };
+  }, [data]);
+
+  const sebaran = useMemo(() => {
+    const baris = (data?.sebaran_capaian ?? []).map((s) => ({ ...s, ...RENTANG[s.rentang] }));
+    const jumlah = (r: SebaranCapaianPublik["rentang"]) => baris.find((b) => b.rentang === r)?.jumlah ?? 0;
+    return {
+      baris,
+      skala: skalaBulat(Math.max(0, ...baris.map((b) => b.jumlah))),
+      belum: jumlah("0"),
+      tuntas: jumlah("100"),
+      berjalan: baris.filter((b) => b.rentang !== "0" && b.rentang !== "100").reduce((t, b) => t + b.jumlah, 0),
+    };
+  }, [data]);
+
+  const periode = data?.periode ?? null;
+  const summary = data?.summary ?? null;
+  const bidangAktif = aktif !== null ? bidang[aktif] : null;
+  const catatanRealisasi =
+    realisasi.berjalan === 0
+      ? "Belum ada bulan dalam periode ini yang sudah berjalan, jadi belum ada realisasi yang bisa dihitung."
+      : realisasi.total === 0
+        ? "Belum ada laporan realisasi pada bulan-bulan yang sudah berjalan."
+        : `Kolom emas menandai bulan dengan laporan terbanyak.${realisasi.berjalan < realisasi.baris.length ? " Kolom berarsir adalah bulan yang belum berjalan." : ""}`;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-slate-50 to-yellow-50 font-sans text-slate-900 selection:bg-emerald-200">
-      {/* Header */}
-      <header className="bg-white/70 backdrop-blur-md sticky top-0 z-20 border-b border-emerald-100/50 py-4 px-6 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-emerald-500 to-yellow-400 p-2 rounded-xl shadow-sm">
-              <Activity className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-xl md:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-800 via-emerald-600 to-yellow-600 bg-clip-text text-transparent">
-              OPERA-INK BAPPERRIDA
-            </h1>
+    <div className="lp">
+      <header className="lp-head">
+        <div className="lp-container lp-head-row">
+          <img className="lp-mark" src={logoTabalong} alt="Lambang Kabupaten Tabalong" width={36} height={48} />
+          <div style={{ minWidth: 0 }}>
+            <div className="lp-kicker">Bapperrida · Dashboard Kinerja Publik</div>
+            <p className="lp-head-title">OPERA-INK</p>
+            <div className="lp-head-sub">OPERASIONAL INDIKATOR KINERJA</div>
           </div>
-          {/* <button 
-            onClick={() => navigate('/login')}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-full font-semibold transition-colors shadow-sm"
-          >
-            <LogIn className="w-4 h-4" />
-            <span className="hidden sm:inline">Login</span>
-          </button> */}
         </div>
+        {periode && (
+          <nav className="lp-nav" aria-label="Navigasi halaman">
+            <div className="lp-container">
+              <ul>
+                <li><a href="#ringkasan">Ringkasan</a></li>
+                <li><a href="#porsi">Porsi Bidang</a></li>
+                <li><a href="#capaian">Capaian</a></li>
+                {program.length > 0 && <li><a href="#program">Program</a></li>}
+                {realisasi.baris.length > 0 && <li><a href="#realisasi">Realisasi</a></li>}
+                <li><a href="#profil">Profil Kinerja</a></li>
+                {sebaran.baris.length > 0 && <li><a href="#sebaran">Sebaran</a></li>}
+                <li><a href="#bidang">Bidang</a></li>
+              </ul>
+            </div>
+          </nav>
+        )}
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 relative">
-        {/* Background Decorative Elements */}
-        <div className="absolute top-0 left-20 w-72 h-72 bg-emerald-300 rounded-full mix-blend-multiply filter blur-[100px] opacity-30 -z-10"></div>
-        <div className="absolute top-40 right-20 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-[100px] opacity-30 -z-10"></div>
-
+      <main>
         {loading ? (
-           <div className="flex justify-center items-center h-64">
-              <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-           </div>
+          <div className="lp-container lp-empty">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+          </div>
         ) : error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-5 text-red-700">{error}</div>
+          <div className="lp-container lp-empty">
+            <p role="alert" style={{ color: "#b91c1c" }}>{error}</p>
+          </div>
+        ) : !periode || !summary ? (
+          // Backend hanya mempublikasikan periode OPEN/LOCKED. Tanpa itu jangan
+          // gambar grafik kosong dan "0,0%" — angka nol terbaca sebagai kinerja nol.
+          <div className="lp-container lp-empty">
+            <CalendarClock className="mx-auto" size={40} color="var(--lp-primary-text)" />
+            <h2 style={{ marginTop: 20 }}>Belum ada periode kinerja yang dipublikasikan</h2>
+            <p>
+              Capaian kinerja Bapperrida akan tampil di halaman ini setelah periode
+              pelaksanaan dibuka. Periode yang masih dalam tahap penyusunan rencana
+              belum ditampilkan untuk publik.
+            </p>
+          </div>
         ) : (
           <>
-            {/* Top Section */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white/40 shadow-xl shadow-emerald-900/5 rounded-[2rem] flex flex-col md:flex-row items-center justify-center py-12 px-8 gap-12 relative overflow-hidden">
-              <div className="text-center md:text-left flex flex-col items-center md:items-start relative z-10">
-                <div className="text-8xl font-black tracking-tighter bg-gradient-to-br from-emerald-600 to-yellow-500 bg-clip-text text-transparent leading-none mb-4 drop-shadow-sm">
-                  {Number(summary?.capaian_pd ?? 0).toFixed(2)}%
+            {/* Pembuka */}
+            <section className="lp-hero" id="ringkasan" aria-labelledby="lp-h-hero">
+              <div className="lp-container lp-hero-grid">
+                <div>
+                  <p className="lp-welcome">Capaian kinerja perangkat daerah</p>
+                  <p className="lp-big num" aria-label={`Capaian keseluruhan ${persen1(Number(summary.capaian_pd))}`}>
+                    {persen1(Number(summary.capaian_pd)).replace("%", "")}<small>%</small>
+                  </p>
+                  <h1 id="lp-h-hero">Capaian Keseluruhan <span>{periode.nama_periode}</span></h1>
+                  <div className="lp-hero-meta">
+                    <span className="lp-badge">{periode.status === "OPEN" ? "Sedang berjalan" : "Sudah dikunci"}</span>
+                    <span>Rata-rata capaian seluruh subkegiatan</span>
+                  </div>
                 </div>
-                <div className="text-xl text-slate-800 font-bold tracking-wide">
-                  Capaian Keseluruhan
-                </div>
-                <div className="text-sm text-emerald-700 font-semibold bg-emerald-100/80 px-4 py-1.5 rounded-full mt-3 border border-emerald-200/50 shadow-sm">
-                  {summary?.jumlah_program ?? 0} program · {summary?.jumlah_bidang ?? 0} bidang
-                </div>
-              </div>
-
-              <div className="relative z-10 h-[380px] w-full max-w-[500px]">
-                <ResponsiveContainer className="relative z-10" width="100%" height="100%" initialDimension={{ width: 500, height: 320 }}>
-                  <PieChart>
-                    <Pie
-                      data={distribusi}
-                      cx="50%"
-                      cy="38%"
-                      labelLine={false}
-                      label={false}
-                      innerRadius={60}
-                      outerRadius={92}
-                      paddingAngle={2}
-                      dataKey="distribution"
-                      nameKey="name"
-                      stroke="none"
-                    >
-                      {distribusi.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} className="hover:opacity-80 transition-opacity duration-300 cursor-pointer" />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip
-                      cursor={false}
-                      content={<DonutTooltip />}
-                      wrapperStyle={{ zIndex: 30, pointerEvents: "none" }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                {/* Center decorative circle */}
-                <div className="pointer-events-none absolute z-0 left-1/2 top-[38%] flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-inner">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-50 to-yellow-50 border border-emerald-100/50"></div>
-                </div>
-                <div className="absolute inset-x-4 bottom-1 flex flex-wrap justify-center gap-x-3 gap-y-1.5 text-[11px] font-semibold text-slate-600">
-                  {distribusi.map((item) => (
-                    <div key={item.bidang_id} className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span>{ringkasNamaBidang(item.name)}</span>
-                    </div>
+                <ul className="lp-facts num">
+                  {[
+                    [summary.jumlah_bidang, "Bidang"],
+                    [summary.jumlah_program, "Program"],
+                    [summary.jumlah_subkegiatan, "Subkegiatan"],
+                    ...(summary.jumlah_aktifitas !== undefined ? [[summary.jumlah_aktifitas, "Aktivitas"] as const] : []),
+                  ].map(([n, label]) => (
+                    <li key={label}><b>{angka(Number(n))}</b><span>{label}</span></li>
                   ))}
+                </ul>
+              </div>
+            </section>
+
+            {/* Porsi subkegiatan per bidang */}
+            <section className="lp-band lp-sec" id="porsi" aria-labelledby="lp-h-porsi">
+              <div className="lp-container">
+                <KepalaBagian
+                  id="lp-h-porsi"
+                  ikon={<ChartPie size={12} />}
+                  eyebrow="Sebaran subkegiatan"
+                  judul="Porsi Subkegiatan Tiap Bidang"
+                  keterangan={`${summary.jumlah_bidang} bidang memegang ${angka(summary.jumlah_subkegiatan)} subkegiatan pada periode ini. Arahkan kursor ke potongan untuk melihat rinciannya.`}
+                />
+                <div className="lp-donut-grid">
+                  <div className="lp-donut">
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 380, height: 380 }}>
+                      <PieChart>
+                        <Pie
+                          data={bidang}
+                          dataKey="porsi"
+                          nameKey="nama"
+                          innerRadius="71%"
+                          outerRadius="100%"
+                          paddingAngle={1.5}
+                          stroke="none"
+                          isAnimationActive={false}
+                          onMouseEnter={(_, i) => setAktif(i)}
+                          onMouseLeave={() => setAktif(null)}
+                        >
+                          {bidang.map((b, i) => (
+                            <Cell key={b.id} fill={b.warna} opacity={aktif === null || aktif === i ? 1 : 0.3} style={{ cursor: "pointer", transition: "opacity .25s" }} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="lp-donut-mid">
+                      {bidangAktif ? (
+                        <>
+                          <b className="num">{persen1(bidangAktif.porsi)}</b>
+                          <span>{bidangAktif.nama} · {bidangAktif.jumlahSubkegiatan} subkegiatan</span>
+                        </>
+                      ) : (
+                        <>
+                          <b className="num">{angka(summary.jumlah_subkegiatan)}</b>
+                          <span>subkegiatan di {summary.jumlah_bidang} bidang</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <ul className={`lp-legend num${aktif !== null ? " lp-hovering" : ""}`}>
+                    {bidang.map((b, i) => (
+                      <li key={b.id} className={aktif === i ? "lp-on" : undefined} onMouseEnter={() => setAktif(i)} onMouseLeave={() => setAktif(null)}>
+                        <i style={{ background: b.warna }} />
+                        <span className="lp-nm">{b.nama}</span>
+                        <span className="lp-sk">{b.jumlahSubkegiatan} subkegiatan</span>
+                        <span className="lp-pc">{persen1(b.porsi)}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Bar Chart */}
-              <Card className="bg-white/80 backdrop-blur-md border-white/60 shadow-lg shadow-emerald-900/5 rounded-2xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100/50 bg-white/50 pb-4">
-                  <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                    <div className="w-2 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-yellow-400"></div>
-                    Capaian Per Bidang (%)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="h-[340px] w-full">
-                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 500, height: 320 }}>
-                      <BarChart
-                        data={bidang}
-                        layout="vertical"
-                        margin={{ top: 8, right: 28, left: 16, bottom: 4 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-surface-subtle)" />
-                        <XAxis
-                          type="number"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 11, fill: DESIGN_COLOR.textMuted, fontWeight: 500 }}
-                          domain={[0, 100]}
-                          ticks={[0, 25, 50, 75, 100]}
+            {/* Capaian per bidang */}
+            <section className="lp-sec" id="capaian" aria-labelledby="lp-h-capaian">
+              <div className="lp-container">
+                <KepalaBagian
+                  id="lp-h-capaian"
+                  ikon={<ChartBar size={12} />}
+                  eyebrow="Capaian per bidang"
+                  judul="Capaian Per Bidang"
+                  keterangan="Persentase capaian terhadap target tahunan, dalam skala 0 sampai 100."
+                />
+                <div className="lp-chart" style={{ height: Math.max(240, bidang.length * 52 + 40) }}>
+                  <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 900, height: 400 }}>
+                    <BarChart data={bidang} layout="vertical" margin={{ top: 4, right: 56, left: 8, bottom: 4 }}>
+                      <CartesianGrid horizontal={false} stroke="var(--lp-hair)" />
+                      <XAxis type="number" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} axisLine={false} tickLine={false} tick={TEKS_SUMBU} />
+                      <YAxis type="category" dataKey="nama" width={150} axisLine={false} tickLine={false} tick={{ ...TEKS_SUMBU, fontSize: 13, fontWeight: 600, fill: "var(--lp-fg)" }} />
+                      <Tooltip
+                        cursor={{ fill: "var(--lp-base-200)", opacity: 0.7 }}
+                        content={({ active, payload }) => {
+                          const b = payload?.[0]?.payload as BidangTampil | undefined;
+                          return active && b ? <KotakTooltip judul={b.nama} isi={`Capaian ${persen1(b.capaian)} · ${b.jumlahSubkegiatan} subkegiatan`} /> : null;
+                        }}
+                      />
+                      <Bar dataKey="capaian" radius={[0, 8, 8, 0]} maxBarSize={26} minPointSize={3}>
+                        {bidang.map((b) => <Cell key={b.id} fill={b.warna} />)}
+                        <LabelList
+                          dataKey="capaian"
+                          position="right"
+                          formatter={(v) => persen1(Number(v))}
+                          style={{ fontFamily: "var(--lp-font-display)", fontSize: 15, fontWeight: 700, fill: "var(--lp-fg)" }}
                         />
-                        <YAxis
-                          type="category"
-                          dataKey="label"
-                          width={165}
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 10, fill: DESIGN_COLOR.textMuted, fontWeight: 600 }}
-                        />
-                        <RechartsTooltip
-                          cursor={{ fill: DESIGN_COLOR.surface, opacity: 0.6 }}
-                          contentStyle={{ 
-                            borderRadius: "12px", 
-                            border: "1px solid rgba(255,255,255,0.8)", 
-                            boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                            backgroundColor: "rgba(255, 255, 255, 0.95)",
-                            backdropFilter: "blur(8px)",
-                            fontWeight: 600
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </section>
+
+            {/* Capaian per program */}
+            {program.length > 0 && (
+              <section className="lp-sec lp-tint" id="program" aria-labelledby="lp-h-program">
+                <div className="lp-container">
+                  <KepalaBagian
+                    id="lp-h-program"
+                    ikon={<ListChecks size={12} />}
+                    eyebrow="Capaian per program"
+                    judul="Capaian Per Program"
+                    keterangan="Rata-rata capaian subkegiatan di setiap program, dalam skala 0 sampai 100."
+                  />
+                  <div className="num">
+                    {program.map((p) => (
+                      <div className="lp-prog" key={p.kode}>
+                        <div>
+                          <h3>
+                            {p.nama}
+                            {p.capaian >= 100 ? <span className="lp-badge">Tuntas</span> : p.capaian > 0 ? <span className="lp-badge">Berjalan</span> : null}
+                          </h3>
+                          <div className="lp-row-meta">{p.jumlahSubkegiatan} subkegiatan</div>
+                        </div>
+                        <div className="lp-line lp-line-grad" aria-hidden="true"><b style={{ width: `${Math.min(100, p.capaian)}%` }} /></div>
+                        <div className={`lp-pct${p.capaian > 0 ? "" : " lp-zero"}`}>{persen1(p.capaian)}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="lp-prog-skala num" aria-hidden="true"><span /><div><span>0</span><span>50</span><span>100</span></div><span /></div>
+                </div>
+              </section>
+            )}
+
+            {/* Realisasi per bulan */}
+            {realisasi.baris.length > 0 && (
+              <section className="lp-sec" id="realisasi" aria-labelledby="lp-h-realisasi">
+                <div className="lp-container">
+                  <KepalaBagian
+                    id="lp-h-realisasi"
+                    ikon={<CalendarDays size={12} />}
+                    eyebrow="Realisasi per bulan"
+                    judul="Ritme Kerja Sepanjang Tahun"
+                    keterangan="Jumlah laporan realisasi yang masuk, dikelompokkan menurut tanggal kegiatan."
+                  />
+                  <div className="lp-chart" style={{ height: 300 }}>
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 900, height: 300 }}>
+                      <BarChart data={realisasi.grafik} margin={{ top: 24, right: 8, left: -12, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="lp-hijau" x1="0" y1="1" x2="0" y2="0">
+                            <stop offset="0%" stopColor="var(--lp-primary)" />
+                            <stop offset="100%" stopColor="var(--lp-green-light)" />
+                          </linearGradient>
+                          <linearGradient id="lp-emas" x1="0" y1="1" x2="0" y2="0">
+                            <stop offset="0%" stopColor="var(--lp-gold-dim)" />
+                            <stop offset="100%" stopColor="var(--lp-gold)" />
+                          </linearGradient>
+                          <pattern id="lp-arsir" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                            <rect width="7" height="7" fill="var(--lp-base-100)" fillOpacity={0.4} />
+                            <line x1="0" y1="0" x2="0" y2="7" stroke="var(--lp-base-300)" strokeWidth={1.5} />
+                          </pattern>
+                        </defs>
+                        <CartesianGrid vertical={false} stroke="var(--lp-hair)" />
+                        <XAxis dataKey="label" axisLine={{ stroke: "var(--lp-base-300)" }} tickLine={false} tick={TEKS_SUMBU} interval={0} />
+                        <YAxis domain={[0, realisasi.skala.maks]} ticks={realisasi.skala.ticks} allowDecimals={false} axisLine={false} tickLine={false} tick={TEKS_SUMBU} />
+                        <Tooltip
+                          cursor={false}
+                          content={({ active, payload }) => {
+                            const b = payload?.[0]?.payload as (typeof realisasi.grafik)[number] | undefined;
+                            if (!active || !b) return null;
+                            return <KotakTooltip judul={b.nama} isi={b.berjalan ? `${angka(b.jumlah)} laporan realisasi` : "Bulan belum berjalan"} />;
                           }}
                         />
-                        <Bar dataKey="achievement" radius={[0, 6, 6, 0]} maxBarSize={32} label={{ position: "right", fill: DESIGN_COLOR.textMuted, fontSize: 11, fontWeight: 700, formatter: (value) => `${Number(value).toFixed(1)}%` }}>
-                          {bidang.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} className="hover:opacity-80 transition-opacity duration-300 cursor-pointer" />
+                        <Bar dataKey="tinggi" radius={[6, 6, 2, 2]} maxBarSize={52} minPointSize={tinggiMinimal}>
+                          {realisasi.grafik.map((b) => (
+                            <Cell key={b.label} fill={!b.berjalan ? "url(#lp-arsir)" : b.puncak ? "url(#lp-emas)" : "url(#lp-hijau)"} />
                           ))}
+                          <LabelList
+                            dataKey="tinggi"
+                            position="top"
+                            content={({ x, y, width, index }) => {
+                              const b = realisasi.grafik[Number(index)];
+                              if (!b?.berjalan) return null;
+                              return (
+                                <text x={Number(x) + Number(width) / 2} y={Number(y) - 6} textAnchor="middle" fontSize={12} fontWeight={600} fill={b.jumlah ? "var(--lp-fg)" : "var(--lp-fg-3)"}>
+                                  {angka(b.jumlah)}
+                                </text>
+                              );
+                            }}
+                          />
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="lp-foot-facts num" aria-label="Ringkasan realisasi per bulan">
+                    <div><b>{angka(realisasi.total)}</b><span>Laporan realisasi</span></div>
+                    <div><b>{realisasi.puncak ? realisasi.puncak.nama : "–"}</b><span>Bulan tersibuk</span></div>
+                    <div><b>{realisasi.berjalan}/{realisasi.baris.length}</b><span>Bulan berjalan</span></div>
+                  </div>
+                  <p className="lp-note">{catatanRealisasi}</p>
+                </div>
+              </section>
+            )}
 
-              {/* Radar Chart */}
-              <Card className="bg-white/80 backdrop-blur-md border-white/60 shadow-lg shadow-emerald-900/5 rounded-2xl overflow-hidden">
-                <CardHeader className="border-b border-slate-100/50 bg-white/50 pb-4">
-                  <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                    <div className="w-2 h-6 rounded-full bg-gradient-to-b from-yellow-400 to-emerald-400"></div>
-                    Profil Kinerja
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="h-[340px] w-full">
-                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 500, height: 320 }}>
-                      <RadarChart cx="50%" cy="50%" outerRadius="58%" data={radar}>
-                        <PolarGrid stroke={DESIGN_COLOR.border} />
-                        <PolarAngleAxis
-                          dataKey="name"
-                          tick={{ fill: DESIGN_COLOR.textMuted, fontSize: 10, fontWeight: 600 }}
-                        />
-                        <PolarRadiusAxis
-                          angle={30}
-                          domain={[0, 100]}
-                          tick={false}
-                          axisLine={false}
-                        />
-                        <Radar
-                          name="Capaian"
-                          dataKey="achievement"
-                          stroke={DESIGN_COLOR.success}
-                          strokeWidth={3}
-                          fill="url(#colorUv)"
-                          fillOpacity={0.6}
-                        />
+            {/* Profil kinerja */}
+            <section className="lp-sec lp-tint" id="profil" aria-labelledby="lp-h-profil">
+              <div className="lp-container">
+                <KepalaBagian
+                  id="lp-h-profil"
+                  ikon={<Pentagon size={12} />}
+                  eyebrow="Profil kinerja"
+                  judul="Profil Kinerja Antarbidang"
+                  keterangan="Semakin bulat dan lebar bentuknya, semakin merata capaian antarbidang. Cincin menandai 25, 50, 75, dan 100 persen."
+                />
+                <div className="lp-radar-wrap">
+                  <div className="lp-chart" style={{ height: 420 }}>
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 420 }}>
+                      <RadarChart cx="50%" cy="50%" outerRadius="72%" data={bidang}>
                         <defs>
-                          <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={DESIGN_COLOR.success} stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor={DESIGN_COLOR.warning} stopOpacity={0.2}/>
+                          <linearGradient id="lp-radar" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--lp-primary)" stopOpacity={0.55} />
+                            <stop offset="100%" stopColor="var(--lp-gold)" stopOpacity={0.35} />
                           </linearGradient>
                         </defs>
-                        <RechartsTooltip 
-                          contentStyle={{ 
-                            borderRadius: "12px", 
-                            border: "1px solid rgba(255,255,255,0.8)", 
-                            boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                            backgroundColor: "rgba(255, 255, 255, 0.95)",
-                            fontWeight: 600
+                        <PolarGrid stroke="var(--lp-base-300)" />
+                        <PolarAngleAxis dataKey="nama" tick={{ ...TEKS_SUMBU, fontSize: 13, fontWeight: 600, fill: "var(--lp-fg)" }} />
+                        {/* Sumbu angka di celah antara dua bidang pertama, supaya tidak menimpa label di puncak. */}
+                        <PolarRadiusAxis angle={90 - 180 / Math.max(bidang.length, 1)} domain={[0, 100]} tickCount={5} tick={{ ...TEKS_SUMBU, fontSize: 10 }} axisLine={false} />
+                        <Radar
+                          name="Capaian"
+                          dataKey="capaian"
+                          stroke="var(--lp-primary)"
+                          strokeWidth={3}
+                          fill="url(#lp-radar)"
+                          fillOpacity={1}
+                          dot={{ r: 4, fill: "var(--lp-gold-dim)", stroke: "var(--lp-base-100)", strokeWidth: 2 }}
+                        />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            const b = payload?.[0]?.payload as BidangTampil | undefined;
+                            return active && b ? <KotakTooltip judul={b.nama} isi={`Capaian ${persen1(b.capaian)}`} /> : null;
                           }}
                         />
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <ul className="lp-radar-read num">
+                    {bidang.map((b) => (
+                      <li key={b.id}>
+                        <span>{b.nama}</span>
+                        <b className={b.capaian === 0 ? "lp-zero" : undefined}>{persen1(b.capaian)}</b>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
 
-            {/* Cards Section */}
-            <div className="grid grid-flow-col grid-rows-1 auto-cols-[minmax(9rem,1fr)] gap-5 overflow-x-auto pb-2">
-              {bidang.map((item) => (
-                <Card key={item.name} className="group min-h-56 overflow-hidden border-white/60 bg-white/80 shadow-lg shadow-emerald-900/5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-900/10 backdrop-blur-md">
-                  <div className="h-1.5 w-full transition-all duration-300 group-hover:h-2" style={{ backgroundColor: item.color }}></div>
-                  <CardContent className="flex h-full flex-col items-center space-y-3 p-5 text-center">
-                    <div className="flex h-16 items-center justify-center text-[11px] font-bold uppercase leading-relaxed tracking-wider text-slate-500">
-                      {item.name}
-                    </div>
-                    <div
-                      className="text-4xl font-black tracking-tighter drop-shadow-sm"
-                      style={{ color: item.color }}
-                    >
-                      {Number(item.achievement).toFixed(1)}%
-                    </div>
-                    {item.bidang_id && (
-                      <button 
-                        onClick={() => navigate(`/detail?bidang=${item.bidang_id}`)}
-                        className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-slate-400 transition-colors hover:text-emerald-600"
-                      >
-                        Lihat Detail <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+            {/* Sebaran capaian subkegiatan */}
+            {sebaran.baris.length > 0 && (
+              <section className="lp-sec" id="sebaran" aria-labelledby="lp-h-sebaran">
+                <div className="lp-container">
+                  <KepalaBagian
+                    id="lp-h-sebaran"
+                    ikon={<ChartColumn size={12} />}
+                    eyebrow="Sebaran capaian"
+                    judul="Sebaran Capaian Subkegiatan"
+                    keterangan="Berapa subkegiatan yang berada di tiap rentang capaian. Kolom abu menandai subkegiatan yang belum dimulai."
+                  />
+                  <div className="lp-chart" style={{ height: 300 }}>
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 900, height: 300 }}>
+                      <BarChart data={sebaran.baris} margin={{ top: 24, right: 8, left: -12, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="lp-hijau-2" x1="0" y1="1" x2="0" y2="0">
+                            <stop offset="0%" stopColor="var(--lp-primary)" />
+                            <stop offset="100%" stopColor="var(--lp-green-light)" />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid vertical={false} stroke="var(--lp-hair)" />
+                        <XAxis dataKey="label" axisLine={{ stroke: "var(--lp-base-300)" }} tickLine={false} tick={TEKS_SUMBU} interval={0} />
+                        <YAxis domain={[0, sebaran.skala.maks]} ticks={sebaran.skala.ticks} allowDecimals={false} axisLine={false} tickLine={false} tick={TEKS_SUMBU} />
+                        <Tooltip
+                          cursor={{ fill: "var(--lp-base-200)", opacity: 0.7 }}
+                          content={({ active, payload }) => {
+                            const b = payload?.[0]?.payload as (typeof sebaran.baris)[number] | undefined;
+                            return active && b ? <KotakTooltip judul={b.deskripsi} isi={`${angka(b.jumlah)} subkegiatan`} /> : null;
+                          }}
+                        />
+                        <Bar dataKey="jumlah" radius={[6, 6, 2, 2]} maxBarSize={64} minPointSize={tinggiMinimal}>
+                          {sebaran.baris.map((b) => (
+                            <Cell key={b.rentang} fill={b.rentang === "0" ? "var(--lp-base-300)" : "url(#lp-hijau-2)"} />
+                          ))}
+                          <LabelList dataKey="jumlah" position="top" formatter={(v) => angka(Number(v))} style={{ fontSize: 12, fontWeight: 600, fill: "var(--lp-fg)" }} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="lp-foot-facts num" aria-label="Ringkasan sebaran capaian">
+                    <div><b>{angka(sebaran.belum)}</b><span>Belum dimulai</span></div>
+                    <div><b>{angka(sebaran.berjalan)}</b><span>Berjalan</span></div>
+                    <div><b>{angka(sebaran.tuntas)}</b><span>Tuntas</span></div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Daftar bidang */}
+            <section className="lp-sec lp-tint" id="bidang" aria-labelledby="lp-h-bidang">
+              <div className="lp-container">
+                <KepalaBagian
+                  id="lp-h-bidang"
+                  ikon={<List size={12} />}
+                  eyebrow="Bidang"
+                  judul={`Rincian ${bidang.length} Bidang`}
+                  keterangan="Pilih bidang untuk melihat capaian setiap subkegiatannya."
+                />
+                <div className="num">
+                  {bidang.map((b) => (
+                    <div className="lp-row" key={b.id}>
+                      <div>
+                        <h3>
+                          {b.nama}
+                          {b.capaian >= 100 ? (
+                            <span className="lp-badge">Tuntas</span>
+                          ) : b.capaian > 0 ? (
+                            <span className="lp-badge">Berjalan</span>
+                          ) : (
+                            <span className="lp-badge lp-quiet">Belum dimulai</span>
+                          )}
+                        </h3>
+                        <div className="lp-row-meta">{b.jumlahSubkegiatan} subkegiatan · {persen1(b.porsi)} dari total</div>
+                      </div>
+                      <div className="lp-line" aria-hidden="true"><b style={{ width: `${Math.min(100, b.capaian)}%`, background: b.warna }} /></div>
+                      <div className={`lp-pct${b.capaian > 0 ? "" : " lp-zero"}`}>{persen1(b.capaian)}</div>
+                      <button type="button" className="lp-go" onClick={() => navigate(`/detail?bidang=${b.id}`)} aria-label={`Lihat detail ${b.nama}`}>
+                        Lihat detail <ArrowRight size={14} aria-hidden="true" />
                       </button>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
           </>
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="py-8 text-center text-sm font-medium text-slate-500 bg-white/50 border-t border-emerald-100/50 mt-12">
-        <p>© 2026 Bapperrida — Dashboard Kinerja</p>
+      <footer className="lp-footer">
+        <div className="lp-container lp-footer-row">
+          <div>
+            <h3>© 2026 · Badan Perencanaan Pembangunan, Riset dan Inovasi Daerah</h3>
+            <p>Pemerintah Kabupaten Tabalong</p>
+          </div>
+        </div>
       </footer>
     </div>
   );

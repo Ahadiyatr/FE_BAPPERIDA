@@ -133,19 +133,28 @@ function PemilihPeriode({
 export default function PenyusunanRencana() {
   const [sp, setSp] = useSearchParams();
   const [periodes, setPeriodes] = React.useState<Periode[] | null>(null);
-  const [periodeId, setPeriodeId] = React.useState<number | null>(null);
+  // Periode ikut disimpan di URL (?periode=) supaya kembali dari Rencana Bidang
+  // mendarat di periode yang sama, bukan di periode DRAFT bawaan.
+  const [periodeId, setPeriodeId] = React.useState<number | null>(
+    () => Number(sp.get('periode')) || null,
+  );
   const [galat, setGalat] = React.useState<string | null>(null);
 
   const tab: Tab = sp.get('tab') === 'kesiapan' ? 'kesiapan' : 'penunjukan';
-  const pindahTab = (t: Tab) =>
+  const setParam = (kunci: string, nilai: string) =>
     setSp(
       prev => {
         const baru = new URLSearchParams(prev);
-        baru.set('tab', t);
+        baru.set(kunci, nilai);
         return baru;
       },
       { replace: true },
     );
+  const pindahTab = (t: Tab) => setParam('tab', t);
+  const pilihPeriode = (id: number) => {
+    setPeriodeId(id);
+    setParam('periode', String(id));
+  };
 
   const muatPeriode = React.useCallback(async () => {
     try {
@@ -153,7 +162,8 @@ export default function PenyusunanRencana() {
       setPeriodes(daftar);
       setPeriodeId(
         id =>
-          id ??
+          // ?periode= yang tidak ada di daftar (dihapus, salah ketik) diabaikan.
+          (id !== null && daftar.some(x => x.id === id) ? id : null) ??
           // Penyusunan dikerjakan untuk periode yang belum dibuka.
           (daftar.find(x => x.status === 'DRAFT') ??
             daftar.find(x => x.status === 'OPEN') ??
@@ -189,7 +199,7 @@ export default function PenyusunanRencana() {
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
         {periodes && periodes.length > 1 && (
-          <PemilihPeriode daftar={periodes} nilai={periodeId} onPilih={setPeriodeId} />
+          <PemilihPeriode daftar={periodes} nilai={periodeId} onPilih={pilihPeriode} />
         )}
 
         <div className="flex w-fit gap-1 rounded-xl border border-slate-200 bg-white p-1">

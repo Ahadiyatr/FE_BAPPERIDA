@@ -25,7 +25,7 @@ export function Eyebrow({
   )
 }
 
-/** Kode rekening: 5.1.2.2.01.1. Selalu mono, selalu tabular. */
+/** Kode rekening Kepmendagri 050: 5.01.02.2.01.0001. Selalu mono, selalu tabular. */
 export function Kode({
   className,
   ...props
@@ -81,7 +81,7 @@ export function StatusBadge({
     <Badge
       variant="outline"
       className={cn(
-        "rounded-[2px] border-0 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.07em]",
+        "rounded-xs border-0 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.07em]",
         kelasNada[nada],
         className
       )}
@@ -103,7 +103,7 @@ export function CapaianPersen({
   return (
     <span
       className={cn(
-        "tabular font-bold text-[13px] font-bold",
+        "tabular font-bold text-[13px]",
         kelasTeks[nadaCapaian(nilai)],
         className
       )}
@@ -148,7 +148,7 @@ export function ChainNav({
       )}
       aria-label="Tingkat data master"
     >
-      <ol className="flex min-w-[680px] items-center">
+      <ol className="flex min-w-170 items-center">
         {mata.map((m, index) => {
           const dipilih = m.id === aktif
           return (

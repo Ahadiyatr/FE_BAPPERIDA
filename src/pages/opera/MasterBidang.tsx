@@ -6,10 +6,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import KontrolHalaman from "@/components/Pagination"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getBidang, hapusBidang, setAktifBidang, simpanBidang } from "@/services"
 import { apiMessage } from "@/services/api"
+import { usePaginasi } from "@/lib/paginasi"
 import type { Bidang } from "@/services"
 import { Panel, Th } from "./bagian/ui"
 
@@ -26,11 +28,12 @@ export default function MasterBidang() {
     setBidangs(b)
   }, [tampilkanSemua])
   React.useEffect(() => { void muat() }, [muat])
+  const paginasi = usePaginasi(bidangs, { kunciReset: tampilkanSemua })
 
   async function ubahAktif(b: Bidang) {
     setGalat(null)
     try { await setAktifBidang(b.id, !b.flagActive); await muat() }
-    catch (e) { setGalat(e instanceof Error ? e.message : "Gagal mengubah status.") }
+    catch (e) { setGalat(apiMessage(e, "Gagal mengubah status.")) }
     finally { setKonfirmasi(null) }
   }
 
@@ -78,7 +81,7 @@ export default function MasterBidang() {
             <tr><Th>Kode</Th><Th>Nama bidang</Th><Th>Status</Th><Th kanan>Tindakan</Th></tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {bidangs.map((b) => (
+            {paginasi.potongan.map((b) => (
               <tr key={b.id} className={b.flagActive ? "hover:bg-slate-50" : "opacity-55"}>
                 <td className="px-6 py-3 font-mono text-xs text-slate-400">{b.kode}</td>
                 <td className="px-6 py-3 text-sm text-slate-700">{b.namaBidang}</td>
@@ -108,6 +111,7 @@ export default function MasterBidang() {
             )}
           </tbody>
         </table>
+        <KontrolHalaman {...paginasi} />
       </Panel>
 
       {form !== undefined && (
@@ -174,7 +178,7 @@ function FormBidang({
   async function simpan() {
     setGalat(null)
     try { await simpanBidang({ id: awal?.id, kode, namaBidang: nama }); onTersimpan(); onTutup() }
-    catch (e) { setGalat(e instanceof Error ? e.message : "Gagal menyimpan.") }
+    catch (e) { setGalat(apiMessage(e, "Gagal menyimpan.")) }
   }
 
   return (

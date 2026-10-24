@@ -2,6 +2,7 @@ import {
   getProgram, getKegiatanByProgram, getKegiatan,
   getSubkegiatanByKegiatan, getSubkegiatan, getAktifitasByIndikatorUtama,
   setAktifProgram, setAktifKegiatan, setAktifSubkegiatan, setAktifAktifitas,
+  hapusProgram, hapusKegiatan, hapusSubkegiatan, hapusAktifitas,
 } from "@/services"
 import type {
   AktifitasDenganBobot, Indikator, IndikatorUtama, Kegiatan, OpsiMaster, Program,
@@ -23,6 +24,9 @@ export interface DefTingkat {
   anak: IdTingkat | null
   ambil: (indukId: number | null, opsi: OpsiMaster) => Promise<BarisMaster[]>
   setAktif: (id: number, aktif: boolean) => Promise<unknown>
+  hapus: (id: number) => Promise<void>
+  /** Kapan server menolak hapus — ditampilkan di dialog konfirmasi. */
+  syaratHapus: string
 }
 
 export const TINGKAT: Record<IdTingkat, DefTingkat> = {
@@ -31,18 +35,24 @@ export const TINGKAT: Record<IdTingkat, DefTingkat> = {
     induk: null, anak: "kegiatan",
     ambil: (_i, o) => getProgram(o),
     setAktif: setAktifProgram,
+    hapus: hapusProgram,
+    syaratHapus: "belum memiliki kegiatan dan bukan asal turunan program di dokumen lain",
   },
   kegiatan: {
     id: "kegiatan", label: "Kegiatan", tingkat: "Tingkat 2",
     induk: "program", anak: "subkegiatan",
     ambil: (i, o) => (i == null ? getKegiatan(o) : getKegiatanByProgram(i, o)),
     setAktif: setAktifKegiatan,
+    hapus: hapusKegiatan,
+    syaratHapus: "belum memiliki subkegiatan",
   },
   subkegiatan: {
     id: "subkegiatan", label: "Subkegiatan", tingkat: "Tingkat 3",
     induk: "kegiatan", anak: "aktifitas",
     ambil: (i, o) => (i == null ? getSubkegiatan(o) : getSubkegiatanByKegiatan(i, o)),
     setAktif: setAktifSubkegiatan,
+    hapus: hapusSubkegiatan,
+    syaratHapus: "belum memiliki aktivitas dan belum dipakai di rencana periode mana pun",
   },
   aktifitas: {
     id: "aktifitas", label: "Aktivitas", tingkat: "Tingkat 4",
@@ -51,6 +61,8 @@ export const TINGKAT: Record<IdTingkat, DefTingkat> = {
     // selalu butuh induk. Tanpa induk daftarnya sengaja kosong.
     ambil: (i, o) => (i == null ? Promise.resolve([]) : getAktifitasByIndikatorUtama(i, o)),
     setAktif: setAktifAktifitas,
+    hapus: hapusAktifitas,
+    syaratHapus: "belum disalin ke rencana bidang di periode mana pun",
   },
 }
 

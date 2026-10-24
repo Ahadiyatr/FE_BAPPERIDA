@@ -2,11 +2,13 @@ import * as React from "react"
 import { Eye, ListTree, RefreshCw, Rows3 } from "lucide-react"
 import { Link } from "react-router-dom"
 
+import KontrolHalaman from "@/components/Pagination"
 import { Button } from "@/components/ui/button"
 import { MelebihiTargetBadge } from "@/components/opera/realisasi-status"
 import { getPeriode, getPeriodeRiwayatRencanaSaya, getRencanaSayaRingkas } from "@/services"
 import type { DetailSubkegiatan, Periode } from "@/services"
 import { apiMessage } from "@/services/api"
+import { usePaginasi } from "@/lib/paginasi"
 import { usePeran } from "@/lib/peran"
 import { teksSatuanKinerja } from "@/lib/metadata-kinerja"
 import { BarCapaian, Panel, PilihPeriode, Th, persen1, warnaCapaian } from "./bagian/ui"
@@ -92,9 +94,10 @@ export default function RencanaSaya() {
 }
 
 function TabelSubkegiatan({ rows }: { rows: DetailSubkegiatan[] }) {
-  return <div className="overflow-x-auto"><table className="min-w-full divide-y divide-slate-200">
+  const paginasi = usePaginasi(rows)
+  return <><div className="overflow-x-auto"><table className="min-w-full divide-y divide-slate-200">
     <thead className="bg-slate-50"><tr><Th>Subkegiatan</Th><Th>Indikator dan target</Th><Th kanan>Aktivitas</Th><Th kanan>Catatan / bukti</Th><Th kanan>Capaian</Th><Th kanan>Tindakan</Th></tr></thead>
-    <tbody className="divide-y divide-slate-100">{rows.map((r) => {
+    <tbody className="divide-y divide-slate-100">{paginasi.potongan.map((r) => {
       const jumlahCatatan = r.aktifitas.reduce((n, a) => n + a.jumlahCatatan, 0)
       const jumlahLampiran = r.aktifitas.reduce((n, a) => n + a.jumlahLampiran, 0)
       return <tr key={r.id} className="hover:bg-slate-50">
@@ -106,15 +109,16 @@ function TabelSubkegiatan({ rows }: { rows: DetailSubkegiatan[] }) {
         <td className="px-5 py-3 text-right"><Button size="sm" variant="outline" asChild><Link to={`/rencana-saya/${r.id}`}><Eye className="size-3.5" /> Detail</Link></Button></td>
       </tr>
     })}</tbody>
-  </table></div>
+  </table></div><KontrolHalaman {...paginasi} /></>
 }
 
 function TabelAktivitas({ rows }: { rows: Array<{ rencana: DetailSubkegiatan; aktivitas: DetailSubkegiatan["aktifitas"][number] }> }) {
-  return <div className="overflow-x-auto"><table className="min-w-full divide-y divide-slate-200">
+  const paginasi = usePaginasi(rows)
+  return <><div className="overflow-x-auto"><table className="min-w-full divide-y divide-slate-200">
     <thead className="bg-slate-50"><tr><Th>Subkegiatan</Th><Th>Aktivitas</Th><Th>Jenis</Th><Th kanan>Target</Th><Th kanan>Bobot</Th><Th kanan>Realisasi</Th></tr></thead>
-    <tbody className="divide-y divide-slate-100">{rows.map(({ rencana, aktivitas: a }) => <tr key={a.id} className="hover:bg-slate-50">
+    <tbody className="divide-y divide-slate-100">{paginasi.potongan.map(({ rencana, aktivitas: a }) => <tr key={a.id} className="hover:bg-slate-50">
       <td className="max-w-sm px-5 py-3"><p className="font-mono text-xs text-slate-400">{rencana.kodeSubkegiatan}</p><p className="text-sm text-slate-700">{rencana.namaSubkegiatan}</p></td>
       <td className="px-5 py-3 text-sm">{a.namaAktifitas}</td><td className="px-5 py-3 text-xs">{a.tipeAktifitas}</td><td className="px-5 py-3 text-right text-sm tabular">{angka(a.target)}</td><td className="px-5 py-3 text-right text-sm tabular">{persen1(a.bobotTarget)}</td><td className="px-5 py-3 text-right text-sm tabular">{angka(a.realisasi)}<div className="mt-1"><MelebihiTargetBadge realisasi={a.realisasi} target={a.target} /></div></td>
     </tr>)}</tbody>
-  </table></div>
+  </table></div><KontrolHalaman {...paginasi} /></>
 }

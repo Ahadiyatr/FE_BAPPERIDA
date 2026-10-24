@@ -86,9 +86,21 @@ function data(
   };
 }
 
-/** Select di header kegiatan adalah yang pertama; sisanya milik tiap baris. */
+const KEGIATAN = '5.1.2.2.01';
+
 function selectKegiatan(): HTMLSelectElement {
-  return screen.getAllByRole('combobox')[0] as HTMLSelectElement;
+  return screen.getByLabelText(`Bidang untuk kegiatan ${KEGIATAN}`) as HTMLSelectElement;
+}
+
+function selectBaris(id: number): HTMLSelectElement {
+  return screen.getByLabelText(`Bidang untuk ${KEGIATAN}.${id}`) as HTMLSelectElement;
+}
+
+/** Subkegiatan tersembunyi sampai kegiatannya dibuka. */
+async function bukaKegiatan() {
+  await userEvent.click(
+    await screen.findByRole('button', { name: `Buka subkegiatan ${KEGIATAN}` }),
+  );
 }
 
 beforeEach(() => {
@@ -148,13 +160,9 @@ describe('PanelPenunjukan', () => {
         onPerubahan={vi.fn()}
       />,
     );
-    await screen.findByText('Subkegiatan 1');
+    await bukaKegiatan();
 
-    // combobox[1] = pemilih pada baris subkegiatan.
-    await userEvent.selectOptions(
-      screen.getAllByRole('combobox')[1],
-      String(PPM),
-    );
+    await userEvent.selectOptions(selectBaris(1), String(PPM));
 
     await waitFor(() =>
       expect(pindahBidangSubkegiatan).toHaveBeenCalledWith(77, PPM),
@@ -175,9 +183,9 @@ describe('PanelPenunjukan', () => {
         onPerubahan={vi.fn()}
       />,
     );
-    await screen.findByText('Subkegiatan 1');
+    await bukaKegiatan();
 
-    await userEvent.selectOptions(screen.getAllByRole('combobox')[1], '');
+    await userEvent.selectOptions(selectBaris(1), '');
 
     await waitFor(() =>
       expect(cabutSubkegiatanDariRencana).toHaveBeenCalledWith(77),
@@ -203,9 +211,9 @@ describe('PanelPenunjukan', () => {
         onPerubahan={vi.fn()}
       />,
     );
-    await screen.findByText('Subkegiatan 1');
+    await bukaKegiatan();
 
-    const pemilihBaris = screen.getAllByRole('combobox')[1] as HTMLSelectElement;
+    const pemilihBaris = selectBaris(1);
     expect(pemilihBaris.disabled).toBe(true);
     expect(pemilihBaris.title).toMatch(/realisasi/i);
   });
@@ -243,7 +251,7 @@ describe('PanelPenunjukan', () => {
         onPerubahan={vi.fn()}
       />,
     );
-    await screen.findByText('Subkegiatan 1');
+    await bukaKegiatan();
 
     expect(screen.getByText(/Penunjukan terkunci/i)).toBeTruthy();
     for (const pemilih of screen.getAllByRole('combobox'))
@@ -265,6 +273,7 @@ describe('PanelPenunjukan', () => {
         onPerubahan={vi.fn()}
       />,
     );
+    // Kegiatan campuran selalu terbuka, jadi tidak perlu dibuka manual.
     await screen.findByText('Subkegiatan 1');
 
     await userEvent.click(
@@ -288,7 +297,7 @@ describe('PanelPenunjukan', () => {
         onPerubahan={vi.fn()}
       />,
     );
-    await screen.findByText('Subkegiatan 1');
+    await bukaKegiatan();
 
     await userEvent.click(screen.getByLabelText('Pilih 5.1.2.2.01.1'));
     await userEvent.click(screen.getByLabelText('Pilih 5.1.2.2.01.2'));
@@ -306,5 +315,63 @@ describe('PanelPenunjukan', () => {
       periodeId: 4,
       subkegiatanIds: [1, 2],
     });
+  });
+
+  it('menyembunyikan subkegiatan sampai kegiatannya dibuka', async () => {
+    getPenunjukan.mockResolvedValue(data([baris({ subkegiatanId: 1 })]));
+
+    render(<PanelPenunjukan periode={periodeDraft} sumber={null} onPerubahan={vi.fn()} />);
+    await screen.findByText('Penyusunan Perencanaan dan Pendanaan');
+
+    expect(screen.queryByText('Subkegiatan 1')).toBeNull();
+    await bukaKegiatan();
+    expect(screen.getByText('Subkegiatan 1')).toBeTruthy();
+  });
+
+  it('mengurungkan perubahan dengan mengembalikan tiap baris ke bidang asalnya', async () => {
+    const sebelum = data([
+      baris({ subkegiatanId: 1, bidangId: P2EPD, rencanaId: 77 }),
+      baris({ subkegiatanId: 2 }),
+    ]);
+    const sesudah = data([
+      baris({ subkegiatanId: 1, bidangId: PPM, rencanaId: 77 }),
+      baris({ subkegiatanId: 2, bidangId: PPM, rencanaId: 78 }),
+    ]);
+    getPenunjukan.mockResolvedValueOnce(sebelum).mockResolvedValue(sesudah);
+    tugaskanSubkegiatan.mockResolvedValue([]);
+    pindahBidangSubkegiatan.mockResolvedValue(undefined);
+    cabutSubkegiatanDariRencana.mockResolvedValue(undefined);
+
+    render(<PanelPenunjukan periode={periodeDraft} sumber={null} onPerubahan={vi.fn()} />);
+    await screen.findByText('Penyusunan Perencanaan dan Pendanaan');
+    await waitFor(() => expect(selectKegiatan().value).toBe('campuran'));
+
+    await userEvent.selectOptions(selectKegiatan(), String(PPM));
+    await screen.findByText('2 subkegiatan ditugaskan ke PPM.');
+    vi.clearAllMocks();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Urungkan' }));
+
+    // Baris 1 kembali ke P2EPD (pindah), baris 2 kembali belum ditugaskan (cabut).
+    await waitFor(() => expect(cabutSubkegiatanDariRencana).toHaveBeenCalledWith(78));
+    expect(pindahBidangSubkegiatan).toHaveBeenCalledWith(77, P2EPD);
+    expect(tugaskanSubkegiatan).not.toHaveBeenCalled();
+  });
+
+  it('menyaring daftar lewat panel beban per bidang', async () => {
+    getPenunjukan.mockResolvedValue(
+      data([
+        baris({ subkegiatanId: 1, bidangId: P2EPD, rencanaId: 77 }),
+        baris({ subkegiatanId: 2, bidangId: PPM, rencanaId: 78 }),
+      ]),
+    );
+
+    render(<PanelPenunjukan periode={periodeDraft} sumber={null} onPerubahan={vi.fn()} />);
+    await screen.findByText('Subkegiatan 1');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Saring bidang PPM' }));
+
+    expect(screen.queryByText('Subkegiatan 1')).toBeNull();
+    expect(screen.getByText('Subkegiatan 2')).toBeTruthy();
   });
 });

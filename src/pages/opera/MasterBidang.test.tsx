@@ -7,16 +7,18 @@ import MasterBidang from './MasterBidang';
 
 const getBidang = vi.fn();
 const hapusBidang = vi.fn();
+const simpanBidang = vi.fn();
 
 vi.mock('@/services', () => ({
   getBidang: (...args: unknown[]) => getBidang(...args),
   hapusBidang: (...args: unknown[]) => hapusBidang(...args),
   setAktifBidang: vi.fn(),
-  simpanBidang: vi.fn(),
+  simpanBidang: (...args: unknown[]) => simpanBidang(...args),
 }));
 
 vi.mock('@/services/api', () => ({
-  apiMessage: (_error: unknown, fallback: string) => fallback,
+  apiMessage: (error: unknown, fallback: string) =>
+    (error as { pesanServer?: string })?.pesanServer ?? fallback,
 }));
 
 beforeEach(() => {
@@ -61,5 +63,25 @@ describe('MasterBidang', () => {
 
     await waitFor(() => expect(hapusBidang).toHaveBeenCalledWith(17));
     await waitFor(() => expect(getBidang).toHaveBeenCalledTimes(2));
+  });
+
+  it('menampilkan pesan dari server saat simpan ditolak, bukan pesan mentah axios', async () => {
+    simpanBidang.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 422'), {
+        pesanServer: 'Kode bidang sudah dipakai.',
+      }),
+    );
+    render(<MasterBidang />);
+
+    await screen.findByText('Bidang Belum Dipakai');
+    await userEvent.click(screen.getByRole('button', { name: /Tambah bidang/ }));
+    const dialog = screen.getByRole('dialog');
+    const [kode, nama] = Array.from(dialog.querySelectorAll('input'));
+    await userEvent.type(kode, 'P2EPD');
+    await userEvent.type(nama, 'P2EPD');
+    await userEvent.click(screen.getByRole('button', { name: 'Simpan' }));
+
+    expect(await screen.findByText('Kode bidang sudah dipakai.')).toBeTruthy();
+    expect(screen.queryByText('Request failed with status code 422')).toBeNull();
   });
 });

@@ -156,7 +156,15 @@ export async function getRingkasanDashboard(periodeId: number): Promise<Ringkasa
   if(!periode)return null
   const bidang=h.bidang??[]
   const ring=h.ringkasan??{}
-  return{periode,capaianPd:Number(ring.capaian_pd??ring.rata_capaian_subkegiatan??0),jumlahBidang:Number(ring.jumlah_bidang??bidang.length),jumlahBidangSiap:0,jumlahSubkegiatan:Number(ring.jumlah_subkegiatan??0),jumlahAktifitas:0,jumlahRealisasi:0}
+  return {
+    periode,
+    capaianPd: Number(ring.capaian_pd ?? ring.rata_capaian_subkegiatan ?? 0),
+    jumlahBidang: Number(ring.jumlah_bidang ?? bidang.length),
+    jumlahBidangSiap: Number(ring.jumlah_bidang_siap ?? 0),
+    jumlahSubkegiatan: Number(ring.jumlah_subkegiatan ?? 0),
+    jumlahAktifitas: Number(ring.jumlah_aktifitas ?? 0),
+    jumlahRealisasi: Number(ring.jumlah_realisasi ?? 0),
+  }
 }
 
 /** Tren sampai periode terpilih; scope mengikuti peran pengguna yang masuk. */

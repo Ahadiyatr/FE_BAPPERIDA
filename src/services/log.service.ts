@@ -1,5 +1,5 @@
 import { api, dataOf } from "./api"
-import type { AksiLog, LogAktivitas, SaringLog } from "./types"
+import type { AksiLog, GrupLog, LogAktivitas, RingkasanLog, SaringLog } from "./types"
 
 /**
  * Jejak audit (TRANS_LOG_AKTIVITAS), terbaru di atas.
@@ -38,23 +38,40 @@ const map = (r: Row): LogAktivitas => ({
   bidangId: r.bidang_id,
 })
 
+/** Saringan yang sama dipakai daftar dan ringkasan, supaya angka cocok dengan daftarnya. */
+const paramsOf = (saring: SaringLog) => ({
+  bidang_id: saring.bidangId ?? undefined,
+  periode_id: saring.periodeId,
+  user_id: saring.userId,
+  aksi: saring.aksi,
+  grup: saring.grup,
+  perhatian: saring.perhatian ? 1 : undefined,
+  entitas: saring.entitas,
+  entitas_id: saring.entitasId,
+  q: saring.cari?.trim() || undefined,
+})
+
 export async function getLog(saring: SaringLog = {}): Promise<LogAktivitas[]> {
-  const params = {
-    bidang_id: saring.bidangId ?? undefined,
-    periode_id: saring.periodeId,
-    aksi: saring.aksi,
-    q: saring.cari?.trim() || undefined,
-    batas: saring.batas,
-  }
+  const params = { ...paramsOf(saring), batas: saring.batas, halaman: saring.halaman }
   return dataOf<Row[]>(await api.get("/log-aktivitas", { params })).map(map)
 }
 
-/** Hitungan { total, hariIni, pengguna } untuk strip ringkasan di layar. */
-export async function getRingkasanLog(
-  bidangId: number | null = null,
-): Promise<{ total: number; hariIni: number; pengguna: number }> {
-  const r = dataOf<{ total: number; hari_ini: number; pengguna: number }>(
-    await api.get("/log-aktivitas/ringkasan", { params: { bidang_id: bidangId ?? undefined } }),
-  )
-  return { total: r.total, hariIni: r.hari_ini, pengguna: r.pengguna }
+/** Hitungan untuk strip ringkasan, mengikuti saringan yang sama dengan `getLog`. */
+export async function getRingkasanLog(saring: SaringLog = {}): Promise<RingkasanLog> {
+  const r = dataOf<{
+    total: number
+    hari_ini: number
+    pengguna: number
+    perhatian: number
+    per_hari: { tanggal: string; jumlah: number }[]
+    per_grup: Record<GrupLog, number>
+  }>(await api.get("/log-aktivitas/ringkasan", { params: paramsOf(saring) }))
+  return {
+    total: r.total,
+    hariIni: r.hari_ini,
+    pengguna: r.pengguna,
+    perhatian: r.perhatian,
+    perHari: r.per_hari,
+    perGrup: r.per_grup,
+  }
 }

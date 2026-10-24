@@ -1,4 +1,5 @@
-import { Download, Eye, FileText, Trash2 } from "lucide-react"
+import { useRef } from "react"
+import { ChevronLeft, ChevronRight, Download, Eye, FileText, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -27,21 +28,50 @@ export async function unduhLampiran(l: RealisasiLampiran) {
   }
 }
 
+/** Jarak geser horizontal minimum (px) agar sentuhan dihitung sebagai swipe. */
+const AMBANG_GESER = 50
+
 /** Modal pratinjau satu lampiran — PDF & gambar tampil langsung, format lain
- * jatuh ke tombol unduh (lihat DocumentPreview). */
+ * jatuh ke tombol unduh (lihat DocumentPreview). Bila `daftar` berisi lebih dari
+ * satu foto, foto bisa digeser lewat tombol ‹ ›, panah keyboard, atau swipe;
+ * dokumen dilewati dan navigasi berputar di ujung daftar. */
 export function PratinjauLampiran({
-  lampiran, onTutup,
+  lampiran, onTutup, daftar, onGanti,
 }: {
   lampiran: RealisasiLampiran
   onTutup: () => void
+  daftar?: RealisasiLampiran[]
+  onGanti?: (l: RealisasiLampiran) => void
 }) {
   const ext = ekstensiBerkas(lampiran.namaBerkas)
+  const fotos = (daftar ?? []).filter((l) => l.tipeBerkas === "FOTO")
+  const posisi = fotos.findIndex((l) => l.id === lampiran.id)
+  const bisaGeser = !!onGanti && posisi >= 0 && fotos.length > 1
+  const awalSentuh = useRef<number | null>(null)
+
+  const geser = (arah: 1 | -1) => {
+    if (!bisaGeser) return
+    onGanti(fotos[(posisi + arah + fotos.length) % fotos.length])
+  }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onTutup()}>
-      <DialogContent className="sm:max-w-3xl lg:max-w-4xl">
+      <DialogContent
+        className="sm:max-w-3xl lg:max-w-4xl"
+        onKeyDown={(e) => {
+          if (e.key === "ArrowLeft") geser(-1)
+          else if (e.key === "ArrowRight") geser(1)
+        }}
+      >
         <DialogHeader>
-          <DialogTitle className="pr-8 text-base break-all">{lampiran.namaBerkas}</DialogTitle>
+          <DialogTitle className="pr-8 text-base break-all">
+            {lampiran.namaBerkas}
+            {bisaGeser && (
+              <span className="ml-2 text-sm font-normal text-slate-500 tabular">
+                {posisi + 1} / {fotos.length}
+              </span>
+            )}
+          </DialogTitle>
           <DialogDescription>
             Pratinjau bukti lampiran. Berkas dapat diunduh melalui tombol di bawah.
           </DialogDescription>
@@ -49,12 +79,44 @@ export function PratinjauLampiran({
 
         <div className="overflow-hidden rounded-xl bg-slate-100">
           {lampiran.tipeBerkas === "FOTO" ? (
-            <div className="h-[70vh]">
+            <div
+              className="relative h-[70vh]"
+              onTouchStart={(e) => { awalSentuh.current = e.touches[0]?.clientX ?? null }}
+              onTouchEnd={(e) => {
+                const awal = awalSentuh.current
+                const akhir = e.changedTouches[0]?.clientX
+                awalSentuh.current = null
+                if (awal == null || akhir == null) return
+                const jarak = akhir - awal
+                if (Math.abs(jarak) >= AMBANG_GESER) geser(jarak < 0 ? 1 : -1)
+              }}
+            >
               <AuthedImage
+                key={lampiran.id}
                 lampiranId={lampiran.id}
                 alt={lampiran.namaBerkas}
                 className="h-full w-full object-contain"
               />
+              {bisaGeser && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Foto sebelumnya"
+                    onClick={() => geser(-1)}
+                    className="absolute left-3 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-md transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  >
+                    <ChevronLeft className="size-6" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Foto berikutnya"
+                    onClick={() => geser(1)}
+                    className="absolute right-3 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-md transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  >
+                    <ChevronRight className="size-6" />
+                  </button>
+                </>
+              )}
             </div>
           ) : ext === "pdf" ? (
             <div className="h-[75vh]">

@@ -23,6 +23,7 @@ import type {
 } from "@/services"
 import type { BarisMaster, IdTingkat } from "./tingkat"
 import { TINGKAT } from "./tingkat"
+import { apiMessage } from "@/services/api"
 
 const teks = (pesan: string) => z.string().trim().min(1, pesan)
 const titleCase = (nilai: string) => nilai
@@ -206,7 +207,7 @@ export function LaciMaster({
       onTersimpan()
       onTutup()
     } catch (err) {
-      setGalat(err instanceof Error ? err.message : "Gagal menyimpan.")
+      setGalat(apiMessage(err, "Gagal menyimpan."))
     }
   }
 
@@ -249,7 +250,7 @@ export function LaciMaster({
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="kodeProgram">Kode program</FieldLabel>
-                  <Input id="kodeProgram" className="font-mono" placeholder="5.1.2" {...form.register("kodeProgram")} />
+                  <Input id="kodeProgram" className="font-mono" placeholder="5.01.02" {...form.register("kodeProgram")} />
                   <FieldError errors={e("kodeProgram")} />
                 </Field>
                 <Field>
@@ -273,7 +274,7 @@ export function LaciMaster({
               <>
                 <Field>
                   <FieldLabel htmlFor="kodeKegiatan">Kode kegiatan</FieldLabel>
-                  <Input id="kodeKegiatan" className="font-mono" placeholder="5.1.2.2.01" {...form.register("kodeKegiatan")} />
+                  <Input id="kodeKegiatan" className="font-mono" placeholder="5.01.02.2.01" {...form.register("kodeKegiatan")} />
                   <FieldError errors={e("kodeKegiatan")} />
                 </Field>
                 <Field>
@@ -297,7 +298,7 @@ export function LaciMaster({
               <>
                 <Field>
                   <FieldLabel htmlFor="kodeIndikatorUtama">Kode subkegiatan</FieldLabel>
-                  <Input id="kodeIndikatorUtama" className="font-mono" placeholder="5.1.2.2.01.1" {...form.register("kodeIndikatorUtama")} />
+                  <Input id="kodeIndikatorUtama" className="font-mono" placeholder="5.01.02.2.01.0001" {...form.register("kodeIndikatorUtama")} />
                   <FieldError errors={e("kodeIndikatorUtama")} />
                 </Field>
                 <Field>

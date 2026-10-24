@@ -18,7 +18,11 @@ export interface MonitoringAktifitas {
   jumlahCatatan: number
   jumlahLampiran: number
   flagAdhoc: boolean
+  /** Pendukung yang dikeluarkan bidang dari pembagi 30/n. Hanya terlihat di layar penyusunan (DRAFT). */
+  dipakai: boolean
   urutan: number
+  /** Total jumlah rencana agenda kalender (tanpa BATAL). Hanya dari GET bidang-saya/rencana. */
+  jumlahTerjadwal?: number
 }
 
 export interface MonitoringSubkegiatan {
@@ -86,7 +90,9 @@ type AktifitasRow = {
   jumlah_catatan: number
   jumlah_lampiran?: number
   flag_adhoc: boolean
+  dipakai?: boolean
   urutan: number
+  jumlah_terjadwal?: number
 }
 type SubkegiatanRow = {
   id: number
@@ -140,7 +146,9 @@ const aktifitas = (r: AktifitasRow): MonitoringAktifitas => ({
   jumlahCatatan: Number(r.jumlah_catatan),
   jumlahLampiran: Number(r.jumlah_lampiran ?? 0),
   flagAdhoc: Boolean(r.flag_adhoc),
+  dipakai: r.dipakai ?? true,
   urutan: r.urutan,
+  ...(r.jumlah_terjadwal != null && { jumlahTerjadwal: Number(r.jumlah_terjadwal) }),
 })
 
 const subkegiatan = (r: SubkegiatanRow): MonitoringSubkegiatan => ({

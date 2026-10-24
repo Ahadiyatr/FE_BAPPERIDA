@@ -1,78 +1,78 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-interface PaginationProps {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}
+import { PILIHAN_UKURAN, nomorHalaman, type Paginasi } from "@/lib/paginasi";
 
-export default function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
-  if (totalPages <= 1) return null;
+type KontrolHalamanProps = Pick<
+  Paginasi<unknown>,
+  "halaman" | "ukuran" | "totalHalaman" | "total" | "dari" | "sampai" | "setHalaman" | "setUkuran"
+>;
 
-  const pages = [];
-  for (let i = 1; i <= totalPages; i++) {
-    pages.push(i);
-  }
+const tombol =
+  "inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 disabled:pointer-events-none disabled:opacity-40";
+
+/** "Tampilkan N data" + info rentang + navigasi halaman, di kaki tabel daftar. */
+export default function KontrolHalaman({
+  halaman, ukuran, totalHalaman, total, dari, sampai, setHalaman, setUkuran,
+}: KontrolHalamanProps) {
+  if (total === 0) return null;
 
   return (
-    <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 mt-4 rounded-b-2xl">
-      <div className="flex flex-1 justify-between sm:hidden">
-        <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="relative inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-        >
-          Previous
-        </button>
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="relative ml-3 inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-        >
-          Next
-        </button>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-white px-4 py-3 text-sm text-slate-600 sm:px-6">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <label className="inline-flex items-center gap-2">
+          Tampilkan
+          <select
+            value={ukuran}
+            onChange={(e) => setUkuran(Number(e.target.value))}
+            aria-label="Jumlah data per halaman"
+            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none"
+          >
+            {PILIHAN_UKURAN.map((u) => <option key={u} value={u}>{u}</option>)}
+          </select>
+          data
+        </label>
+        <p className="tabular">
+          Menampilkan {dari}–{sampai} dari {total} data
+        </p>
       </div>
-      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm text-slate-700">
-            Halaman <span className="font-medium">{currentPage}</span> dari{" "}
-            <span className="font-medium">{totalPages}</span>
-          </p>
-        </div>
-        <div>
-          <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-            <button
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-            >
-              <span className="sr-only">Previous</span>
-              <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-            </button>
-            {pages.map((page) => (
+      {totalHalaman > 1 && (
+        <nav className="flex items-center gap-1" aria-label="Navigasi halaman">
+          <button
+            type="button"
+            className={`${tombol} text-slate-600 hover:bg-slate-100`}
+            onClick={() => setHalaman(halaman - 1)}
+            disabled={halaman === 1}
+            aria-label="Halaman sebelumnya"
+          >
+            <ChevronLeft className="size-4" aria-hidden="true" />
+          </button>
+          {nomorHalaman(halaman, totalHalaman).map((n, i) =>
+            n === null ? (
+              <span key={`elipsis-${i}`} className="px-1 text-slate-400" aria-hidden="true">…</span>
+            ) : (
               <button
-                key={page}
-                onClick={() => onPageChange(page)}
-                className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus:outline-offset-0 ${
-                  currentPage === page
-                    ? "z-10 bg-emerald-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-                    : "text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
-                }`}
+                key={n}
+                type="button"
+                className={`${tombol} tabular ${n === halaman ? "bg-emerald-600 text-white" : "text-slate-700 hover:bg-slate-100"}`}
+                onClick={() => setHalaman(n)}
+                aria-label={`Halaman ${n}`}
+                aria-current={n === halaman ? "page" : undefined}
               >
-                {page}
+                {n}
               </button>
-            ))}
-            <button
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-            >
-              <span className="sr-only">Next</span>
-              <ChevronRight className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </nav>
-        </div>
-      </div>
+            ),
+          )}
+          <button
+            type="button"
+            className={`${tombol} text-slate-600 hover:bg-slate-100`}
+            onClick={() => setHalaman(halaman + 1)}
+            disabled={halaman === totalHalaman}
+            aria-label="Halaman berikutnya"
+          >
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </button>
+        </nav>
+      )}
     </div>
   );
 }

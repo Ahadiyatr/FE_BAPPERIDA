@@ -101,7 +101,7 @@ export default function Login() {
   }, [alihkanSetelahLogin, memuat, user]);
 
   return (
-    <div className="flex flex-col justify-center min-h-screen py-12 font-sans bg-gradient-to-br from-emerald-50 via-slate-50 to-yellow-50 sm:px-6 lg:px-8">
+    <div className="flex flex-col justify-center min-h-screen py-12 font-sans bg-linear-to-br from-emerald-50 via-slate-50 to-yellow-50 sm:px-6 lg:px-8">
       {/* DEV ONLY: Info login akun developer */}
       {import.meta.env.DEV && (
       <div className="mb-4 sm:mx-auto sm:w-full sm:max-w-md">
@@ -137,7 +137,7 @@ export default function Login() {
       )}
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="p-3 shadow-lg bg-gradient-to-br from-emerald-500 to-yellow-400 rounded-2xl">
+          <div className="p-3 shadow-lg bg-linear-to-br from-emerald-500 to-yellow-400 rounded-2xl">
             <Activity className="w-10 h-10 text-white" />
           </div>
         </div>
@@ -155,7 +155,7 @@ export default function Login() {
             {error && (
               <div className="p-4 border-l-4 border-red-500 rounded-md bg-red-50">
                 <div className="flex">
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     <svg
                       className="w-5 h-5 text-red-400"
                       viewBox="0 0 20 20"
@@ -255,7 +255,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex justify-center w-full px-4 py-3 text-sm font-bold text-white transition-all border border-transparent shadow-sm rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="flex justify-center w-full px-4 py-3 text-sm font-bold text-white transition-all border border-transparent shadow-sm rounded-xl bg-linear-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <svg

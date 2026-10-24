@@ -24,6 +24,7 @@ import type {
 import { alasanCentangTerkunci, pendukungDipakai } from "@/lib/bobot-pendukung"
 import { teksSatuanKinerja } from "@/lib/metadata-kinerja"
 import { cn } from "@/lib/utils"
+import { apiMessage } from "@/services/api"
 
 const persen = (n: number) =>
   `${n.toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
@@ -146,7 +147,7 @@ function Editor({
 
   async function bungkus(f: () => Promise<unknown>) {
     try { await f(); await onBerubah() }
-    catch (e) { onGalat(e instanceof Error ? e.message : "Gagal menyimpan.") }
+    catch (e) { onGalat(apiMessage(e, "Gagal menyimpan.")) }
   }
 
   return (
@@ -367,7 +368,7 @@ export default function RencanaBidang() {
       setKatalog(k)
       setPilih((p) => (r?.baris.some((b) => b.subkegiatanBidang.id === p) ? p : r?.baris[0]?.subkegiatanBidang.id ?? null))
     } catch (e) {
-      setGalat(e instanceof Error ? e.message : "Gagal memuat rencana.")
+      setGalat(apiMessage(e, "Gagal memuat rencana."))
     }
   }, [idBidang, periodeId])
 
@@ -389,21 +390,22 @@ export default function RencanaBidang() {
     if (periodeId == null) return
     setMenandai(true)
     try { await tandaiKesiapan(idBidang, periodeId, s); await muat() }
-    catch (e) { setGalat(e instanceof Error ? e.message : "Gagal menandai.") }
+    catch (e) { setGalat(apiMessage(e, "Gagal menandai.")) }
     finally { setMenandai(false) }
   }
 
   async function bungkus(f: () => Promise<unknown>) {
     setGalat(null)
     try { await f(); await muat() }
-    catch (e) { setGalat(e instanceof Error ? e.message : "Gagal menyimpan.") }
+    catch (e) { setGalat(apiMessage(e, "Gagal menyimpan.")) }
   }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/rencana"><ArrowLeft className="size-3.5" /> Papan kesiapan</Link>
+          {/* Kembali ke tab dan periode asal, bukan ke tab bawaan (Penunjukan). */}
+          <Link to={`/rencana?tab=kesiapan${periodeId != null ? `&periode=${periodeId}` : ""}`}><ArrowLeft className="size-3.5" /> Papan kesiapan</Link>
         </Button>
         <div className="min-w-0">
           <Eyebrow>Menyusun rencana{rencana ? ` · ${rencana.periode.namaPeriode}` : ""}</Eyebrow>

@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { PenyediaPeran } from './peran';
+import { bolehAkses, PenyediaPeran } from './peran';
 import { api } from '@/services/api';
 
 vi.mock('@/services/api', () => ({
@@ -18,6 +18,14 @@ beforeEach(() => {
 });
 
 afterEach(cleanup);
+
+describe('akses bukti kegiatan', () => {
+  it('mengizinkan admin bidang dan admin aplikasi, tetapi bukan pengunjung', () => {
+    expect(bolehAkses('admin_bidang', '/bukti')).toBe(true);
+    expect(bolehAkses('admin_aplikasi', '/bukti')).toBe(true);
+    expect(bolehAkses('publik', '/bukti')).toBe(false);
+  });
+});
 
 describe('PenyediaPeran', () => {
   it('tidak memeriksa sesi pada halaman login', () => {
@@ -45,7 +53,9 @@ describe('PenyediaPeran', () => {
     expect(screen.getByRole('heading', { name: 'Sesi berakhir' })).toBeTruthy();
     expect(screen.getByText(/masa aktif sesi Anda telah habis/i)).toBeTruthy();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Masuk kembali' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Masuk kembali' }),
+    );
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 });

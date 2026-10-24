@@ -8,6 +8,7 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
+import KontrolHalaman from "@/components/Pagination"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -15,6 +16,7 @@ import {
   simpanPeriode, ubahStatusPeriode,
 } from "@/services"
 import { apiMessage } from "@/services/api"
+import { usePaginasi } from "@/lib/paginasi"
 import type { Dokumen, Periode, StatusPeriode, SyaratBukaPeriode } from "@/services"
 import { Panel, Th } from "./bagian/ui"
 
@@ -59,6 +61,7 @@ export default function PeriodeLayar() {
     }
   }, [])
   React.useEffect(() => { void muat() }, [muat])
+  const paginasi = usePaginasi(daftar)
 
   async function ubah(p: Periode, ke: StatusPeriode) {
     setGalat(null)
@@ -118,7 +121,7 @@ export default function PeriodeLayar() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {memuat && <tr><td colSpan={6} className="px-6 py-8 text-sm text-center text-slate-400">Memuat…</td></tr>}
-            {!memuat && daftar.map((p) => {
+            {!memuat && paginasi.potongan.map((p) => {
               const s = syarat[p.id]
               const halangan = s && !s.boleh
                 ? s.adaPeriodeLainTerbuka
@@ -181,6 +184,7 @@ export default function PeriodeLayar() {
             })}
           </tbody>
         </table>
+        {!memuat && <KontrolHalaman {...paginasi} />}
       </Panel>
 
       {form !== undefined && (

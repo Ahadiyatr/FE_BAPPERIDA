@@ -1,0 +1,76 @@
+// @vitest-environment jsdom
+import { cleanup, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import Landing from './Landing';
+
+const getLandingPublik = vi.fn();
+
+vi.mock('../services/public-dashboard.service', () => ({
+  getLandingPublik: () => getLandingPublik(),
+}));
+
+const landingTerisi = {
+  periode: { id: 1, nama_periode: 'Triwulan IV 2026', status: 'LOCKED' },
+  summary: { jumlah_bidang: 2, jumlah_program: 1, jumlah_subkegiatan: 3, rata_capaian_subkegiatan: 75.83, capaian_pd: 75.83 },
+  bidang: [
+    { bidang_id: 1, nama_bidang: 'P2EPD', jumlah_subkegiatan: 2, capaian_bidang: 63.75 },
+    { bidang_id: 2, nama_bidang: 'PPM', jumlah_subkegiatan: 1, capaian_bidang: 100 },
+  ],
+  distribusi: [
+    { bidang_id: 1, nama_bidang: 'P2EPD', persentase: 66.67 },
+    { bidang_id: 2, nama_bidang: 'PPM', persentase: 33.33 },
+  ],
+  radar: [],
+  program: [],
+};
+
+beforeAll(() => {
+  // Recharts ResponsiveContainer membutuhkan ResizeObserver yang tidak ada di jsdom.
+  globalThis.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
+});
+
+beforeEach(() => {
+  getLandingPublik.mockReset();
+  getLandingPublik.mockResolvedValue(landingTerisi);
+});
+
+afterEach(cleanup);
+
+describe('Landing publik — format angka', () => {
+  it('memakai format Indonesia satu desimal seperti layar admin', async () => {
+    render(<MemoryRouter><Landing /></MemoryRouter>);
+
+    expect(await screen.findByText('75,8%')).toBeTruthy();
+    expect(screen.getAllByText('63,8%').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('100,0%').length).toBeGreaterThan(0);
+    expect(document.body.textContent).not.toMatch(/\d\.\d+%/);
+  });
+
+  it('menyebut periode yang sedang ditampilkan', async () => {
+    render(<MemoryRouter><Landing /></MemoryRouter>);
+
+    expect(await screen.findByText(/Triwulan IV 2026 · sudah dikunci/)).toBeTruthy();
+  });
+});
+
+describe('Landing publik — belum ada periode dipublikasikan', () => {
+  it('menampilkan keadaan kosong, bukan capaian 0,0% dan grafik kosong', async () => {
+    getLandingPublik.mockResolvedValue({
+      periode: null,
+      summary: null,
+      bidang: [],
+      distribusi: [],
+      radar: [],
+      program: [],
+    });
+
+    render(<MemoryRouter><Landing /></MemoryRouter>);
+
+    expect(await screen.findByText('Belum ada periode kinerja yang dipublikasikan')).toBeTruthy();
+    expect(screen.queryByText('0,0%')).toBeNull();
+    expect(screen.queryByText('Capaian Keseluruhan')).toBeNull();
+    expect(screen.queryByText('Capaian Per Bidang (%)')).toBeNull();
+  });
+});

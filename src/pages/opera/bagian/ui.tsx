@@ -76,8 +76,7 @@ export function BarCapaian({ persen }: { persen: number }) {
   )
 }
 
-export const persen1 = (n: number) =>
-  `${n.toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+export { persen1 } from "@/lib/format-angka"
 
 export function PilihPeriode({
   periodes, nilai, onPilih,

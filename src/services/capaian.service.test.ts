@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getKegiatan: vi.fn(),
   getKegiatanById: vi.fn(),
   getBidang: vi.fn(),
+  getPeriode: vi.fn(),
 }));
 
 vi.mock('./api', () => ({
@@ -22,18 +23,31 @@ vi.mock('./kegiatan.service', () => ({
   getKegiatanById: mocks.getKegiatanById,
 }));
 vi.mock('./bidang.service', () => ({ getBidang: mocks.getBidang }));
-vi.mock('./periode.service', () => ({ getPeriode: vi.fn() }));
+vi.mock('./periode.service', () => ({ getPeriode: mocks.getPeriode }));
 
 import {
   getCapaianPeriode,
   getCapaianProgram,
   getRincianKegiatan,
+  getRingkasanDashboard,
   hitungUlangCapaian,
 } from './capaian.service';
 
 beforeEach(() => vi.clearAllMocks());
 
 describe('capaian service', () => {
+  it('menampilkan angka ringkasan API tanpa menggantinya dengan nol', async () => {
+    mocks.getPeriode.mockResolvedValue([{ id: 4, status: 'OPEN' }]);
+    mocks.apiGet.mockResolvedValue({ data: { data: { ringkasan: {
+      capaian_pd: 93.5, jumlah_bidang: 1, jumlah_bidang_siap: 1,
+      jumlah_subkegiatan: 4, jumlah_aktifitas: 67, jumlah_realisasi: 143,
+    } } } });
+    await expect(getRingkasanDashboard(4)).resolves.toMatchObject({
+      capaianPd: 93.5, jumlahBidang: 1, jumlahBidangSiap: 1,
+      jumlahSubkegiatan: 4, jumlahAktifitas: 67, jumlahRealisasi: 143,
+    });
+  });
+
   it('membaca snapshot dan menjalankan pemulihan capaian periode', async () => {
     const response = {
       data: {

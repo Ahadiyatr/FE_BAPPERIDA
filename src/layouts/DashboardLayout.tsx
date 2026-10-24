@@ -27,9 +27,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { GantiKataSandiDialog } from '@/components/opera/ganti-kata-sandi-dialog';
-import { LABEL_PERAN, bolehAkses, usePeran } from '@/lib/peran';
+import { LABEL_PERAN, bolehAkses, usePeran, type Peran } from '@/lib/peran';
 
-const semuaMenu = [
+interface ItemMenu {
+  name: string;
+  href: string;
+  icon: typeof Database;
+  /** Label lain untuk admin bidang, bila halaman yang sama dipakai dua peran. */
+  namaAdminBidang?: string;
+}
+
+const semuaMenu: { label: string; items: ItemMenu[] }[] = [
   {
     label: 'Ringkasan',
     items: [
@@ -38,7 +46,12 @@ const semuaMenu = [
         href: '/dashboard',
         icon: LayoutDashboard,
       },
-      { name: 'Monitoring Kinerja', href: '/monitoring', icon: Table2 },
+      {
+        name: 'Monitoring Kinerja',
+        namaAdminBidang: 'Capaian Program',
+        href: '/monitoring',
+        icon: Table2,
+      },
       { name: 'Struktur Program', href: '/struktur', icon: Layers },
       { name: 'Capaian Program', href: '/capaian-program', icon: BarChart2 },
     ],
@@ -48,7 +61,8 @@ const semuaMenu = [
     items: [
       { name: 'Periode', href: '/periode', icon: Calendar },
       { name: 'Penyusunan Rencana', href: '/rencana', icon: Target },
-      { name: 'Rencana Saya', href: '/rencana-saya', icon: Target },
+      // Hanya untuk admin bidang (lihat peran.tsx).
+      { name: 'Program Bidang', href: '/rencana-saya', icon: Target },
     ],
   },
   {
@@ -60,10 +74,10 @@ const semuaMenu = [
     ],
   },
   {
-    label: 'Administrasi',
+    label: 'Master Data',
     items: [
       { name: 'Dokumen', href: '/master-dokumen', icon: Database },
-      { name: 'Data Master', href: '/master/program', icon: Database },
+      { name: 'Program', href: '/master/program', icon: Database },
       { name: 'Bidang', href: '/master-bidang', icon: Layers },
       { name: 'Pengguna', href: '/pengguna', icon: Database },
     ],
@@ -74,16 +88,20 @@ const semuaMenu = [
   },
 ];
 
-function judulDariPath(pathname: string) {
+const namaMenu = (item: ItemMenu, peran: Peran) =>
+  peran === 'admin_bidang' && item.namaAdminBidang ? item.namaAdminBidang : item.name;
+
+function judulDariPath(pathname: string, peran: Peran) {
   if (pathname === '/dashboard') return 'Dashboard Umum';
   if (pathname.startsWith('/bidang/')) return 'Kinerja Bidang';
   if (pathname === '/struktur') return 'Struktur Program';
   if (pathname === '/capaian-program') return 'Capaian Program';
   if (pathname.startsWith('/monitoring/subkegiatan/'))
     return 'Detail Subkegiatan';
-  if (pathname === '/monitoring') return 'Monitoring Kinerja';
-  if (pathname.startsWith('/rencana-saya/')) return 'Detail Rencana Saya';
-  if (pathname === '/rencana-saya') return 'Rencana Saya';
+  if (pathname === '/monitoring')
+    return peran === 'admin_bidang' ? 'Capaian Program' : 'Monitoring Kinerja';
+  if (pathname.startsWith('/rencana-saya/')) return 'Detail Program Bidang';
+  if (pathname === '/rencana-saya') return 'Program Bidang';
   if (pathname.startsWith('/rencana/')) return 'Rencana Bidang';
   if (pathname === '/rencana') return 'Penyusunan Rencana';
   if (pathname === '/kalender') return 'Kalender Rencana Pelaksanaan';
@@ -94,7 +112,7 @@ function judulDariPath(pathname: string) {
   if (pathname === '/master-bidang') return 'Master Bidang';
   if (pathname === '/master-dokumen') return 'Master Dokumen Perencanaan';
   if (pathname === '/pengguna') return 'Manajemen Pengguna';
-  if (pathname.startsWith('/master/')) return 'Data Master';
+  if (pathname.startsWith('/master/')) return 'Program';
   return null;
 }
 
@@ -118,7 +136,7 @@ export default function DashboardLayout() {
     .map(nama => nama[0])
     .join('')
     .toUpperCase();
-  const judulHalaman = judulDariPath(pathname);
+  const judulHalaman = judulDariPath(pathname, peran);
 
   if (memuat)
     return (
@@ -128,7 +146,7 @@ export default function DashboardLayout() {
     );
 
   return (
-    <div className="flex h-screen gap-4 overflow-hidden bg-[var(--color-surface-subtle)] p-4 font-sans max-lg:p-2.5">
+    <div className="flex h-screen gap-4 overflow-hidden bg-(--color-surface-subtle) p-4 font-sans max-lg:p-2.5">
       {terbuka && (
         <button
           aria-label="Tutup menu"
@@ -182,12 +200,12 @@ export default function DashboardLayout() {
                     <Link
                       key={item.href}
                       to={item.href}
-                      title={ringkas ? item.name : undefined}
+                      title={ringkas ? namaMenu(item, peran) : undefined}
                       onClick={() => setTerbuka(false)}
                       className={`mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${aktif ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'} ${ringkas ? 'justify-center' : ''}`}
                     >
                       <Icon className="w-5 h-5 shrink-0" />
-                      {!ringkas && <span className="min-w-0">{item.name}</span>}
+                      {!ringkas && <span className="min-w-0">{namaMenu(item, peran)}</span>}
                     </Link>
                   );
                 })}
@@ -206,7 +224,7 @@ export default function DashboardLayout() {
         </div>
       </aside>
       <section className="flex min-w-0 flex-1 flex-col gap-2.5">
-        <header className="flex h-[76px] shrink-0 items-center justify-between rounded-[20px] border border-slate-200 bg-white px-4 shadow-sm sm:px-6">
+        <header className="flex h-19 shrink-0 items-center justify-between rounded-[20px] border border-slate-200 bg-white px-4 shadow-sm sm:px-6">
           <div className="flex items-center min-w-0 gap-3">
             <button
               aria-label="Buka menu"

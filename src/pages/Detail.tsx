@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiMessage } from "../services/api";
+import { persen1 } from "../lib/format-angka";
 import { getDetailBidangPublik, type DetailBidangPublik } from "../services/public-dashboard.service";
 import { DESIGN_COLOR } from "../lib/design-tokens";
 
@@ -45,17 +46,17 @@ export default function Detail() {
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke={DESIGN_COLOR.border} strokeWidth="12" />
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke={DESIGN_COLOR.brand} strokeWidth="12" strokeLinecap="round" strokeDasharray={`${(Math.min(100, Math.max(0, data.header.capaian_bidang)) / 100) * (2 * Math.PI * 40)} ${2 * Math.PI * 40}`} className="transition-all duration-1000 ease-out" />
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-bold tracking-tight text-slate-800">{data.header.capaian_bidang.toFixed(1)}%</span></div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-bold tracking-tight text-slate-800">{persen1(data.header.capaian_bidang)}</span></div>
             </div>
             <div className="flex flex-col text-center md:text-left">
               <div className="mb-2 flex items-center justify-center gap-3 md:justify-start"><div className="h-3 w-3 rounded-full bg-blue-500" /><h1 className="text-3xl font-bold text-slate-800">{data.header.nama_bidang}</h1></div>
-              <p className="font-medium text-slate-500">{data.header.jumlah_subkegiatan} subkegiatan · Rata-rata capaian {data.header.capaian_bidang.toFixed(1)}%</p>
+              <p className="font-medium text-slate-500">{data.header.jumlah_subkegiatan} subkegiatan · Rata-rata capaian {persen1(data.header.capaian_bidang)}</p>
             </div>
           </div>
 
           <div className="mt-8 overflow-hidden rounded-xl border border-slate-100 bg-white"><div className="overflow-x-auto">
             <table className="w-full min-w-[800px] text-left text-sm"><thead className="border-b border-slate-100 bg-white text-xs text-slate-400"><tr><th className="w-16 px-6 py-4 text-center font-semibold">No</th><th className="px-6 py-4 font-semibold">Subkegiatan</th><th className="w-64 px-6 py-4 font-semibold">Progress</th><th className="w-20 px-6 py-4 text-right font-semibold">%</th></tr></thead>
-              <tbody className="divide-y divide-slate-100">{data.rincian.map((subkegiatan, index) => <tr key={subkegiatan.id} className="transition-colors hover:bg-slate-50"><td className="px-6 py-4 text-center font-medium text-slate-400">{index + 1}</td><td className="px-6 py-4 font-medium text-slate-700"><div>{subkegiatan.nama_subkegiatan}</div><div className="mt-1 text-xs font-normal text-slate-400">{subkegiatan.kode_subkegiatan}</div></td><td className="px-6 py-4"><div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-blue-500 transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, Math.max(0, subkegiatan.capaian))}%` }} /></div></td><td className="px-6 py-4 text-right font-semibold text-blue-600">{subkegiatan.capaian.toFixed(1)}%</td></tr>)}</tbody>
+              <tbody className="divide-y divide-slate-100">{data.rincian.map((subkegiatan, index) => <tr key={subkegiatan.id} className="transition-colors hover:bg-slate-50"><td className="px-6 py-4 text-center font-medium text-slate-400">{index + 1}</td><td className="px-6 py-4 font-medium text-slate-700"><div>{subkegiatan.nama_subkegiatan}</div><div className="mt-1 text-xs font-normal text-slate-400">{subkegiatan.kode_subkegiatan}</div></td><td className="px-6 py-4"><div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-blue-500 transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, Math.max(0, subkegiatan.capaian))}%` }} /></div></td><td className="px-6 py-4 text-right font-semibold text-blue-600">{persen1(subkegiatan.capaian)}</td></tr>)}</tbody>
             </table>
           </div></div>
         </main>

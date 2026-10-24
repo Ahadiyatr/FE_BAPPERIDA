@@ -10,6 +10,7 @@ import type { DetailSubkegiatan } from "@/services"
 import { apiMessage } from "@/services/api"
 import { teksOutputKinerja, teksSatuanKinerja } from "@/lib/metadata-kinerja"
 import { BarCapaian, Panel, Th, persen1, warnaCapaian } from "./bagian/ui"
+import { SusunPendukung } from "./rencana/SusunPendukung"
 
 const angka = (n: number) => n.toLocaleString("id-ID", { maximumFractionDigits: 2 })
 
@@ -34,18 +35,22 @@ export default function RencanaSayaDetail() {
 
   React.useEffect(() => { void muat() }, [muat])
 
+  // Setelah menyusun pendukung: segarkan tanpa layar "Memuat…" supaya posisi gulir tidak hilang.
+  const segarkan = React.useCallback(async () => { setData(await getRencanaSayaDetail(id)) }, [id])
+
   if (memuat) return <Panel><p className="p-8 text-center text-sm text-slate-400">Memuat detail rencana…</p></Panel>
   if (galat || !data) return <Panel><div className="p-8 text-center"><p className="text-sm text-red-600">{galat ?? "Data tidak tersedia."}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => void muat()}><RefreshCw className="size-3.5" /> Coba lagi</Button></div></Panel>
 
   const utama = data.aktifitas.find((a) => a.tipeAktifitas === "UTAMA")
-  const pendukung = data.aktifitas.filter((a) => a.tipeAktifitas === "PENDUKUNG")
+  const pendukung = data.aktifitas.filter((a) => a.tipeAktifitas === "PENDUKUNG" && a.dipakai)
   const dapatMencatat = data.periode?.status === "OPEN"
+  const dapatMenyusun = data.periode?.status === "DRAFT"
   const jumlahCatatan = data.aktifitas.reduce((n, a) => n + a.jumlahCatatan, 0)
   const jumlahLampiran = data.aktifitas.reduce((n, a) => n + a.jumlahLampiran, 0)
 
   return <div className="space-y-6">
     <div className="flex flex-wrap items-center gap-3">
-      <Button variant="ghost" size="sm" asChild className="-ml-2"><Link to="/rencana-saya"><ArrowLeft className="size-3.5" /> Rencana Saya</Link></Button>
+      <Button variant="ghost" size="sm" asChild className="-ml-2"><Link to="/rencana-saya"><ArrowLeft className="size-3.5" /> Program Bidang</Link></Button>
       {data.periode && <span className="ml-auto rounded-lg bg-slate-100 px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-slate-600">{data.periode.namaPeriode} · {data.periode.status}</span>}
     </div>
 
@@ -62,14 +67,17 @@ export default function RencanaSayaDetail() {
       </div>
     </Panel>
 
-    {!dapatMencatat && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Rencana ini hanya dapat dilihat. Pencatatan realisasi tersedia ketika periode berstatus <b>OPEN</b>.</div>}
+    {dapatMenyusun && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Periode masih <b>DRAFT</b>: aktivitas pendukung dapat disusun di bawah. Pencatatan realisasi tersedia ketika periode berstatus <b>OPEN</b>.</div>}
+    {!dapatMencatat && !dapatMenyusun && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Rencana ini hanya dapat dilihat. Pencatatan realisasi tersedia ketika periode berstatus <b>OPEN</b>.</div>}
+
+    {dapatMenyusun && <SusunPendukung rencanaId={data.id} aktifitas={data.aktifitas} onBerubah={segarkan} />}
 
     <Panel judul={`Aktivitas (${data.aktifitas.length})`}>
       <div className="overflow-x-auto"><table className="min-w-full divide-y divide-slate-200">
         <thead className="bg-slate-50"><tr><Th>Aktivitas</Th><Th kanan>Bobot</Th><Th kanan>Realisasi</Th><Th kanan>Bobot real.</Th><Th kanan>Catatan / bukti</Th><Th kanan>Tindakan</Th></tr></thead>
         <tbody className="divide-y divide-slate-100">{data.aktifitas.map((a) => <tr key={a.id} className="hover:bg-slate-50">
-          <td className="max-w-xl px-6 py-3"><span className={`mr-2 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${a.tipeAktifitas === "UTAMA" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{a.tipeAktifitas === "UTAMA" ? "Utama" : "Pendukung"}</span><span className="text-sm text-slate-700">{a.namaAktifitas}</span></td>
-          <td className="px-6 py-3 text-right text-sm tabular">{persen1(a.bobotTarget)}</td><td className="px-6 py-3 text-right text-sm tabular">{angka(a.realisasi)} / {angka(a.target)}<div className="mt-1"><MelebihiTargetBadge realisasi={a.realisasi} target={a.target} /></div></td><td className="px-6 py-3 text-right text-sm tabular">{persen1(a.bobotRealisasi)}</td><td className="px-6 py-3 text-right text-sm tabular">{a.jumlahCatatan} / {a.jumlahLampiran}</td>
+          <td className="max-w-xl px-6 py-3"><span className={`mr-2 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${a.tipeAktifitas === "UTAMA" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{a.tipeAktifitas === "UTAMA" ? "Utama" : "Pendukung"}</span><span className={a.dipakai ? "text-sm text-slate-700" : "text-sm text-slate-400 line-through"}>{a.namaAktifitas}</span>{!a.dipakai && <span className="ml-2 text-xs text-slate-400">tidak dipakai</span>}</td>
+          <td className="px-6 py-3 text-right text-sm tabular">{a.dipakai ? persen1(a.bobotTarget) : "—"}</td><td className="px-6 py-3 text-right text-sm tabular">{angka(a.realisasi)} / {angka(a.target)}<div className="mt-1"><MelebihiTargetBadge realisasi={a.realisasi} target={a.target} /></div></td><td className="px-6 py-3 text-right text-sm tabular">{persen1(a.bobotRealisasi)}</td><td className="px-6 py-3 text-right text-sm tabular">{a.jumlahCatatan} / {a.jumlahLampiran}</td>
           <td className="whitespace-nowrap px-6 py-3 text-right">{dapatMencatat && <Button size="sm" variant="outline" asChild><Link to={`/realisasi?periode=${data.periode?.id}&aktifitas=${a.id}`}><PencilLine className="size-3.5" /> Catat</Link></Button>}{a.jumlahLampiran > 0 && <Button size="sm" variant="ghost" asChild className="ml-1"><Link to={`/bukti?periode=${data.periode?.id}`}><Database className="size-3.5" /> Bukti</Link></Button>}</td>
         </tr>)}</tbody>
       </table></div>

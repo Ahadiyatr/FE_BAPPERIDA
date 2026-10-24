@@ -1,6 +1,8 @@
 import { dataOf, api } from "./api"
 
-export interface LandingSummary { jumlah_bidang: number; jumlah_program: number; jumlah_subkegiatan: number; rata_capaian_subkegiatan: number; capaian_pd: number }
+export interface LandingSummary { jumlah_bidang: number; jumlah_program: number; jumlah_subkegiatan: number; jumlah_aktifitas?: number; rata_capaian_subkegiatan: number; capaian_pd: number }
+export interface RealisasiBulananPublik { bulan: string; jumlah: number; sudah_berjalan: boolean }
+export interface SebaranCapaianPublik { rentang: "0" | "1-24" | "25-49" | "50-74" | "75-99" | "100"; jumlah: number }
 export interface CapaianBidangPublik { bidang_id: number; nama_bidang: string; jumlah_subkegiatan: number; capaian_bidang: number }
 export interface LandingPublik {
   periode: { id: number; nama_periode: string; status: string } | null
@@ -9,6 +11,8 @@ export interface LandingPublik {
   distribusi: Array<{ bidang_id: number; nama_bidang: string; persentase: number }>
   radar: Array<{ label: string; value: number }>
   program: Array<{ kode_program: string; nama_program: string; jumlah_subkegiatan: number; capaian: number }>
+  realisasi_bulanan?: RealisasiBulananPublik[]
+  sebaran_capaian?: SebaranCapaianPublik[]
 }
 export interface DetailBidangPublik {
   periode: LandingPublik["periode"]

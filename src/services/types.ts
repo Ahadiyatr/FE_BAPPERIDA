@@ -78,7 +78,7 @@ export interface Bidang {
 /** MASTER_PERIODE */
 export interface Periode {
   id: number
-  /** RKPD tahun berjalan. Boleh null untuk periode lama yang belum dipetakan. */
+  /** Dokumen perencanaan yang dirujuk periode. Boleh null untuk periode lama yang belum dipetakan. */
   dokumenId: number | null
   namaPeriode: string
   tanggalMulai: string // ISO date
@@ -600,48 +600,38 @@ export interface SubkegiatanRinci {
    PRD §3 (non-negotiable): KODE_PROGRAM unik per DOKUMEN_ID, bukan global.
    Belum ada di docs/erd.md — perlu ditambahkan sebelum Fase 6.
 
-   Dua tingkat, keputusan produk 29 Agustus 2026:
-     RPJMD (5 tahun)  →  menaungi  →  RKPD (tahunan)
-   Program hidup di RPJMD. Periode triwulanan menunjuk RKPD tahun berjalan.
-
-   PEWARISAN SENGAJA DITUNDA (PRD §7 poin 5 belum final): tidak ada
-   `diwarisiDariId` maupun tabel pivot sampai ada RPJMD kedua yang nyata.
-   Jangan menambahkannya tanpa keputusan eksplisit.
+   Datar, persis seperti backend: nama, rentang tahun, status AKTIF/ARSIP.
+   Hirarki RPJMD → RKPD dikeluarkan dari aplikasi (keputusan 2h, 19 Okt 2026;
+   P1-12 tetap ditangguhkan). Jangan menampilkan jenis, induk, atau kode dokumen
+   sebelum kolomnya ada di backend — dulu ketiganya dikarang di sini dan
+   isian form-nya dibuang diam-diam (P2-R08).
    ───────────────────────────────────────────────────────────── */
 
-export type JenisDokumen = "RPJMD" | "RKPD"
-export type StatusDokumen = "DRAFT" | "AKTIF" | "ARSIP"
+export type StatusDokumen = "AKTIF" | "ARSIP"
 
 export interface Dokumen {
   id: number
-  kode: string
   nama: string
-  jenis: JenisDokumen
-  /** RKPD menunjuk RPJMD induknya. RPJMD selalu null. */
-  indukId: number | null
   tahunMulai: number
   tahunSelesai: number
   status: StatusDokumen
   flagActive: boolean
+  keterangan: string | null
 }
 
 export interface SimpanDokumenInput {
   id?: number
-  kode: string
   nama: string
-  jenis: JenisDokumen
-  indukId: number | null
   tahunMulai: number
   tahunSelesai: number
   status: StatusDokumen
+  keterangan?: string | null
 }
 
 /** Dokumen + hitungan isinya, untuk daftar di layar master. */
 export interface DokumenDenganIsi extends Dokumen {
-  namaInduk: string | null
   jumlahProgram: number
   jumlahPeriode: number
-  anak: DokumenDenganIsi[]
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -660,11 +650,16 @@ export interface DokumenDenganIsi extends Dokumen {
    atau berganti nama, jejaknya tidak boleh ikut berubah.
    ───────────────────────────────────────────────────────────── */
 
+/** Mengikuti `TransLogAktivitas::AKSI` di backend — tambah di sana dulu. */
 export type AksiLog =
-  | "BUAT" | "UBAH" | "HAPUS" | "NONAKTIFKAN" | "AKTIFKAN"
+  | "BUAT" | "UBAH" | "HAPUS" | "NONAKTIFKAN" | "AKTIFKAN" | "PULIHKAN"
   | "BUKA_PERIODE" | "KUNCI_PERIODE"
   | "UBAH_BOBOT" | "TANDAI_SIAP" | "BATAL_SIAP" | "SALIN_RENCANA"
   | "CATAT_REALISASI" | "UNGGAH_BUKTI"
+  | "LOGIN" | "GAGAL_LOGIN" | "LOGOUT"
+
+/** Kelompok tindakan, sama dengan `LogAktivitasController::GRUP`. */
+export type GrupLog = "master" | "rencana" | "pelaksanaan" | "sesi"
 
 export interface LogAktivitas {
   id: number
@@ -687,10 +682,31 @@ export interface SaringLog {
   /** Admin bidang hanya boleh melihat jejak bidangnya sendiri (PRD §4). */
   bidangId?: number | null
   periodeId?: number
+  userId?: number
   aksi?: AksiLog
+  grup?: GrupLog
+  /** Hanya tindakan yang perlu perhatian (hapus, nonaktifkan, siklus periode, bobot, gagal login). */
+  perhatian?: boolean
+  /** Riwayat satu baris data: nama tabel + ID-nya. */
+  entitas?: string
+  entitasId?: number
   /** Cari di ringkasan dan nama pelaku. */
   cari?: string
+  /** Ukuran halaman daftar. */
   batas?: number
+  /** Nomor halaman, mulai 1. Total halaman dihitung dari `RingkasanLog.total`. */
+  halaman?: number
+}
+
+export interface RingkasanLog {
+  total: number
+  hariIni: number
+  pengguna: number
+  perhatian: number
+  /** Tujuh hari, hari ini paling akhir. */
+  perHari: { tanggal: string; jumlah: number }[]
+  /** Mengabaikan saringan `grup`, untuk angka di tombol pemilih grup. */
+  perGrup: Record<GrupLog, number>
 }
 
 /* ─────────────────────────────────────────────────────────────

@@ -53,6 +53,8 @@ export default function KalenderRencana() {
 
   const [data, setData] = React.useState<KalenderBulan | null>(null)
   const [rencana, setRencana] = React.useState<DetailSubkegiatan[]>([])
+  // Dinaikkan setiap agenda tersimpan/terhapus: jumlah terjadwal per aktivitas ikut berubah.
+  const [versiRencana, setVersiRencana] = React.useState(0)
   const [terpilih, setTerpilih] = React.useState<string | null>(null)
   const [memuat, setMemuat] = React.useState(true)
   const [galat, setGalat] = React.useState<string | null>(null)
@@ -149,7 +151,7 @@ export default function KalenderRencana() {
     return () => {
       batal = true
     }
-  }, [peran, periodeId])
+  }, [peran, periodeId, versiRencana])
 
   const baris = React.useMemo<SelKalender[][]>(() => {
     if (!data || !bulan) return []
@@ -226,6 +228,7 @@ export default function KalenderRencana() {
       await hapusAgenda(agendaDihapus.id)
       setAgendaDihapus(null)
       void muat()
+      setVersiRencana((v) => v + 1)
     } catch (e) {
       setGalat(apiMessage(e, "Gagal menghapus agenda."))
       setAgendaDihapus(null)
@@ -401,7 +404,10 @@ export default function KalenderRencana() {
           agenda={agendaDiubah}
           tanggalAwal={tanggalForm}
           onTutup={() => setFormTerbuka(false)}
-          onTersimpan={() => void muat()}
+          onTersimpan={() => {
+            void muat()
+            setVersiRencana((v) => v + 1)
+          }}
         />
       )}
 

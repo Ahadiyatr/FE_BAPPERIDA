@@ -145,7 +145,7 @@ export const AKSES: { awalan: string; peran: Peran[] }[] = [
   // Kalender dibaca kedua peran; aksi tulisnya dikunci server lewat `dapat_menjadwalkan`.
   { awalan: '/kalender', peran: ['admin_bidang', 'admin_aplikasi'] },
   { awalan: '/realisasi', peran: ['admin_bidang'] },
-  { awalan: '/bukti', peran: ['admin_bidang'] },
+  { awalan: '/bukti', peran: ['admin_bidang', 'admin_aplikasi'] },
   { awalan: '/log', peran: ['admin_aplikasi'] },
   { awalan: '/rencana-saya', peran: ['admin_bidang'] },
   { awalan: '/rencana', peran: ['admin_aplikasi'] },

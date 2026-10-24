@@ -8,7 +8,7 @@ import {
   eksporLaporan,
 } from "@/services"
 import type {
-  CapaianBidang, CapaianProgram, Periode, RingkasanDashboard, SubkegiatanTertinggal, TrenCapaian,
+  CapaianBidang, CapaianProgram, JenisEksporLaporan, Periode, RingkasanDashboard, SubkegiatanTertinggal, TrenCapaian,
 } from "@/services"
 import { usePeran } from "@/lib/peran"
 import { apiMessage } from "@/services/api"
@@ -29,6 +29,16 @@ export default function DashboardUmum() {
   const [memuat, setMemuat] = React.useState(true)
   const [galat, setGalat] = React.useState<string | null>(null)
   const [muatUlang, setMuatUlang] = React.useState(0)
+  const [mengekspor, setMengekspor] = React.useState(false)
+  const [galatEkspor, setGalatEkspor] = React.useState<string | null>(null)
+
+  async function ekspor(id: number, jenis: JenisEksporLaporan) {
+    setGalatEkspor(null)
+    setMengekspor(true)
+    try { await eksporLaporan(id, jenis) }
+    catch (e) { setGalatEkspor(apiMessage(e, "Gagal mengekspor laporan.")) }
+    finally { setMengekspor(false) }
+  }
   const urutanAwal = React.useRef(0)
 
   const muatAwal = React.useCallback(async () => {
@@ -59,6 +69,7 @@ export default function DashboardUmum() {
     if (periodeId == null) return
     let batal = false
     setMemuat(true)
+    setGalat(null)
     Promise.all([
       getRingkasanDashboard(periodeId),
       getRankingBidang(periodeId),
@@ -88,13 +99,21 @@ export default function DashboardUmum() {
             Capaian BAPPERIDA dihitung ulang otomatis setiap ada bidang yang mencatat realisasi.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <PilihPeriode periodes={periodes} nilai={periodeId} onPilih={setPeriodeId} />
-          {peran === "admin_aplikasi" && periodeId != null && (
-            <Button size="sm" variant="outline" onClick={() => void eksporLaporan(periodeId, "rincian")}>
-              <Download className="size-3.5" /> Ekspor CSV
-            </Button>
-          )}
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <PilihPeriode periodes={periodes} nilai={periodeId} onPilih={setPeriodeId} />
+            {peran === "admin_aplikasi" && periodeId != null && (
+              <>
+                <Button size="sm" variant="outline" disabled={mengekspor} onClick={() => void ekspor(periodeId, "rincian")}>
+                  <Download className="size-3.5" /> CSV rincian
+                </Button>
+                <Button size="sm" variant="outline" disabled={mengekspor} onClick={() => void ekspor(periodeId, "bidang")}>
+                  <Download className="size-3.5" /> CSV rekap bidang
+                </Button>
+              </>
+            )}
+          </div>
+          {galatEkspor && <p role="alert" className="text-xs text-red-600">{galatEkspor}</p>}
         </div>
       </div>
 
@@ -125,9 +144,9 @@ export default function DashboardUmum() {
         ) : ringkas ? (
           <>
             <KartuKpi
-              label="Capaian perangkat daerah"
+              label={peran === "admin_bidang" ? "Capaian bidang" : "Capaian perangkat daerah"}
               nilai={persen1(ringkas.capaianPd)}
-              catatan="Rata-rata seluruh subkegiatan periode ini"
+              catatan={peran === "admin_bidang" ? "Rata-rata subkegiatan bidang Anda pada periode ini" : "Rata-rata seluruh subkegiatan periode ini"}
             />
             <KartuKpi
               label="Subkegiatan tersusun"

@@ -64,17 +64,21 @@ function LoadingBox({ className }: { className?: string }) {
   );
 }
 
-function ErrorBox({ className, error }: { className?: string; error: BlobError }) {
+// "rusak": berkas berhasil diunduh tapi browser gagal men-decode gambarnya.
+function ErrorBox({ className, error }: { className?: string; error: BlobError | "rusak" }) {
+  const label =
+    error === "unauthorized" ? "SESI HABIS" : error === "rusak" ? "FOTO RUSAK" : "NO FOTO";
   return (
-    <div className={`${className} flex flex-col items-center justify-center text-slate-400 bg-slate-100`}>
-      {error === "unauthorized" ? (
+    <div
+      title={label}
+      className={`${className} flex flex-col items-center justify-center text-slate-400 bg-slate-100`}
+    >
+      {error === "unauthorized" || error === "rusak" ? (
         <AlertTriangle className="w-6 h-6 mb-1 opacity-50" />
       ) : (
         <ImageIcon className="w-6 h-6 mb-1 opacity-50" />
       )}
-      <span className="text-[10px] font-bold tracking-wider">
-        {error === "unauthorized" ? "SESI HABIS" : "NO FOTO"}
-      </span>
+      <span className="text-[10px] font-bold tracking-wider">{label}</span>
     </div>
   );
 }
@@ -93,13 +97,21 @@ export function AuthedImage({
   const { url, loading, error } = useAuthedBlobUrl(
     lampiranId ? `/lampiran/${lampiranId}/preview` : null
   );
+  // Disimpan per-URL supaya otomatis pulih ketika lampiran berganti.
+  const [urlRusak, setUrlRusak] = useState<string | null>(null);
 
   if (loading) return <LoadingBox className={className} />;
   if (error || !url) return <ErrorBox className={className} error={error} />;
+  if (urlRusak === url) return <ErrorBox className={className} error="rusak" />;
 
   return (
     <div className="relative w-full h-full">
-      <img src={url} className={className} alt={alt || "Foto"} />
+      <img
+        src={url}
+        className={className}
+        alt={alt || "Foto"}
+        onError={() => setUrlRusak(url)}
+      />
       {badge}
     </div>
   );

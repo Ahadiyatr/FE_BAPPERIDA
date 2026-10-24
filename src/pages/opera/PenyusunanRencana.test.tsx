@@ -62,4 +62,26 @@ describe('PenyusunanRencana', () => {
     expect(pemilih.textContent).toContain('Triwulan 12');
     expect(screen.getByText('Rencana Triwulan 12')).toBeTruthy();
   });
+
+  it('kembali dari Rencana Bidang mendarat di tab dan periode asal', async () => {
+    render(
+      <MemoryRouter initialEntries={['/rencana?tab=kesiapan&periode=7']}>
+        <PenyusunanRencana />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Papan kesiapan')).toBeTruthy();
+    const pemilih = await screen.findByRole('combobox', { name: 'Pilih periode penyusunan' });
+    expect(pemilih.textContent).toContain('Triwulan 7');
+  });
+
+  it('mengabaikan ?periode= yang tidak ada dan memakai periode DRAFT', async () => {
+    render(
+      <MemoryRouter initialEntries={['/rencana?periode=999']}>
+        <PenyusunanRencana />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Rencana Triwulan 1')).toBeTruthy();
+  });
 });

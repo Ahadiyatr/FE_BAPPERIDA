@@ -8,50 +8,43 @@ import {
 import {
   Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet"
+import KontrolHalaman from "@/components/Pagination"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { getDokumenBerpohon, getRpjmd, setAktifDokumen, simpanDokumen } from "@/services"
-import type {
-  Dokumen, DokumenDenganIsi, JenisDokumen, StatusDokumen,
-} from "@/services"
+import { getDokumenDenganIsi, setAktifDokumen, simpanDokumen } from "@/services"
+import type { Dokumen, DokumenDenganIsi, StatusDokumen } from "@/services"
 import { Panel, Th } from "./bagian/ui"
+import { apiMessage } from "@/services/api"
+import { usePaginasi } from "@/lib/paginasi"
 
 const NADA: Record<StatusDokumen, string> = {
-  DRAFT: "bg-slate-100 text-slate-600",
   AKTIF: "bg-emerald-50 text-emerald-700",
   ARSIP: "bg-amber-50 text-amber-700",
 }
-const LABEL: Record<StatusDokumen, string> = { DRAFT: "Draf", AKTIF: "Aktif", ARSIP: "Arsip" }
+const LABEL: Record<StatusDokumen, string> = { AKTIF: "Aktif", ARSIP: "Arsip" }
 
 function BarisDokumen({
-  d, anak, onUbah, onAktif,
+  d, onUbah, onAktif,
 }: {
   d: DokumenDenganIsi
-  anak: boolean
   onUbah: (d: Dokumen) => void
   onAktif: (d: Dokumen) => void
 }) {
   return (
     <tr className={d.flagActive ? "hover:bg-slate-50" : "opacity-55"}>
-      <td className={`px-6 py-3 font-mono text-xs text-slate-400 ${anak ? "pl-12" : ""}`}>
-        {anak && <span className="mr-1.5 text-slate-300">└</span>}
-        {d.kode}
-      </td>
-      <td className="px-6 py-3">
-        <span className="text-sm font-medium text-slate-800">{d.nama}</span>
-        <span className={`ml-2 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
-          d.jenis === "RPJMD" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
-        }`}>
-          {d.jenis}
-        </span>
+      <td className="px-6 py-3 text-sm">
+        <div className="font-medium text-slate-800">{d.nama}</div>
+        {d.keterangan && (
+          <p className="mt-0.5 max-w-md text-xs text-slate-500 line-clamp-2" title={d.keterangan}>
+            {d.keterangan}
+          </p>
+        )}
       </td>
       <td className="px-6 py-3 text-sm tabular text-slate-500">
         {d.tahunMulai === d.tahunSelesai ? d.tahunMulai : `${d.tahunMulai}–${d.tahunSelesai}`}
       </td>
       <td className="px-6 py-3 text-sm text-slate-500">
-        {d.jenis === "RPJMD"
-          ? `${d.jumlahProgram} program`
-          : `${d.jumlahPeriode} periode`}
+        {d.jumlahProgram} program · {d.jumlahPeriode} periode
       </td>
       <td className="px-6 py-3">
         <span className={`rounded-lg px-2 py-0.5 text-xs font-semibold ${NADA[d.status]}`}>
@@ -69,8 +62,7 @@ function BarisDokumen({
 }
 
 export default function MasterDokumen() {
-  const [pohon, setPohon] = React.useState<DokumenDenganIsi[]>([])
-  const [rpjmd, setRpjmd] = React.useState<Dokumen[]>([])
+  const [daftar, setDaftar] = React.useState<DokumenDenganIsi[]>([])
   const [memuat, setMemuat] = React.useState(true)
   const [galat, setGalat] = React.useState<string | null>(null)
   const [laci, setLaci] = React.useState<Dokumen | null | undefined>(undefined)
@@ -79,22 +71,18 @@ export default function MasterDokumen() {
   const muat = React.useCallback(async () => {
     setMemuat(true)
     try {
-      const [p, r] = await Promise.all([
-        getDokumenBerpohon({ termasukNonaktif: true }),
-        getRpjmd(),
-      ])
-      setPohon(p)
-      setRpjmd(r)
+      setDaftar(await getDokumenDenganIsi({ termasukNonaktif: true }))
     } finally {
       setMemuat(false)
     }
   }, [])
   React.useEffect(() => { void muat() }, [muat])
+  const paginasi = usePaginasi(daftar)
 
   async function ubahAktif(d: Dokumen) {
     setGalat(null)
     try { await setAktifDokumen(d.id, !d.flagActive); await muat() }
-    catch (e) { setGalat(e instanceof Error ? e.message : "Gagal mengubah status.") }
+    catch (e) { setGalat(apiMessage(e, "Gagal mengubah status.")) }
     finally { setKonfirmasi(null) }
   }
 
@@ -103,8 +91,7 @@ export default function MasterDokumen() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="max-w-prose text-sm text-slate-500">
-            RPJMD berlaku lima tahun dan menaungi RKPD tahunan. Program hidup di RPJMD;
-            periode triwulanan menunjuk RKPD tahun berjalan.
+            Dokumen perencanaan menaungi program, dan setiap periode merujuk satu dokumen.
           </p>
         </div>
         <Button onClick={() => setLaci(null)}>
@@ -120,7 +107,7 @@ export default function MasterDokumen() {
         <FileText className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
         <p className="text-slate-600">
           <b className="text-slate-800">Kode program unik per dokumen, bukan global.</b>{" "}
-          Kode <span className="font-mono text-xs">5.1.2</span> boleh dipakai lagi di RPJMD
+          Kode <span className="font-mono text-xs">5.1.2</span> boleh dipakai lagi di dokumen
           berikutnya tanpa bentrok dengan yang lama.
         </p>
       </div>
@@ -129,41 +116,30 @@ export default function MasterDokumen() {
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
-              <Th>Kode</Th><Th>Nama</Th><Th>Tahun</Th><Th>Isi</Th><Th>Status</Th>
+              <Th>Nama</Th><Th>Tahun</Th><Th>Isi</Th><Th>Status</Th>
               <Th kanan>Tindakan</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {memuat && (
-              <tr><td colSpan={6} className="px-6 py-8 text-sm text-center text-slate-400">Memuat…</td></tr>
+              <tr><td colSpan={5} className="px-6 py-8 text-sm text-center text-slate-400">Memuat…</td></tr>
             )}
-            {!memuat && pohon.length === 0 && (
-              <tr><td colSpan={6} className="px-6 py-8 text-sm text-center text-slate-500">
-                Belum ada dokumen perencanaan. Tambahkan satu RPJMD sebagai induk.
+            {!memuat && daftar.length === 0 && (
+              <tr><td colSpan={5} className="px-6 py-8 text-sm text-center text-slate-500">
+                Belum ada dokumen perencanaan.
               </td></tr>
             )}
-            {!memuat && pohon.map((d) => (
-              <React.Fragment key={d.id}>
-                <BarisDokumen d={d} anak={false} onUbah={setLaci} onAktif={setKonfirmasi} />
-                {d.anak.map((a) => (
-                  <BarisDokumen key={a.id} d={a} anak onUbah={setLaci} onAktif={setKonfirmasi} />
-                ))}
-                {d.anak.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-2 pl-12 text-xs text-slate-400">
-                      └ belum punya RKPD
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
+            {!memuat && paginasi.potongan.map((d) => (
+              <BarisDokumen key={d.id} d={d} onUbah={setLaci} onAktif={setKonfirmasi} />
             ))}
           </tbody>
         </table>
+        {!memuat && <KontrolHalaman {...paginasi} />}
       </Panel>
 
       {laci !== undefined && (
         <LaciDokumen
-          awal={laci} rpjmd={rpjmd}
+          awal={laci}
           onTutup={() => setLaci(undefined)} onTersimpan={() => void muat()}
         />
       )}
@@ -176,8 +152,8 @@ export default function MasterDokumen() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {konfirmasi?.flagActive
-                ? "Dokumen tidak dihapus — program dan periode yang menunjuknya tetap utuh. Ditolak kalau dokumen ini masih menaungi program, periode, atau RKPD aktif."
-                : "Dokumen ini akan muncul lagi sebagai pilihan saat menambah program atau periode."}
+                ? "Dokumen tidak dihapus — program dan periode yang menunjuknya tetap utuh. Dokumen arsip tidak ditawarkan lagi saat menambah program."
+                : "Dokumen ini akan muncul lagi sebagai pilihan saat menambah program."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -193,24 +169,18 @@ export default function MasterDokumen() {
 }
 
 function LaciDokumen({
-  awal, rpjmd, onTutup, onTersimpan,
+  awal, onTutup, onTersimpan,
 }: {
   awal: Dokumen | null
-  rpjmd: Dokumen[]
   onTutup: () => void
   onTersimpan: () => void
 }) {
-  const [kode, setKode] = React.useState(awal?.kode ?? "")
   const [nama, setNama] = React.useState(awal?.nama ?? "")
-  const [jenis, setJenis] = React.useState<JenisDokumen>(awal?.jenis ?? "RKPD")
-  const [indukId, setIndukId] = React.useState<number | null>(awal?.indukId ?? rpjmd[0]?.id ?? null)
   const [mulai, setMulai] = React.useState(String(awal?.tahunMulai ?? new Date().getFullYear()))
   const [selesai, setSelesai] = React.useState(String(awal?.tahunSelesai ?? new Date().getFullYear()))
-  const [status, setStatus] = React.useState<StatusDokumen>(awal?.status ?? "DRAFT")
+  const [status, setStatus] = React.useState<StatusDokumen>(awal?.status ?? "AKTIF")
+  const [keterangan, setKeterangan] = React.useState(awal?.keterangan ?? "")
   const [galat, setGalat] = React.useState<string | null>(null)
-
-  // RKPD berlaku satu tahun — tahun selesai mengikuti tahun mulai.
-  React.useEffect(() => { if (jenis === "RKPD") setSelesai(mulai) }, [jenis, mulai])
 
   const gaya = "w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
 
@@ -218,12 +188,10 @@ function LaciDokumen({
     setGalat(null)
     try {
       await simpanDokumen({
-        id: awal?.id, kode, nama, jenis,
-        indukId: jenis === "RKPD" ? indukId : null,
-        tahunMulai: Number(mulai), tahunSelesai: Number(selesai), status,
+        id: awal?.id, nama, tahunMulai: Number(mulai), tahunSelesai: Number(selesai), status, keterangan,
       })
       onTersimpan(); onTutup()
-    } catch (e) { setGalat(e instanceof Error ? e.message : "Gagal menyimpan.") }
+    } catch (e) { setGalat(apiMessage(e, "Gagal menyimpan.")) }
   }
 
   return (
@@ -232,47 +200,14 @@ function LaciDokumen({
         <SheetHeader>
           <SheetTitle>{awal ? "Ubah dokumen" : "Dokumen baru"}</SheetTitle>
           <SheetDescription>
-            RPJMD berdiri sendiri. RKPD wajib memilih RPJMD induk dan berlaku satu tahun
-            di dalam rentangnya.
+            Isi nama dan rentang tahun berlakunya dokumen perencanaan.
           </SheetDescription>
         </SheetHeader>
 
         <div className="px-4 space-y-3">
           <label className="block">
-            <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">Jenis</span>
-            <select className={gaya} value={jenis} onChange={(e) => setJenis(e.target.value as JenisDokumen)}>
-              <option value="RPJMD">RPJMD — lima tahun, menaungi RKPD</option>
-              <option value="RKPD">RKPD — satu tahun</option>
-            </select>
-          </label>
-
-          {jenis === "RKPD" && (
-            <label className="block">
-              <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">RPJMD induk</span>
-              <select
-                className={gaya}
-                value={indukId ?? ""}
-                onChange={(e) => setIndukId(Number(e.target.value))}
-              >
-                {rpjmd.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.nama} ({d.tahunMulai}–{d.tahunSelesai})
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <label className="block">
-            <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">Kode</span>
-            <Input className="font-mono" value={kode} onChange={(e) => setKode(e.target.value)}
-              placeholder={jenis === "RPJMD" ? "RPJMD-2025-2029" : "RKPD-2026"} />
-          </label>
-
-          <label className="block">
             <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">Nama</span>
-            <Input value={nama} onChange={(e) => setNama(e.target.value)}
-              placeholder={jenis === "RPJMD" ? "RPJMD 2025–2029" : "RKPD 2026"} />
+            <Input value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Renstra BAPPERIDA 2026–2030" />
           </label>
 
           <div className="grid grid-cols-2 gap-3">
@@ -284,8 +219,6 @@ function LaciDokumen({
             <label className="block">
               <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">Tahun selesai</span>
               <Input type="number" className="tabular font-mono" value={selesai}
-                disabled={jenis === "RKPD"}
-                title={jenis === "RKPD" ? "RKPD berlaku satu tahun" : undefined}
                 onChange={(e) => setSelesai(e.target.value)} />
             </label>
           </div>
@@ -293,17 +226,25 @@ function LaciDokumen({
           <label className="block">
             <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">Status</span>
             <select className={gaya} value={status} onChange={(e) => setStatus(e.target.value as StatusDokumen)}>
-              <option value="DRAFT">Draf</option>
               <option value="AKTIF">Aktif</option>
               <option value="ARSIP">Arsip</option>
             </select>
+          </label>
+
+          <label className="block">
+            <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">
+              Keterangan <span className="font-normal normal-case tracking-normal text-slate-400">(opsional)</span>
+            </span>
+            <textarea className={`${gaya} min-h-24 resize-y`} rows={3} maxLength={1000}
+              value={keterangan} onChange={(e) => setKeterangan(e.target.value)}
+              placeholder="Mis. dasar hukum (Perkada No. …) atau catatan revisi" />
           </label>
 
           {galat && <p className="px-3 py-2 text-sm text-red-600 border border-red-100 bg-red-50 rounded-xl">{galat}</p>}
         </div>
 
         <SheetFooter>
-          <Button onClick={() => void simpan()} disabled={!kode || !nama}>Simpan</Button>
+          <Button onClick={() => void simpan()} disabled={!nama.trim()}>Simpan</Button>
           <Button variant="ghost" onClick={onTutup}>Batal</Button>
         </SheetFooter>
       </SheetContent>

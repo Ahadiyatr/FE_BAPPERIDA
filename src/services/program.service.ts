@@ -17,3 +17,5 @@ export async function setAktifProgram(id:number, aktif:boolean): Promise<Program
   const current = await getProgramById(id); if (!current) throw new Error("Program tidak ditemukan.")
   return map(dataOf<Row>(await api.put(`/program/${id}`, { DOKUMEN_ID:current.dokumenId, KODE_PROGRAM:current.kodeProgram, NAMA_PROGRAM:current.namaProgram, FLAG_ACTIVE:aktif })))
 }
+/** Server menolak bila program masih punya kegiatan atau menjadi asal turunan. */
+export async function hapusProgram(id:number): Promise<void> { await api.delete(`/program/${id}`) }

@@ -27,6 +27,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import KontrolHalaman from '@/components/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SearchInput } from '@/components/opera/search-input';
@@ -39,6 +40,7 @@ import {
 } from '@/services';
 import type { Bidang, PeranPengguna, User } from '@/services';
 import { apiMessage } from '@/services/api';
+import { usePaginasi } from '@/lib/paginasi';
 import { Toast } from '@/utils/toast';
 import {
   memenuhiKebijakanKataSandi,
@@ -98,6 +100,9 @@ export default function ManajemenPengguna() {
       return cocokPencarian && cocokPeran && cocokBidang && cocokStatus;
     });
   }, [cari, filterBidang, filterPeran, filterStatus, namaBidang, users]);
+  const paginasi = usePaginasi(penggunaTersaring, {
+    kunciReset: [cari, filterBidang, filterPeran, filterStatus],
+  });
 
   const adaSaringan =
     !!cari ||
@@ -114,7 +119,7 @@ export default function ManajemenPengguna() {
       await setAktifUser(u.id, !u.flagActive);
       await muat();
     } catch (e) {
-      setGalat(e instanceof Error ? e.message : 'Gagal mengubah status.');
+      setGalat(apiMessage(e, 'Gagal mengubah status.'));
     } finally {
       setKonfirmasi(null);
     }
@@ -208,7 +213,7 @@ export default function ManajemenPengguna() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {penggunaTersaring.map(u => (
+            {paginasi.potongan.map(u => (
               <tr
                 key={u.id}
                 className={u.flagActive ? 'hover:bg-slate-50' : 'opacity-55'}
@@ -272,6 +277,7 @@ export default function ManajemenPengguna() {
             )}
           </tbody>
         </table>
+        <KontrolHalaman {...paginasi} />
       </Panel>
 
       {laci !== undefined && (
@@ -362,7 +368,7 @@ function LaciPengguna({
       onTersimpan();
       onTutup();
     } catch (e) {
-      setGalat(e instanceof Error ? e.message : 'Gagal menyimpan.');
+      setGalat(apiMessage(e, 'Gagal menyimpan.'));
     }
   }
 

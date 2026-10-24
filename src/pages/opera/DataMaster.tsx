@@ -1,10 +1,11 @@
 import * as React from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
-import { ChevronRight, Plus, Upload, X } from "lucide-react"
+import { ChevronRight, Plus, Trash2, Upload, X } from "lucide-react"
 
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
+import KontrolHalaman from "@/components/Pagination"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SearchInput } from "@/components/opera/search-input"
@@ -26,6 +27,8 @@ import {
 import type { BarisMaster, IdTingkat } from "./master/tingkat"
 import { getProgram, getKegiatan, getSubkegiatan, getJumlahAktifitas, importKatalogExcel, previewImportExcel, unduhTemplateImportExcel } from "@/services"
 import type { PreviewExcel } from "@/services"
+import { apiMessage } from "@/services/api"
+import { usePaginasi } from "@/lib/paginasi"
 
 const persen = (n: number) =>
   `${n.toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
@@ -53,6 +56,7 @@ export default function DataMaster() {
 
   const [laciUntuk, setLaciUntuk] = React.useState<BarisMaster | null | undefined>(undefined)
   const [konfirmasi, setKonfirmasi] = React.useState<BarisMaster | null>(null)
+  const [konfirmasiHapus, setKonfirmasiHapus] = React.useState<BarisMaster | null>(null)
   const [imporTerbuka, setImporTerbuka] = React.useState(false)
   const [fileImport, setFileImport] = React.useState<File | null>(null)
   const [previewImport, setPreviewImport] = React.useState<PreviewExcel | null>(null)
@@ -69,7 +73,7 @@ export default function DataMaster() {
       setBaris(rows)
     } catch (err) {
       setBaris([])
-      setGalat(err instanceof Error ? err.message : "Gagal memuat data.")
+      setGalat(apiMessage(err, "Gagal memuat data."))
     }
   }, [def, indukId])
 
@@ -114,6 +118,7 @@ export default function DataMaster() {
       .filter((r) => tampilNonaktif || r.flagActive)
       .filter((r) => !q || namaDari(r).toLowerCase().includes(q) || kodeDari(r).toLowerCase().includes(q))
   }, [baris, cari, tampilNonaktif])
+  const paginasi = usePaginasi(terlihat, { kunciReset: [tingkat, indukId, cari, tampilNonaktif] })
 
   const mata: MataRantai[] = URUT_TINGKAT.map((t) => ({
     id: t,
@@ -132,9 +137,22 @@ export default function DataMaster() {
       await def.setAktif(row.id, !row.flagActive)
       await muat()
     } catch (err) {
-      setGalat(err instanceof Error ? err.message : "Gagal mengubah status.")
+      setGalat(apiMessage(err, "Gagal mengubah status."))
     } finally {
       setKonfirmasi(null)
+    }
+  }
+
+  // Aturan hapus ditegakkan server; alasan penolakannya ditampilkan apa adanya.
+  async function hapus(row: BarisMaster) {
+    try {
+      await def.hapus(row.id)
+      setGalat(null)
+      await muat()
+    } catch (err) {
+      setGalat(apiMessage(err, `Gagal menghapus ${def.label.toLowerCase()}.`))
+    } finally {
+      setKonfirmasiHapus(null)
     }
   }
 
@@ -202,7 +220,7 @@ export default function DataMaster() {
         <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{galat}</p>
       )}
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -242,7 +260,7 @@ export default function DataMaster() {
               </TableRow>
             )}
 
-            {terlihat.map((r) => (
+            {paginasi.potongan.map((r) => (
               <TableRow key={r.id} className={r.flagActive ? undefined : "opacity-55"}>
                 <TableCell><Kode>{kodeDari(r)}</Kode></TableCell>
                 <TableCell className="max-w-md">
@@ -300,11 +318,20 @@ export default function DataMaster() {
                   <Button variant="ghost" size="xs" onClick={() => setKonfirmasi(r)}>
                     {r.flagActive ? "Nonaktifkan" : "Aktifkan"}
                   </Button>
+                  <Button
+                    variant="destructive"
+                    size="xs"
+                    onClick={() => setKonfirmasiHapus(r)}
+                    title={`Hanya ${def.label.toLowerCase()} yang ${def.syaratHapus} yang dapat dihapus`}
+                  >
+                    <Trash2 /> Hapus
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+        <KontrolHalaman {...paginasi} />
       </div>
 
       {laciUntuk !== undefined && (
@@ -351,6 +378,31 @@ export default function DataMaster() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={konfirmasiHapus !== null} onOpenChange={(o) => !o && setKonfirmasiHapus(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-bold">
+              Hapus {def.label.toLowerCase()} {konfirmasiHapus ? kodeDari(konfirmasiHapus) : ""}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {konfirmasiHapus ? namaDari(konfirmasiHapus) : ""}
+              <br />
+              {def.label} hanya dapat dihapus jika {def.syaratHapus}. Bila sudah dipakai,
+              nonaktifkan saja. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => konfirmasiHapus && void hapus(konfirmasiHapus)}
+            >
+              Hapus {def.label.toLowerCase()}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={imporTerbuka} onOpenChange={setImporTerbuka}>
         <DialogContent>
           <DialogHeader>
@@ -383,7 +435,7 @@ export default function DataMaster() {
             <Button disabled={!fileImport || memprosesImport} onClick={() => {
               if (!fileImport) return
               setMemprosesImport(true)
-              previewImportExcel(fileImport).then(setPreviewImport).catch((e) => setGalat(e instanceof Error ? e.message : "Preview import gagal."))
+              previewImportExcel(fileImport).then(setPreviewImport).catch((e) => setGalat(apiMessage(e, "Preview import gagal.")))
                 .finally(() => setMemprosesImport(false))
             }}>
               {memprosesImport ? "Memeriksa…" : "Preview & validasi"}
@@ -393,7 +445,7 @@ export default function DataMaster() {
               setMemprosesImport(true)
               importKatalogExcel(fileImport, { nama: namaDokumenImport.trim(), tahunMulai: Number(tahunMulaiImport), tahunSelesai: Number(tahunSelesaiImport) })
                 .then(() => { setImporTerbuka(false); void muat() })
-                .catch((e) => setGalat(e instanceof Error ? e.message : "Import katalog gagal."))
+                .catch((e) => setGalat(apiMessage(e, "Import katalog gagal.")))
                 .finally(() => setMemprosesImport(false))
             }}>Import katalog</Button>
           </DialogFooter>

@@ -125,6 +125,8 @@
 
   html {
     font-family: 'Geist Variable', sans-serif;
+    /* 14,4px — seluruh ukuran rem ikut mengecil, setara zoom browser 90%. */
+    font-size: 90%;
   }
 
   /* Angka sejajar untuk kolom capaian. */
