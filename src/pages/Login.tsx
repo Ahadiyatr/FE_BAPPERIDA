@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Activity, LogIn, Mail, Lock } from 'lucide-react';
+import { LogIn, Mail, Lock } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { apiMessage } from '../services/api';
 import { peranYangBoleh, usePeran, type Peran } from '../lib/peran';
 import { DESIGN_COLOR } from '../lib/design-tokens';
 import { pathnameTujuanLogin, pilihTujuanLogin } from '../lib/tujuan-login';
+import logoOperaInk from '../assets/opera-ink-logo.png';
 
 /**
  * Akun isi-otomatis untuk pengembangan lokal saja.
@@ -137,9 +138,7 @@ export default function Login() {
       )}
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="p-3 shadow-lg bg-linear-to-br from-emerald-500 to-yellow-400 rounded-2xl">
-            <Activity className="w-10 h-10 text-white" />
-          </div>
+          <img src={logoOperaInk} alt="Logo OPERA-INK" width={192} height={158} className="h-auto w-48" />
         </div>
         <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-center text-slate-900">
           Login ke Dashboard
@@ -239,15 +238,6 @@ export default function Login() {
                 >
                   Ingat saya
                 </label>
-              </div>
-
-              <div className="text-sm">
-                <a
-                  href="#"
-                  className="font-medium text-emerald-600 hover:text-emerald-500"
-                >
-                  Lupa password?
-                </a>
               </div>
             </div>
 

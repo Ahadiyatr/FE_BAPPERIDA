@@ -28,10 +28,10 @@ import type { BarisMaster, IdTingkat } from "./master/tingkat"
 import { getProgram, getKegiatan, getSubkegiatan, getJumlahAktifitas, importKatalogExcel, previewImportExcel, unduhTemplateImportExcel } from "@/services"
 import type { PreviewExcel } from "@/services"
 import { apiMessage } from "@/services/api"
+import { persen1 } from "@/lib/format-angka"
 import { usePaginasi } from "@/lib/paginasi"
 
-const persen = (n: number) =>
-  `${n.toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+const persen = persen1
 
 function adalahTingkat(v: string | undefined): v is IdTingkat {
   return !!v && (URUT_TINGKAT as string[]).includes(v)

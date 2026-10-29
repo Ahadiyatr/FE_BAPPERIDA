@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Tooltip } from "radix-ui"
+import { persen1 } from "@/lib/format-angka"
 import { cn } from "@/lib/utils"
 
 /**
@@ -35,8 +36,7 @@ interface BobotMeterProps extends React.HTMLAttributes<HTMLDivElement> {
 const rasio = (a: AktifitasBobot) =>
   a.target > 0 ? Math.min(a.realisasi / a.target, 1) : 0
 
-const persen = (n: number) =>
-  n.toFixed(1).replace(".", ",") + "%"
+const persen = persen1
 
 function Segmen({
   isi,
@@ -78,7 +78,7 @@ function Segmen({
         <Tooltip.Content
           side="top"
           sideOffset={6}
-          className="z-50 max-w-[240px] rounded-xl bg-slate-800 px-2.5 py-1.5 text-xs text-white shadow-md"
+          className="z-50 max-w-60 rounded-xl bg-slate-800 px-2.5 py-1.5 text-xs text-white shadow-md"
         >
           {judul}
           <Tooltip.Arrow className="fill-slate-800" />
@@ -99,7 +99,7 @@ export function BobotMeter({
   return (
     <Tooltip.Provider delayDuration={200}>
       <div
-        className={cn("flex w-full min-w-[120px] gap-[3px]", className)}
+        className={cn("flex w-full min-w-30 gap-0.75", className)}
         style={{ height: tinggi }}
         role="img"
         aria-label={`Capaian: aktivitas utama ${persen(

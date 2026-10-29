@@ -43,7 +43,8 @@
 .lp a { color: var(--lp-primary-text); text-decoration: none; }
 .lp a:focus-visible, .lp button:focus-visible { outline: 2px solid var(--lp-primary); outline-offset: 3px; border-radius: 6px; }
 .lp .num { font-variant-numeric: tabular-nums; }
-.lp h1, .lp h2, .lp h3 { font-family: var(--lp-font-display); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
+/* tabular-nums di Lora ikut melebarkan spasi; judul berisi kata, jadi angka proporsional. */
+.lp h1, .lp h2, .lp h3 { font-family: var(--lp-font-display); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; margin: 0; font-variant-numeric: normal; }
 .lp-container { max-width: 1200px; margin: 0 auto; padding-inline: 16px; }
 @media (min-width: 640px) { .lp-container { padding-inline: 24px; } }
 
@@ -74,6 +75,9 @@
 .lp-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-family: var(--lp-font-sans); font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
   text-transform: uppercase; white-space: nowrap; background: var(--lp-gold); color: #052e1f; }
 .lp-badge.lp-quiet { background: var(--lp-base-300); color: var(--lp-fg-2); }
+/* Tuntas = hijau penuh, beda dari Berjalan (emas) dan Belum dimulai (abu). */
+.lp-badge.lp-tuntas { background: var(--lp-primary-text); color: #fff; }
+.lp-badge.lp-tuntas::before { content: "✓"; margin-right: 4px; font-size: 11px; line-height: 1; }
 
 /* pembuka */
 .lp-hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--lp-hair); padding-block: 56px 64px; }
@@ -163,6 +167,11 @@
   .lp-pct { font-size: 26px; }
 }
 
+/* tautan kembali di baris menu (halaman detail bidang) */
+.lp .lp-back { display: inline-flex; align-items: center; gap: 6px; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 500; text-transform: uppercase;
+  color: color-mix(in srgb, var(--lp-fg) 80%, transparent); transition: background 0.2s, color 0.2s; }
+.lp .lp-back:hover { color: var(--lp-primary-text); background: var(--lp-base-200); }
+
 /* capaian per program */
 .lp-prog, .lp-prog-skala { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.3fr) 100px; column-gap: 28px; }
 .lp-prog { row-gap: 8px; align-items: center; padding: 22px 0; border-top: 1px solid var(--lp-hair); }
@@ -180,10 +189,10 @@
 /* keadaan kosong & footer */
 .lp-empty { padding-block: 96px; text-align: center; }
 .lp-empty p { margin: 12px auto 0; max-width: 56ch; font-size: 14px; color: var(--lp-fg-2); }
-.lp-footer { padding-block: 40px 48px; background: var(--lp-base-200); border-top: 1px solid var(--lp-hair); }
-.lp-footer-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px 40px; flex-wrap: wrap; }
-.lp-footer h3 { font-family: var(--lp-font-sans); font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
-.lp-footer p { margin: 4px 0 0; font-size: 11px; color: var(--lp-fg-3); }
+.lp-footer { padding-block: 16px; background: var(--lp-base-200); border-top: 1px solid var(--lp-hair); }
+.lp-footer-row { margin: 0 auto; display: flex; justify-content: center; flex-wrap: wrap; gap: 2px 8px; text-align: center; font-size: 12px; font-weight: 500; color: var(--lp-fg-2); }
+/* Di ponsel teks turun ke dua baris; titik pemisah disembunyikan supaya tidak menggantung. */
+@media (max-width: 640px) { .lp-footer-row span[aria-hidden] { display: none; } .lp-footer-row span { flex-basis: 100%; } }
 
 @media (prefers-reduced-motion: reduce) {
   .lp *, .lp *::before, .lp *::after { animation: none !important; transition: none !important; }

@@ -1,36 +1,52 @@
+import { lazy, Suspense } from "react"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import DashboardLayout from "./layouts/DashboardLayout"
 import { PenyediaPeran } from "./lib/peran"
-import Detail from "./pages/Detail"
-import Landing from "./pages/Landing"
-import Login from "./pages/Login"
-import BuktiKegiatan from "./pages/opera/BuktiKegiatan"
-import CapaianProgram from "./pages/opera/CapaianProgram"
-import CatatRealisasi from "./pages/opera/CatatRealisasi"
-import KalenderRencana from "./pages/opera/KalenderRencana"
-import DashboardUmum from "./pages/opera/DashboardUmum"
-import DataMaster from "./pages/opera/DataMaster"
-import DetailSubkegiatan from "./pages/opera/DetailSubkegiatan"
-import KinerjaBidang from "./pages/opera/KinerjaBidang"
-import LogAktivitas from "./pages/opera/LogAktivitas"
-import ManajemenPengguna from "./pages/opera/ManajemenPengguna"
-import MasterBidang from "./pages/opera/MasterBidang"
-import MasterDokumen from "./pages/opera/MasterDokumen"
-import MonitoringKinerja from "./pages/opera/MonitoringKinerja"
-import PenyusunanRencana from "./pages/opera/PenyusunanRencana"
-import PeriodeLayar from "./pages/opera/PeriodeLayar"
-import RencanaBidang from "./pages/opera/RencanaBidang"
-import RencanaSaya from "./pages/opera/RencanaSaya"
-import RencanaSayaDetail from "./pages/opera/RencanaSayaDetail"
-import StrukturProgram from "./pages/opera/StrukturProgram"
 import { PenjagaPeran } from "./pages/opera/bagian/PenjagaPeran"
 
-const jaga = (halaman: React.ReactNode) => <PenjagaPeran>{halaman}</PenjagaPeran>
+// Setiap halaman dimuat terpisah supaya pengunjung halaman publik tidak ikut
+// mengunduh semua layar admin. Kerangka (layout, penjaga peran) tetap di bundel utama.
+const Detail = lazy(() => import("./pages/Detail"))
+const Landing = lazy(() => import("./pages/Landing"))
+const Login = lazy(() => import("./pages/Login"))
+const BuktiKegiatan = lazy(() => import("./pages/opera/BuktiKegiatan"))
+const CapaianProgram = lazy(() => import("./pages/opera/CapaianProgram"))
+const CatatRealisasi = lazy(() => import("./pages/opera/CatatRealisasi"))
+const KalenderRencana = lazy(() => import("./pages/opera/KalenderRencana"))
+const DashboardUmum = lazy(() => import("./pages/opera/DashboardUmum"))
+const DataMaster = lazy(() => import("./pages/opera/DataMaster"))
+const DetailSubkegiatan = lazy(() => import("./pages/opera/DetailSubkegiatan"))
+const KinerjaBidang = lazy(() => import("./pages/opera/KinerjaBidang"))
+const LogAktivitas = lazy(() => import("./pages/opera/LogAktivitas"))
+const ManajemenPengguna = lazy(() => import("./pages/opera/ManajemenPengguna"))
+const MasterBidang = lazy(() => import("./pages/opera/MasterBidang"))
+const MasterDokumen = lazy(() => import("./pages/opera/MasterDokumen"))
+const MonitoringKinerja = lazy(() => import("./pages/opera/MonitoringKinerja"))
+const PenyusunanRencana = lazy(() => import("./pages/opera/PenyusunanRencana"))
+const PeriodeLayar = lazy(() => import("./pages/opera/PeriodeLayar"))
+const RencanaBidang = lazy(() => import("./pages/opera/RencanaBidang"))
+const RencanaSaya = lazy(() => import("./pages/opera/RencanaSaya"))
+const RencanaSayaDetail = lazy(() => import("./pages/opera/RencanaSayaDetail"))
+const StrukturProgram = lazy(() => import("./pages/opera/StrukturProgram"))
+
+const Memuat = () => (
+  <div className="flex h-64 items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+  </div>
+)
+
+// Suspense di dalam jaga() supaya sidebar & header tetap tampil saat layar dimuat.
+const jaga = (halaman: React.ReactNode) => (
+  <PenjagaPeran>
+    <Suspense fallback={<Memuat />}>{halaman}</Suspense>
+  </PenjagaPeran>
+)
 
 export default function App() {
   return (
     <PenyediaPeran>
       <BrowserRouter>
+        <Suspense fallback={<Memuat />}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/detail" element={<Detail />} />
@@ -60,6 +76,7 @@ export default function App() {
           <Route path="/master/*" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </PenyediaPeran>
   )

@@ -18,7 +18,7 @@ import {
 import { apiMessage } from "@/services/api"
 import { usePaginasi } from "@/lib/paginasi"
 import type { Dokumen, Periode, StatusPeriode, SyaratBukaPeriode } from "@/services"
-import { Panel, Th } from "./bagian/ui"
+import { Panel, Th, persen1 } from "./bagian/ui"
 
 const NADA: Record<StatusPeriode, string> = {
   DRAFT: "bg-slate-100 text-slate-600",
@@ -141,7 +141,7 @@ export default function PeriodeLayar() {
                     </span>
                   </td>
                   <td className="px-6 py-3 text-right text-sm font-semibold tabular">
-                    {p.status === "DRAFT" ? "—" : capaian[p.id] === undefined ? "Tidak tersedia" : `${capaian[p.id].toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`}
+                    {p.status === "DRAFT" ? "—" : capaian[p.id] === undefined ? "Tidak tersedia" : persen1(capaian[p.id])}
                   </td>
                   <td className="px-6 py-3 text-right whitespace-nowrap">
                     {p.status === "DRAFT" && (

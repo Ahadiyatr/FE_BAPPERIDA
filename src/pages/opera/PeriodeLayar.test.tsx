@@ -61,19 +61,20 @@ describe('PeriodeLayar', () => {
       tanggalSelesai: '2026-12-31',
       status: 'LOCKED',
     }]);
-    getCapaianPeriode.mockResolvedValue({ periodeId: 4, capaianPd: 65.39, rincian: [] });
+    getCapaianPeriode.mockResolvedValue({ periodeId: 4, capaianPd: 70.08, rincian: [] });
     hitungUlangCapaian.mockResolvedValue({ periodeId: 4, capaianPd: 70, rincian: [] });
 
     render(<PeriodeLayar />);
 
-    expect(await screen.findByText('65,39%')).toBeTruthy();
+    // Satu desimal, sama dengan halaman publik: 70,08 tampil 70,1% di kedua tempat.
+    expect(await screen.findByText('70,1%')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Hitung ulang' }));
 
     const dialog = screen.getByRole('alertdialog', { name: 'Hitung ulang capaian?' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Hitung ulang' }));
 
     await waitFor(() => expect(hitungUlangCapaian).toHaveBeenCalledWith(4));
-    expect(await screen.findByText('70,00%')).toBeTruthy();
+    expect(await screen.findByText('70,0%')).toBeTruthy();
     expect(screen.getByText(/berhasil dihitung ulang/i)).toBeTruthy();
   });
 

@@ -1,4 +1,5 @@
 import * as React from "react"
+import { persen1, persen2 } from "@/lib/format-angka"
 import { cn } from "@/lib/utils"
 
 /**
@@ -13,9 +14,6 @@ import { cn } from "@/lib/utils"
  * menunjukkan hitungannya, termasuk konsekuensi dari perubahan yang belum
  * disimpan.
  */
-
-const persen = (n: number) => n.toFixed(1).replace(".", ",") + "%"
-const persen2 = (n: number) => n.toFixed(2).replace(".", ",") + "%"
 
 interface Baris {
   label: string
@@ -68,13 +66,13 @@ export function BobotLedger({
 
       {meter && (
         <>
-          <div className="my-3 flex h-3.5 gap-[2px]">
-            <i className="flex-[70] rounded-[1px] bg-emerald-600" />
+          <div className="my-3 flex h-3.5 gap-0.5">
+            <i className="flex-70 rounded-[1px] bg-emerald-600" />
             {Array.from({ length: meter.jumlahPendukung }, (_, i) => (
               <i
                 key={i}
                 className={cn(
-                  "flex-[10] rounded-[1px] bg-slate-400",
+                  "flex-10 rounded-[1px] bg-slate-400",
                   meter.segmenBaru &&
                     i === meter.jumlahPendukung - 1 &&
                     "shadow-[inset_0_0_0_1px_white]"
@@ -123,7 +121,7 @@ export function LedgerCapaian({
         },
         {
           label: "Capaian subkegiatan",
-          nilai: persen2(bobotUtama + bobotPendukung),
+          nilai: persen1(bobotUtama + bobotPendukung),
           total: true,
         },
       ]}
@@ -146,17 +144,17 @@ export function LedgerTambahPendukung({
       baris={[
         { label: "Aktifitas utama", nilai: "70,0%" },
         {
-          label: `${n} aktivitas pendukung × ${persen(baru)}`,
+          label: `${n} aktivitas pendukung × ${persen2(baru)}`,
           nilai: "30,0%",
         },
-        { label: "Bobot baris baru ini", nilai: persen(baru), total: true },
+        { label: "Bobot baris baru ini", nilai: persen2(baru), total: true },
       ]}
       meter={{ jumlahPendukung: n, segmenBaru: true }}
       peringatan={
         jumlahSekarang > 0
-          ? `Menambah baris ini menurunkan bobot ${jumlahSekarang} aktivitas pendukung yang sudah ada dari ${persen(
+          ? `Menambah baris ini menurunkan bobot ${jumlahSekarang} aktivitas pendukung yang sudah ada dari ${persen2(
               lama
-            )} menjadi ${persen(baru)}.`
+            )} menjadi ${persen2(baru)}.`
           : undefined
       }
     />

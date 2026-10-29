@@ -22,12 +22,12 @@ import type {
   BarisRencana, HasilPemeriksaan, KatalogTersedia, RencanaBidangDetail,
 } from "@/services"
 import { alasanCentangTerkunci, pendukungDipakai } from "@/lib/bobot-pendukung"
+import { persen1 } from "@/lib/format-angka"
 import { teksSatuanKinerja } from "@/lib/metadata-kinerja"
 import { cn } from "@/lib/utils"
 import { apiMessage } from "@/services/api"
 
-const persen = (n: number) =>
-  `${n.toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+const persen = persen1
 
 /* ── kolom 3: pemeriksaan ──────────────────────────────────── */
 
@@ -52,7 +52,7 @@ function PanelPemeriksaan({
   return (
     <div className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b px-3 py-2">
-        <h3 className="font-bold text-[13px] font-bold">Pemeriksaan</h3>
+        <h3 className="font-bold text-[13px]">Pemeriksaan</h3>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
@@ -154,7 +154,7 @@ function Editor({
     <div className="space-y-4 p-4">
       <div className="space-y-1">
         <Kode>{baris.kodeSubkegiatan}</Kode>
-        <h3 className="font-bold text-base leading-snug font-bold">{baris.namaSubkegiatan}</h3>
+        <h3 className="font-bold text-base leading-snug">{baris.namaSubkegiatan}</h3>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -409,7 +409,7 @@ export default function RencanaBidang() {
         </Button>
         <div className="min-w-0">
           <Eyebrow>Menyusun rencana{rencana ? ` · ${rencana.periode.namaPeriode}` : ""}</Eyebrow>
-          <h2 className="truncate font-bold text-base font-extrabold">
+          <h2 className="truncate text-base font-extrabold">
             {rencana ? `Bidang ${rencana.bidang.namaBidang}` : tidakAda ? "Tidak ditemukan" : "Memuat…"}
           </h2>
         </div>
@@ -437,7 +437,7 @@ export default function RencanaBidang() {
               <span className="font-mono text-[11px] tracking-[0.12em] opacity-60">{katalog.length}</span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[26rem] p-0" align="end">
+          <PopoverContent className="w-104 p-0" align="end">
             <Command>
               <CommandInput placeholder="Cari subkegiatan di katalog…" />
               <CommandList>
@@ -490,7 +490,7 @@ export default function RencanaBidang() {
         {/* navigator */}
         <div className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center gap-2 border-b px-3 py-2">
-            <h3 className="font-bold text-[13px] font-bold">Subkegiatan bidang ini</h3>
+            <h3 className="font-bold text-[13px]">Subkegiatan bidang ini</h3>
             <span className="tabular ml-auto rounded-xl bg-muted px-1.5 font-mono text-[11px] tracking-[0.12em]">
               {rencana?.baris.length ?? 0}
             </span>

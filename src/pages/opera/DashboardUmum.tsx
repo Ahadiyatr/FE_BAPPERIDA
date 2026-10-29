@@ -139,7 +139,7 @@ export default function DashboardUmum() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {memuat ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-[104px] bg-white border border-slate-200 rounded-2xl animate-pulse" />
+            <div key={i} className="h-26 bg-white border border-slate-200 rounded-2xl animate-pulse" />
           ))
         ) : ringkas ? (
           <>
@@ -177,7 +177,7 @@ export default function DashboardUmum() {
         ) : (
           <div className="flex min-h-44 items-end gap-3 overflow-x-auto px-5 pb-5 pt-6">
             {tren.map((t) => (
-              <div key={t.periodeId} className="flex min-w-24 flex-1 flex-col items-center gap-2 text-center" title={`${t.namaPeriode}: ${t.capaian}%`}>
+              <div key={t.periodeId} className="flex min-w-24 flex-1 flex-col items-center gap-2 text-center" title={`${t.namaPeriode}: ${persen1(t.capaian)}`}>
                 <span className="text-xs font-semibold tabular text-slate-700">{persen1(t.capaian)}</span>
                 <div className="flex h-24 w-full max-w-16 items-end rounded-t-lg bg-slate-100">
                   <div className="w-full rounded-t-lg bg-emerald-600 transition-all" style={{ height: `${Math.max(2, Math.min(t.capaian, 100))}%` }} />

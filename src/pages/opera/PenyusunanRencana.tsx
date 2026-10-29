@@ -242,6 +242,9 @@ export default function PenyusunanRencana() {
           key={periode.id}
           periode={periode}
           sumber={sumber}
+          periodeLainTerbuka={
+            periodes?.find(p => p.status === 'OPEN' && p.id !== periode.id) ?? null
+          }
           onPerubahan={muatPeriode}
         />
       )}

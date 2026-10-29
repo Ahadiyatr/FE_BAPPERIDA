@@ -1,66 +1,156 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { apiMessage } from "../services/api";
-import { persen1 } from "../lib/format-angka";
-import { getDetailBidangPublik, type DetailBidangPublik } from "../services/public-dashboard.service";
-import { DESIGN_COLOR } from "../lib/design-tokens";
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, ListChecks } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { KerangkaPublik } from './publik/KerangkaPublik';
+import { apiMessage } from '../services/api';
+import { persen1 } from '../lib/format-angka';
+import {
+  getDetailBidangPublik,
+  type DetailBidangPublik,
+} from '../services/public-dashboard.service';
+
+const angka = (n: number) => n.toLocaleString('id-ID');
+
+function BadgeStatus({ capaian }: { capaian: number }) {
+  if (capaian >= 100) return <span className="lp-badge lp-tuntas">Tuntas</span>;
+  if (capaian > 0) return <span className="lp-badge">Berjalan</span>;
+  return <span className="lp-badge lp-quiet">Belum dimulai</span>;
+}
 
 export default function Detail() {
-  const navigate = useNavigate();
-  const bidangId = new URLSearchParams(useLocation().search).get("bidang");
+  const bidangId = new URLSearchParams(useLocation().search).get('bidang');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<DetailBidangPublik | null>(null);
 
   useEffect(() => {
     if (!bidangId) {
-      setError("Bidang tidak ditentukan.");
+      setError('Bidang tidak ditentukan.');
       setLoading(false);
       return;
     }
 
     getDetailBidangPublik(bidangId)
       .then(setData)
-      .catch((err) => setError(apiMessage(err, "Gagal memuat data bidang.")))
+      .catch((err) => setError(apiMessage(err, 'Gagal memuat data bidang.')))
       .finally(() => setLoading(false));
   }, [bidangId]);
 
-  return (
-    <div className="min-h-screen bg-white font-sans text-slate-900">
-      <header className="sticky top-0 z-10 border-b border-slate-100 bg-white px-6 py-4 md:px-12">
-        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-800">
-          <ArrowLeft className="h-4 w-4" /> Dashboard
-        </button>
-      </header>
+  const status = useMemo(() => {
+    const rincian = data?.rincian ?? [];
+    const tuntas = rincian.filter((s) => s.capaian >= 100).length;
+    const belum = rincian.filter((s) => s.capaian <= 0).length;
+    return { belum, berjalan: rincian.length - tuntas - belum, tuntas };
+  }, [data]);
 
-      {loading ? (
-        <div className="flex h-64 items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" /></div>
-      ) : error || !data ? (
-        <main className="mx-auto max-w-7xl px-6 py-10 md:px-12"><div className="rounded-xl border border-red-100 bg-red-50 p-4 text-red-600">{error ?? "Data tidak ditemukan."}</div></main>
-      ) : (
-        <main className="mx-auto max-w-7xl px-6 py-10 md:px-12">
-          <div className="mb-12 flex flex-col items-center gap-8 md:flex-row">
-            <div className="relative h-40 w-40 shrink-0">
-              <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke={DESIGN_COLOR.border} strokeWidth="12" />
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke={DESIGN_COLOR.brand} strokeWidth="12" strokeLinecap="round" strokeDasharray={`${(Math.min(100, Math.max(0, data.header.capaian_bidang)) / 100) * (2 * Math.PI * 40)} ${2 * Math.PI * 40}`} className="transition-all duration-1000 ease-out" />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-bold tracking-tight text-slate-800">{persen1(data.header.capaian_bidang)}</span></div>
-            </div>
-            <div className="flex flex-col text-center md:text-left">
-              <div className="mb-2 flex items-center justify-center gap-3 md:justify-start"><div className="h-3 w-3 rounded-full bg-blue-500" /><h1 className="text-3xl font-bold text-slate-800">{data.header.nama_bidang}</h1></div>
-              <p className="font-medium text-slate-500">{data.header.jumlah_subkegiatan} subkegiatan · Rata-rata capaian {persen1(data.header.capaian_bidang)}</p>
+  const kembali = (
+    <Link to="/" className="lp-back">
+      <ArrowLeft size={14} aria-hidden="true" /> Kembali ke dashboard
+    </Link>
+  );
+
+  if (loading || error || !data) {
+    return (
+      <KerangkaPublik nav={kembali}>
+        <div className="lp-container lp-empty">
+          {loading ? (
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+          ) : (
+            <p role="alert" style={{ color: '#b91c1c' }}>
+              {error ?? 'Data tidak ditemukan.'}
+            </p>
+          )}
+        </div>
+      </KerangkaPublik>
+    );
+  }
+
+  const { header, periode, rincian } = data;
+  const capaian = Number(header.capaian_bidang);
+
+  return (
+    <KerangkaPublik nav={kembali}>
+      {/* Pembuka */}
+      <section className="lp-hero" aria-labelledby="lp-h-bidang">
+        <div className="lp-container lp-hero-grid">
+          <div>
+            <p className="lp-welcome">Capaian bidang</p>
+            <p className="lp-big num" aria-label={`Capaian bidang ${persen1(capaian)}`}>
+              {persen1(capaian).replace('%', '')}
+              <small>%</small>
+            </p>
+            <h1 id="lp-h-bidang">
+              {header.nama_bidang}
+              {periode && <span>{periode.nama_periode}</span>}
+            </h1>
+            <div className="lp-hero-meta">
+              <BadgeStatus capaian={capaian} />
+              <span>Rata-rata capaian seluruh subkegiatan bidang ini</span>
             </div>
           </div>
+          <ul className="lp-facts num" aria-label="Ringkasan status subkegiatan">
+            {[
+              [header.jumlah_subkegiatan, 'Subkegiatan'],
+              [status.belum, 'Belum dimulai'],
+              [status.berjalan, 'Berjalan'],
+              [status.tuntas, 'Tuntas'],
+            ].map(([n, label]) => (
+              <li key={label}>
+                <b>{angka(Number(n))}</b>
+                <span>{label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
-          <div className="mt-8 overflow-hidden rounded-xl border border-slate-100 bg-white"><div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] text-left text-sm"><thead className="border-b border-slate-100 bg-white text-xs text-slate-400"><tr><th className="w-16 px-6 py-4 text-center font-semibold">No</th><th className="px-6 py-4 font-semibold">Subkegiatan</th><th className="w-64 px-6 py-4 font-semibold">Progress</th><th className="w-20 px-6 py-4 text-right font-semibold">%</th></tr></thead>
-              <tbody className="divide-y divide-slate-100">{data.rincian.map((subkegiatan, index) => <tr key={subkegiatan.id} className="transition-colors hover:bg-slate-50"><td className="px-6 py-4 text-center font-medium text-slate-400">{index + 1}</td><td className="px-6 py-4 font-medium text-slate-700"><div>{subkegiatan.nama_subkegiatan}</div><div className="mt-1 text-xs font-normal text-slate-400">{subkegiatan.kode_subkegiatan}</div></td><td className="px-6 py-4"><div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-blue-500 transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, Math.max(0, subkegiatan.capaian))}%` }} /></div></td><td className="px-6 py-4 text-right font-semibold text-blue-600">{persen1(subkegiatan.capaian)}</td></tr>)}</tbody>
-            </table>
-          </div></div>
-        </main>
-      )}
-    </div>
+      {/* Rincian subkegiatan */}
+      <section className="lp-sec lp-tint" aria-labelledby="lp-h-rincian">
+        <div className="lp-container">
+          <div className="lp-sec-head">
+            <div>
+              <p className="lp-eyebrow">
+                <ListChecks size={12} />
+                Rincian subkegiatan
+              </p>
+              <h2 id="lp-h-rincian">Capaian Tiap Subkegiatan</h2>
+              <p className="lp-sub">
+                Persentase capaian terhadap target tahunan, dalam skala 0 sampai 100.
+              </p>
+            </div>
+          </div>
+          <div className="num">
+            {rincian.map((s) => (
+              <div className="lp-prog" key={s.id}>
+                <div>
+                  <h3>
+                    {s.nama_subkegiatan}
+                    {s.capaian > 0 && <BadgeStatus capaian={s.capaian} />}
+                  </h3>
+                  {s.indikator_kinerja && (
+                    <div className="lp-row-meta">{s.indikator_kinerja}</div>
+                  )}
+                </div>
+                <div className="lp-line lp-line-grad" aria-hidden="true">
+                  <b style={{ width: `${Math.min(100, Math.max(0, s.capaian))}%` }} />
+                </div>
+                <div className={`lp-pct${s.capaian > 0 ? '' : ' lp-zero'}`}>
+                  {persen1(s.capaian)}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="lp-prog-skala num" aria-hidden="true">
+            <span />
+            <div>
+              <span>0</span>
+              <span>50</span>
+              <span>100</span>
+            </div>
+            <span />
+          </div>
+        </div>
+      </section>
+    </KerangkaPublik>
   );
 }

@@ -54,7 +54,9 @@ type KesiapanRow = {
   status: StatusKesiapan;
   jumlah_subkegiatan: number;
   jumlah_lengkap: number;
+  jumlah_teragenda?: number;
   butir: string[];
+  ditandai_pada?: string | null;
 };
 const aktifitas = (r: AktifitasRow): IndikatorBidang => ({
   id: r.id,
@@ -106,6 +108,9 @@ const kesiapan = (r: KesiapanRow): KesiapanBidang => ({
   status: r.status,
   jumlahSubkegiatan: r.jumlah_subkegiatan,
   jumlahLengkap: r.jumlah_lengkap,
+  jumlahTeragenda: r.jumlah_teragenda ?? 0,
+  butir: r.butir ?? [],
+  ditandaiPada: r.ditandai_pada ?? null,
 });
 export async function getPapanKesiapan(
   periodeId: number,

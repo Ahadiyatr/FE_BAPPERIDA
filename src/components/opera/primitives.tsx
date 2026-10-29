@@ -108,7 +108,7 @@ export function CapaianPersen({
         className
       )}
     >
-      {nilai.toFixed(desimal).replace(".", ",")}%
+      {nilai.toLocaleString("id-ID", { minimumFractionDigits: desimal, maximumFractionDigits: desimal })}%
     </span>
   )
 }

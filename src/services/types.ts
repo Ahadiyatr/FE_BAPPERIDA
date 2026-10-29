@@ -277,6 +277,12 @@ export interface KesiapanBidang {
   jumlahSubkegiatan: number
   /** Yang sudah lolos pemeriksaan penghalang (punya indikator + target). */
   jumlahLengkap: number
+  /** Subkegiatan yang punya minimal satu agenda kalender. Lunak — tidak menghalangi. */
+  jumlahTeragenda: number
+  /** Kekurangan yang menghalangi, berbentuk "KODE: pesan." dari backend. */
+  butir: string[]
+  /** ISO 8601; hanya terisi bila status SIAP. */
+  ditandaiPada: string | null
 }
 
 export type NadaPemeriksaan = "ok" | "warn" | "bad"

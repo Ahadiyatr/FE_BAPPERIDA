@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Activity,
   BarChart2,
   Calendar,
   CalendarDays,
@@ -27,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { GantiKataSandiDialog } from '@/components/opera/ganti-kata-sandi-dialog';
+import lambangOperaInk from '@/assets/opera-ink-lambang.png';
 import { LABEL_PERAN, bolehAkses, usePeran, type Peran } from '@/lib/peran';
 
 interface ItemMenu {
@@ -164,9 +164,7 @@ export default function DashboardLayout() {
             to="/dashboard"
             className="flex items-center gap-3 overflow-hidden"
           >
-            <span className="rounded-xl bg-emerald-600 p-2.5 text-white shadow-sm">
-              <Activity className="w-5 h-5" />
-            </span>
+            <img src={lambangOperaInk} alt="Logo OPERA-INK" width={40} height={40} className="h-10 w-10 shrink-0" />
             {!ringkas && (
               <span className="font-bold whitespace-nowrap text-slate-800">
                 OPERA INK

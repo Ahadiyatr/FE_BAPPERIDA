@@ -47,55 +47,92 @@
     --color-ring: var(--ring);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Palet tema tabalong-light (portal bapperida.tabalongkab.go.id),
+   sama dengan landing publik (token --lp-* di pages/landing.css).
+   Skala emerald dan slate bawaan Tailwind didefinisikan ulang di sini,
+   sehingga seluruh kelas emerald-* / slate-* di halaman admin ikut
+   berganti tanpa menyunting className. Amber, red, sky, blue sengaja
+   dibiarkan — warna status semantik.
+   ═══════════════════════════════════════════════════════════════ */
+@theme {
+    /* Hijau Tabalong: 500 = primary situs, 600 = primary untuk teks, 950 = green-deep. */
+    --color-emerald-50: #ebf7f0;
+    --color-emerald-100: #d6efe0;
+    --color-emerald-200: #b3e0c6;
+    --color-emerald-300: #86cda6;
+    --color-emerald-400: #4fb985;
+    --color-emerald-500: #22a86b;
+    --color-emerald-600: #17864f;
+    --color-emerald-700: #126b40;
+    --color-emerald-800: #0f5535;
+    --color-emerald-900: #0b4029;
+    --color-emerald-950: #052e1f;
+
+    /* Netral kehijauan: 100/200 = base-200/300, 600 = teks redup, 900 = base-content. */
+    --color-slate-50: #f6faf7;
+    --color-slate-100: #ecf6ef;
+    --color-slate-200: #d7ebde;
+    --color-slate-300: #b2cbbc;
+    --color-slate-400: #7a9585;
+    --color-slate-500: #5f7d6c;
+    --color-slate-600: #4f6f5e;
+    --color-slate-700: #3d5c4c;
+    --color-slate-800: #2a4a39;
+    --color-slate-900: #153d2a;
+    --color-slate-950: #0a2418;
+}
+
 /* ================= ROOT ================= */
 :root {
     --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --foreground: #153d2a;
 
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: #153d2a;
 
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
+    --popover-foreground: #153d2a;
 
-    --primary: oklch(0.55 0.15 140); /* hijau */
+    --primary: #22a86b; /* hijau Tabalong */
     --primary-foreground: oklch(0.98 0 0);
 
-    --secondary: oklch(0.9 0.15 90); /* kuning */
-    --secondary-foreground: oklch(0.2 0 0);
+    --secondary: #eec96a; /* emas Tabalong */
+    --secondary-foreground: #052e1f;
 
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.5 0 0);
+    --muted: #ecf6ef;
+    --muted-foreground: #4f6f5e;
 
-    --accent: oklch(0.9 0.15 90);
-    --accent-foreground: oklch(0.2 0 0);
+    --accent: #eec96a;
+    --accent-foreground: #052e1f;
 
     --destructive: oklch(0.6 0.25 30);
     --destructive-foreground: oklch(0.98 0 0);
 
-    --border: oklch(0.9 0 0);
-    --input: oklch(0.9 0 0);
-    --ring: oklch(0.55 0.15 140);
+    --border: #d7ebde;
+    --input: #d7ebde;
+    --ring: #22a86b;
 
     --radius: 0.75rem;
 
     /* Semantic/domain tokens — status dan nilai SVG/JS tidak memakai literal. */
-    --color-brand: #059669;
-    --color-brand-strong: #047857;
+    --color-brand: #22a86b;
+    --color-brand-strong: #17864f;
     --color-status-success: #059669;
     --color-status-warning: #d97706;
     --color-status-danger: #ef4444;
     --color-status-neutral: #94a3b8;
-    --color-surface-subtle: #f4f7fb;
-    --color-border-subtle: #e2e8f0;
-    --color-text-muted: #64748b;
-    --color-chart-1: #047857;
-    --color-chart-2: #10b981;
-    --color-chart-3: #34d399;
-    --color-chart-4: #84cc16;
-    --color-chart-5: #eab308;
-    --color-chart-6: #f59e0b;
-    --color-chart-7: #d97706;
+    --color-surface-subtle: #ecf6ef;
+    --color-border-subtle: #d7ebde;
+    --color-text-muted: #4f6f5e;
+    /* Sama dengan --lp-c1…c7 di landing: hijau, emas, mint berselang-seling. */
+    --color-chart-1: #22a86b;
+    --color-chart-2: #f3d484;
+    --color-chart-3: #157a4c;
+    --color-chart-4: #8edab2;
+    --color-chart-5: #c89422;
+    --color-chart-6: #4cc391;
+    --color-chart-7: #eec96a;
 }
 
 /* ================= DARK ================= */

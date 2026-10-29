@@ -29,6 +29,12 @@ describe('BobotMeter', () => {
     expect(screen.getByText(/warna pekat menunjukkan/i)).toBeTruthy();
   });
 
+  it('membulatkan bobot sama dengan persen1 di tabel sebelahnya (1,45 → 1,5%)', () => {
+    render(<BobotMeterLegenda bobotUtama={1.45} bobotPendukung={[10, 10, 10]} />);
+
+    expect(screen.getByText('1,5%')).toBeTruthy();
+  });
+
   it('meringkas bobot pendukung yang tidak seragam tanpa daftar panjang', () => {
     render(<BobotMeterLegenda bobotPendukung={[4.29, 4.29, 4.26]} />);
 
