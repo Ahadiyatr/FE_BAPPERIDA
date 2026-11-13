@@ -224,23 +224,6 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="block ml-2 text-sm text-slate-900"
-                >
-                  Ingat saya
-                </label>
-              </div>
-            </div>
-
             <div>
               <button
                 type="submit"

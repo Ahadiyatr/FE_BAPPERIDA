@@ -1,38 +1,84 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Image as ImageIcon, AlertTriangle, FileText, Download } from "lucide-react";
 import api from "../services/api";
 
 type BlobError = false | "unauthorized" | "notfound" | "unknown";
 
+// Cache object URL selama sesi, kunci = apiPath. Urutan sisip Map dipakai
+// sebagai LRU: entri tertua dibuang (dan di-revoke) saat melewati batas.
+// Tanpa cache, membuka-tutup grup di Bukti Kegiatan atau pindah tab
+// mengunduh ulang setiap foto.
+const BATAS_CACHE = 300;
+const cacheBlob = new Map<string, string>();
+const sedangDimuat = new Map<string, Promise<string>>();
+
+function ambilBlobUrl(apiPath: string): Promise<string> {
+  const tersimpan = cacheBlob.get(apiPath);
+  if (tersimpan) {
+    cacheBlob.delete(apiPath);
+    cacheBlob.set(apiPath, tersimpan);
+    return Promise.resolve(tersimpan);
+  }
+  // Dua komponen yang meminta berkas yang sama berbagi satu request.
+  const berjalan = sedangDimuat.get(apiPath);
+  if (berjalan) return berjalan;
+
+  const janji = api
+    .get(apiPath, { responseType: "blob" })
+    .then((res) => {
+      const objectUrl = URL.createObjectURL(res.data);
+      cacheBlob.set(apiPath, objectUrl);
+      if (cacheBlob.size > BATAS_CACHE) {
+        const [kunciTertua, urlTertua] = cacheBlob.entries().next().value!;
+        cacheBlob.delete(kunciTertua);
+        URL.revokeObjectURL(urlTertua);
+      }
+      return objectUrl;
+    })
+    .finally(() => sedangDimuat.delete(apiPath));
+  sedangDimuat.set(apiPath, janji);
+  return janji;
+}
+
+/** Kosongkan cache blob, mis. saat keluar supaya berkas tidak terbawa ke sesi berikutnya. */
+export function kosongkanCacheBlob() {
+  for (const url of cacheBlob.values()) URL.revokeObjectURL(url);
+  cacheBlob.clear();
+  sedangDimuat.clear();
+}
+
 // Fetches a protected API path as a blob and exposes an object URL.
-// Revokes the previous object URL whenever `apiPath` changes or the
-// consuming component unmounts, to avoid leaking blob: URLs.
+// Object URL hidup di cache modul, bukan milik komponen, jadi tidak
+// di-revoke saat unmount; galat tidak di-cache supaya bisa dicoba lagi.
 export function useAuthedBlobUrl(apiPath: string | null) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [url, setUrl] = useState<string | null>(() =>
+    apiPath ? cacheBlob.get(apiPath) ?? null : null
+  );
+  const [loading, setLoading] = useState(() => !!apiPath && !cacheBlob.has(apiPath));
   const [error, setError] = useState<BlobError>(false);
-  const currentObjectUrl = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-
-    if (currentObjectUrl.current) {
-      URL.revokeObjectURL(currentObjectUrl.current);
-      currentObjectUrl.current = null;
-    }
-    setUrl(null);
     setError(false);
 
-    if (!apiPath) return;
+    if (!apiPath) {
+      setUrl(null);
+      setLoading(false);
+      return;
+    }
 
+    const tersimpan = cacheBlob.get(apiPath);
+    if (tersimpan) {
+      setUrl(tersimpan);
+      setLoading(false);
+      return;
+    }
+
+    setUrl(null);
     setLoading(true);
-    api
-      .get(apiPath, { responseType: "blob" })
-      .then((res) => {
-        if (cancelled) return;
-        const objectUrl = URL.createObjectURL(res.data);
-        currentObjectUrl.current = objectUrl;
-        setUrl(objectUrl);
+    ambilBlobUrl(apiPath)
+      .then((objectUrl) => {
+        if (!cancelled) setUrl(objectUrl);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -46,10 +92,6 @@ export function useAuthedBlobUrl(apiPath: string | null) {
 
     return () => {
       cancelled = true;
-      if (currentObjectUrl.current) {
-        URL.revokeObjectURL(currentObjectUrl.current);
-        currentObjectUrl.current = null;
-      }
     };
   }, [apiPath]);
 

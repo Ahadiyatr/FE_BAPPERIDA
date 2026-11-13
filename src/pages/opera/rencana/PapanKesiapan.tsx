@@ -509,7 +509,6 @@ export function PapanKesiapan({
           onTutup={() => setSalinTerbuka(false)}
           sumber={sumber}
           tujuan={periode}
-          adaIsi={totalSub > 0}
           onSelesai={async () => {
             await onPerubahan();
             await muat();

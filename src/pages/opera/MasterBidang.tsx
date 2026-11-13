@@ -78,12 +78,11 @@ export default function MasterBidang() {
       >
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
-            <tr><Th>Kode</Th><Th>Nama bidang</Th><Th>Status</Th><Th kanan>Tindakan</Th></tr>
+            <tr><Th>Nama bidang</Th><Th>Status</Th><Th kanan>Tindakan</Th></tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {paginasi.potongan.map((b) => (
               <tr key={b.id} className={b.flagActive ? "hover:bg-slate-50" : "opacity-55"}>
-                <td className="px-6 py-3 font-mono text-xs text-slate-400">{b.kode}</td>
                 <td className="px-6 py-3 text-sm text-slate-700">{b.namaBidang}</td>
                 <td className="px-6 py-3">
                   <span className={`text-xs font-semibold uppercase ${b.flagActive ? "text-emerald-700" : "text-slate-400"}`}>
@@ -107,7 +106,7 @@ export default function MasterBidang() {
               </tr>
             ))}
             {bidangs.length === 0 && (
-              <tr><td colSpan={4} className="px-6 py-8 text-sm text-center text-slate-500">Belum ada bidang.</td></tr>
+              <tr><td colSpan={3}className="px-6 py-8 text-sm text-center text-slate-500">Belum ada bidang.</td></tr>
             )}
           </tbody>
         </table>
@@ -171,13 +170,12 @@ export default function MasterBidang() {
 function FormBidang({
   awal, onTutup, onTersimpan,
 }: { awal: Bidang | null; onTutup: () => void; onTersimpan: () => void }) {
-  const [kode, setKode] = React.useState(awal?.kode ?? "")
   const [nama, setNama] = React.useState(awal?.namaBidang ?? "")
   const [galat, setGalat] = React.useState<string | null>(null)
 
   async function simpan() {
     setGalat(null)
-    try { await simpanBidang({ id: awal?.id, kode, namaBidang: nama }); onTersimpan(); onTutup() }
+    try { await simpanBidang({ id: awal?.id, namaBidang: nama.trim() }); onTersimpan(); onTutup() }
     catch (e) { setGalat(apiMessage(e, "Gagal menyimpan.")) }
   }
 
@@ -189,10 +187,6 @@ function FormBidang({
         </DialogTitle></DialogHeader>
         <div className="space-y-3">
           <label className="block">
-            <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">Kode</span>
-            <Input value={kode} onChange={(e) => setKode(e.target.value)} className="font-mono" placeholder="P2EPD" />
-          </label>
-          <label className="block">
             <span className="block mb-1 text-xs font-semibold tracking-wider uppercase text-slate-500">Nama bidang</span>
             <Input value={nama} onChange={(e) => setNama(e.target.value)} />
           </label>
@@ -200,7 +194,7 @@ function FormBidang({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onTutup}>Batal</Button>
-          <Button onClick={() => void simpan()} disabled={!kode || !nama}>Simpan</Button>
+          <Button onClick={() => void simpan()} disabled={!nama.trim()}>Simpan</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

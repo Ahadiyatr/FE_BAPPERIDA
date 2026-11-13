@@ -1,6 +1,13 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AlertCircle, RefreshCw, Search, Upload } from 'lucide-react';
+import {
+  AlertCircle,
+  ChevronDown,
+  ChevronRight,
+  RefreshCw,
+  Search,
+  Upload,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { AuthedImage } from '@/components/AuthedMedia';
@@ -43,6 +50,10 @@ const bulan = (iso: string) =>
 type Saringan = 'semua' | 'belum' | 'ada';
 
 const adaBukti = (c: CatatanBukti) => c.lampirans.length > 0;
+
+/** Keadaan awal grup: hanya grup catatan terbaru yang terbuka. */
+const grupAwal = (catatan: CatatanBukti[]) =>
+  new Set(catatan[0] ? [catatan[0].kodeSubkegiatan] : []);
 
 /** Maksimal tiga lampiran tampil sebagai thumbnail di baris; sisanya "+n". */
 const SLOT_THUMBNAIL = 3;
@@ -350,6 +361,11 @@ export default function BuktiKegiatan() {
   const [saringan, setSaringan] = React.useState<Saringan>('semua');
   const [cari, setCari] = React.useState('');
   const [dipilih, setDipilih] = React.useState<number | null>(null);
+  // Hanya grup terbuka yang merender barisnya — dan thumbnail-nya. Tanpa ini
+  // satu bidang bisa memicu ratusan request foto sekaligus saat halaman dibuka.
+  const [grupTerbuka, setGrupTerbuka] = React.useState<Set<string>>(
+    () => new Set(),
+  );
   const [memuat, setMemuat] = React.useState(true);
   const [galatMuat, setGalatMuat] = React.useState<string | null>(null);
   const [mengunggah, setMengunggah] = React.useState<number | null>(null);
@@ -404,7 +420,10 @@ export default function BuktiKegiatan() {
         periodeId,
         peran === 'admin_aplikasi',
       );
-      if (urutan === urutanMuat.current) setCatatan(hasil);
+      if (urutan === urutanMuat.current) {
+        setCatatan(hasil);
+        setGrupTerbuka(grupAwal(hasil));
+      }
     } catch (e) {
       if (urutan === urutanMuat.current) {
         setCatatan([]);
@@ -451,12 +470,42 @@ export default function BuktiKegiatan() {
   }, [catatan]);
   const idTerlihat = new Set(terlihat.map(c => c.realisasiId));
   const grupTerlihat = grup
-    .map(g => ({
-      ...g,
-      berbukti: g.semua.filter(adaBukti).length,
-      items: g.semua.filter(c => idTerlihat.has(c.realisasiId)),
-    }))
+    .map(g => {
+      // Jumlah berkas untuk header grup tertutup — dihitung dari data, tanpa request foto.
+      const lampiran = g.semua.flatMap(c => c.lampirans);
+      const foto = lampiran.filter(l => l.tipeBerkas === 'FOTO').length;
+      return {
+        ...g,
+        foto,
+        dokumen: lampiran.length - foto,
+        berbukti: g.semua.filter(adaBukti).length,
+        items: g.semua.filter(c => idTerlihat.has(c.realisasiId)),
+      };
+    })
     .filter(g => g.items.length > 0);
+
+  // Saringan atau pencarian aktif membuka semua grup hasil saring; kembali ke
+  // "Semua" tanpa kata cari mengembalikan keadaan awal (grup pertama saja).
+  function saring(saringanBaru: Saringan, cariBaru: string) {
+    setSaringan(saringanBaru);
+    setCari(cariBaru);
+    setGrupTerbuka(
+      saringanBaru === 'semua' && !cariBaru.trim()
+        ? grupAwal(catatan)
+        : new Set(grup.map(g => g.kode)),
+    );
+  }
+
+  function alihGrup(kode: string) {
+    setGrupTerbuka(prev => {
+      const berikut = new Set(prev);
+      if (berikut.has(kode)) berikut.delete(kode);
+      else berikut.add(kode);
+      return berikut;
+    });
+  }
+
+  const semuaTerbuka = grupTerlihat.every(g => grupTerbuka.has(g.kode));
 
   const terpilih = catatan.find(c => c.realisasiId === dipilih) ?? null;
   const belumAdaPeriode = !memuat && !galatMuat && periodeId == null;
@@ -593,10 +642,7 @@ export default function BuktiKegiatan() {
         <>
           <Ringkasan
             catatan={catatan}
-            onPilihBelum={() => {
-              setCari('');
-              setSaringan('belum');
-            }}
+            onPilihBelum={() => saring('belum', '')}
           />
 
           <div className="flex flex-wrap items-center gap-3">
@@ -612,7 +658,7 @@ export default function BuktiKegiatan() {
                     key={t.id}
                     type="button"
                     aria-pressed={aktif}
-                    onClick={() => setSaringan(t.id)}
+                    onClick={() => saring(t.id, cari)}
                     className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                       aktif
                         ? 'bg-white text-slate-800 shadow-sm'
@@ -633,13 +679,31 @@ export default function BuktiKegiatan() {
                 );
               })}
             </div>
-            <label className="relative w-full sm:ml-auto sm:w-72">
+            {grupTerlihat.length > 1 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="sm:ml-auto"
+                onClick={() =>
+                  setGrupTerbuka(
+                    semuaTerbuka
+                      ? new Set()
+                      : new Set(grupTerlihat.map(g => g.kode)),
+                  )
+                }
+              >
+                {semuaTerbuka ? 'Tutup semua' : 'Buka semua'}
+              </Button>
+            )}
+            <label
+              className={`relative w-full sm:w-72 ${grupTerlihat.length > 1 ? '' : 'sm:ml-auto'}`}
+            >
               <span className="sr-only">Cari aktivitas</span>
               <Search className="absolute -translate-y-1/2 pointer-events-none size-4 left-3 top-1/2 text-slate-400" />
               <input
                 type="search"
                 value={cari}
-                onChange={e => setCari(e.target.value)}
+                onChange={e => saring(saringan, e.target.value)}
                 placeholder="Cari aktivitas atau kode…"
                 className="w-full py-2 pr-3 text-sm bg-white border pl-9 rounded-xl border-slate-200 text-slate-700 focus:border-emerald-500 focus:outline-none"
               />
@@ -655,40 +719,58 @@ export default function BuktiKegiatan() {
                   </p>
                 </Panel>
               )}
-              {grupTerlihat.map(g => (
-                <div
-                  key={g.kode}
-                  className="overflow-hidden bg-white border shadow-sm rounded-2xl border-slate-200"
-                >
-                  <div className="flex flex-wrap items-center px-4 py-3 gap-x-3 gap-y-2 bg-slate-50">
-                    <span className="px-1.5 py-0.5 font-mono text-xs bg-white border rounded-md border-slate-200 text-slate-600">
-                      {g.kode}
-                    </span>
-                    <h2 className="flex-1 min-w-0 text-sm font-semibold basis-60 text-slate-800">
-                      {g.nama}
+              {grupTerlihat.map(g => {
+                const terbuka = grupTerbuka.has(g.kode);
+                const Chevron = terbuka ? ChevronDown : ChevronRight;
+                return (
+                  <div
+                    key={g.kode}
+                    className="overflow-hidden bg-white border shadow-sm rounded-2xl border-slate-200"
+                  >
+                    <h2>
+                      <button
+                        type="button"
+                        aria-expanded={terbuka}
+                        onClick={() => alihGrup(g.kode)}
+                        className="flex flex-wrap items-center w-full px-4 py-3 text-left gap-x-3 gap-y-2 bg-slate-50 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500"
+                      >
+                        <Chevron className="size-4 shrink-0 text-slate-500" />
+                        <span className="px-1.5 py-0.5 font-mono text-xs bg-white border rounded-md border-slate-200 text-slate-600">
+                          {g.kode}
+                        </span>
+                        <span className="flex-1 min-w-0 text-sm font-semibold basis-60 text-slate-800">
+                          {g.nama}
+                        </span>
+                        <span className="flex items-center gap-2 text-xs text-slate-600 tabular">
+                          <span className="block w-16 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                            <span
+                              className="block h-full bg-emerald-600"
+                              style={{
+                                width: `${Math.round((g.berbukti / g.semua.length) * 100)}%`,
+                              }}
+                            />
+                          </span>
+                          <span>
+                            {g.berbukti}/{g.semua.length} berbukti
+                          </span>
+                          <span className="text-slate-500">
+                            · {g.foto} foto · {g.dokumen} dok
+                          </span>
+                        </span>
+                      </button>
                     </h2>
-                    <div className="flex items-center gap-2 text-xs text-slate-600 tabular">
-                      <div className="w-16 h-1.5 overflow-hidden rounded-full bg-slate-200">
-                        <div
-                          className="h-full bg-emerald-600"
-                          style={{
-                            width: `${Math.round((g.berbukti / g.semua.length) * 100)}%`,
-                          }}
+                    {terbuka &&
+                      g.items.map(c => (
+                        <BarisCatatan
+                          key={c.realisasiId}
+                          c={c}
+                          aktif={dipilih === c.realisasiId}
+                          onPilih={() => setDipilih(c.realisasiId)}
                         />
-                      </div>
-                      {g.berbukti}/{g.semua.length} berbukti
-                    </div>
+                      ))}
                   </div>
-                  {g.items.map(c => (
-                    <BarisCatatan
-                      key={c.realisasiId}
-                      c={c}
-                      aktif={dipilih === c.realisasiId}
-                      onPilih={() => setDipilih(c.realisasiId)}
-                    />
-                  ))}
-                </div>
-              ))}
+                );
+              })}
             </section>
 
             <div className="lg:sticky lg:top-4">

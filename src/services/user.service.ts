@@ -10,5 +10,5 @@ export async function setAktifUser(id:number,aktif:boolean):Promise<User>{if(!ak
 /** Reset kata sandi pengguna (admin_aplikasi). `password` diisi = mode manual;
  * dikosongkan = sistem membuat sandi acak yang dikembalikan sebagai string. */
 export async function resetPasswordUser(id:number,password?:string):Promise<string|null>{const body=password?{password,password_confirmation:password}:{};const data=dataOf<{password:string}|null>(await api.patch(`/pengguna/${id}/reset-password`,body));return data?.password??null}
-/** Ganti kata sandi sendiri (admin_bidang). */
+/** Ganti kata sandi sendiri (kedua peran). */
 export async function gantiKataSandi(currentPassword:string,newPassword:string):Promise<void>{await api.patch("/me/password",{current_password:currentPassword,password:newPassword,password_confirmation:newPassword})}

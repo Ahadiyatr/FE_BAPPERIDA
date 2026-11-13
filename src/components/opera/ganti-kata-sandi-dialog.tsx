@@ -18,7 +18,7 @@ import {
 } from '@/utils/kata-sandi';
 import { Toast } from '@/utils/toast';
 
-/** Dialog ganti kata sandi sendiri — dipakai admin bidang lewat dropdown avatar. */
+/** Dialog ganti kata sandi sendiri — dipakai kedua peran lewat dropdown avatar. */
 export function GantiKataSandiDialog({
   terbuka,
   onTutup,

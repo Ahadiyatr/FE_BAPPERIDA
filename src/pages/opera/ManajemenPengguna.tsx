@@ -41,6 +41,7 @@ import {
 import type { Bidang, PeranPengguna, User } from '@/services';
 import { apiMessage } from '@/services/api';
 import { usePaginasi } from '@/lib/paginasi';
+import { usePeran } from '@/lib/peran';
 import { Toast } from '@/utils/toast';
 import {
   memenuhiKebijakanKataSandi,
@@ -56,6 +57,7 @@ const LABEL: Record<PeranAkun, string> = {
 };
 
 export default function ManajemenPengguna() {
+  const { user: sesi } = usePeran();
   const [users, setUsers] = React.useState<User[]>([]);
   const [bidangs, setBidangs] = React.useState<Bidang[]>([]);
   const [galat, setGalat] = React.useState<string | null>(null);
@@ -244,25 +246,32 @@ export default function ManajemenPengguna() {
                   </span>
                 </td>
                 <td className="px-6 py-3 text-right whitespace-nowrap">
-                  <Button size="sm" variant="ghost" onClick={() => setLaci(u)}>
-                    Ubah
-                  </Button>
-                  {u.flagActive && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setResetUntuk(u)}
-                    >
-                      <KeyRound className="w-3.5 h-3.5" /> Reset sandi
-                    </Button>
+                  {/* Akun sendiri dikelola lewat menu avatar, bukan dari sini — server juga menolaknya. */}
+                  {u.id === sesi?.id ? (
+                    <span className="text-xs text-slate-400">Akun Anda</span>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="ghost" onClick={() => setLaci(u)}>
+                        Ubah
+                      </Button>
+                      {u.flagActive && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setResetUntuk(u)}
+                        >
+                          <KeyRound className="w-3.5 h-3.5" /> Reset sandi
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setKonfirmasi(u)}
+                      >
+                        {u.flagActive ? 'Nonaktifkan' : 'Aktifkan'}
+                      </Button>
+                    </>
                   )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setKonfirmasi(u)}
-                  >
-                    {u.flagActive ? 'Nonaktifkan' : 'Aktifkan'}
-                  </Button>
                 </td>
               </tr>
             ))}

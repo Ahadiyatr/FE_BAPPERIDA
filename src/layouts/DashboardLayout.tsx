@@ -278,11 +278,9 @@ export default function DashboardLayout() {
                   </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {peran === 'admin_bidang' && (
-                  <DropdownMenuItem onClick={() => setDialogSandi(true)}>
-                    <KeyRound className="w-4 h-4" /> Ganti kata sandi
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem onClick={() => setDialogSandi(true)}>
+                  <KeyRound className="w-4 h-4" /> Ganti kata sandi
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => void keluar()}

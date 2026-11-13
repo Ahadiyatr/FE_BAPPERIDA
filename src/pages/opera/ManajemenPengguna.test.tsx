@@ -22,6 +22,10 @@ vi.mock('@/services/api', () => ({
 vi.mock('@/utils/toast', () => ({
   Toast: { fire: vi.fn() },
 }));
+// Sesi login = Ayu Admin (id 1).
+vi.mock('@/lib/peran', () => ({
+  usePeran: () => ({ user: { id: 1 } }),
+}));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -66,6 +70,20 @@ describe('ManajemenPengguna', () => {
     expect(screen.getByText('Ayu Admin')).toBeTruthy();
     expect(screen.getByText('Budi PPM')).toBeTruthy();
     expect(screen.getByText('3 dari 3 pengguna')).toBeTruthy();
+  });
+
+  it('baris akun sendiri tidak menampilkan tombol kelola', async () => {
+    render(<ManajemenPengguna />);
+    await screen.findByText('Ayu Admin');
+
+    const barisSaya = screen.getByText('Ayu Admin').closest('tr')!;
+    expect(within(barisSaya).queryAllByRole('button')).toHaveLength(0);
+    expect(within(barisSaya).getByText('Akun Anda')).toBeTruthy();
+
+    const barisBudi = screen.getByText('Budi PPM').closest('tr')!;
+    expect(within(barisBudi).getByRole('button', { name: 'Ubah' })).toBeTruthy();
+    expect(within(barisBudi).getByRole('button', { name: /Reset sandi/ })).toBeTruthy();
+    expect(within(barisBudi).getByRole('button', { name: 'Nonaktifkan' })).toBeTruthy();
   });
 
   it('mereset kata sandi mode manual memanggil resetPasswordUser dan menutup dialog', async () => {

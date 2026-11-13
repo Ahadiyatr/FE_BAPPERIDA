@@ -71,7 +71,11 @@ const data = [
   catatan(1, 'Membuat SPM Gaji', '5.1.1.2.02.1', [foto(11, 1), foto(12, 1)]),
   catatan(2, 'Menghitung Pajak TER', '5.1.1.2.02.1', []),
   catatan(3, 'Rekapitulasi Pengembalian Belanja', '5.1.1.2.02.7', []),
+  catatan(4, 'Dokumentasi Rapat Anggaran', '5.1.1.2.02.9', [foto(41, 4)]),
 ];
+
+const headerGrup = (kode: string) =>
+  screen.getByRole('button', { name: new RegExp(`Subkegiatan ${kode}`) });
 
 function renderHalaman() {
   return render(
@@ -110,7 +114,7 @@ it('menyaring catatan yang belum dan sudah punya bukti', async () => {
   renderHalaman();
   await screen.findByText('Membuat SPM Gaji');
 
-  expect(tombolSaring(/semua/i).textContent).toContain('3');
+  expect(tombolSaring(/semua/i).textContent).toContain('4');
   expect(tombolSaring(/belum ada bukti/i).textContent).toContain('2');
 
   fireEvent.click(tombolSaring(/belum ada bukti/i));
@@ -164,4 +168,50 @@ it('admin aplikasi hanya melihat bukti tanpa area unggah', async () => {
   expect(within(detail).getByRole('button', { name: /foto-11/ }))
     .toBeTruthy();
   expect(within(detail).queryByText('Tambah bukti')).toBeNull();
+});
+
+it('hanya grup pertama terbuka di awal; grup tertutup tidak merender thumbnail', async () => {
+  renderHalaman();
+  await screen.findByText('Membuat SPM Gaji');
+
+  expect(headerGrup('5.1.1.2.02.1').getAttribute('aria-expanded')).toBe('true');
+  expect(headerGrup('5.1.1.2.02.9').getAttribute('aria-expanded')).toBe('false');
+  expect(screen.queryByText('Dokumentasi Rapat Anggaran')).toBeNull();
+  expect(screen.queryByAltText('foto-41.jpg')).toBeNull();
+  // Header grup tertutup tetap menunjukkan jumlah berkas tanpa memuat fotonya.
+  expect(headerGrup('5.1.1.2.02.9').textContent).toContain('1 foto · 0 dok');
+
+  fireEvent.click(headerGrup('5.1.1.2.02.9'));
+  expect(headerGrup('5.1.1.2.02.9').getAttribute('aria-expanded')).toBe('true');
+  expect(screen.getByText('Dokumentasi Rapat Anggaran')).toBeTruthy();
+  expect(screen.getByAltText('foto-41.jpg')).toBeTruthy();
+
+  fireEvent.click(headerGrup('5.1.1.2.02.9'));
+  expect(screen.queryByText('Dokumentasi Rapat Anggaran')).toBeNull();
+});
+
+it('pencarian membuka grup yang cocok; kembali ke semua menutupnya lagi', async () => {
+  renderHalaman();
+  await screen.findByText('Membuat SPM Gaji');
+
+  fireEvent.change(screen.getByRole('searchbox'), {
+    target: { value: 'dokumentasi' },
+  });
+  expect(screen.getByText('Dokumentasi Rapat Anggaran')).toBeTruthy();
+
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: '' } });
+  expect(screen.getByText('Membuat SPM Gaji')).toBeTruthy();
+  expect(screen.queryByText('Dokumentasi Rapat Anggaran')).toBeNull();
+});
+
+it('tombol buka semua dan tutup semua', async () => {
+  renderHalaman();
+  await screen.findByText('Membuat SPM Gaji');
+
+  fireEvent.click(screen.getByRole('button', { name: 'Buka semua' }));
+  expect(screen.getByText('Rekapitulasi Pengembalian Belanja')).toBeTruthy();
+  expect(screen.getByText('Dokumentasi Rapat Anggaran')).toBeTruthy();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Tutup semua' }));
+  expect(screen.queryByText('Membuat SPM Gaji')).toBeNull();
 });

@@ -26,15 +26,12 @@ export function DialogSalinRencana({
   onTutup,
   sumber,
   tujuan,
-  adaIsi,
   onSelesai,
 }: {
   terbuka: boolean;
   onTutup: () => void;
   sumber: Periode;
   tujuan: Periode;
-  /** Periode tujuan sudah punya rencana — beri peringatan akan ditimpa. */
-  adaIsi: boolean;
   onSelesai: () => void | Promise<void>;
 }) {
   const [opsi, setOpsi] = React.useState({
@@ -127,13 +124,6 @@ export function DialogSalinRencana({
               </span>
             </label>
           ))}
-
-          {adaIsi && (
-            <p className="rounded-xl bg-amber-50/70 px-3 py-2 text-sm">
-              Rencana <b>{tujuan.namaPeriode}</b> yang sudah tersusun untuk
-              bidang terdampak akan ditimpa.
-            </p>
-          )}
 
           {galat && (
             <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">

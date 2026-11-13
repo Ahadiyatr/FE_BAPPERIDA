@@ -6,10 +6,11 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('../services/api', () => ({ default: api }));
 
-import { AuthedImage } from './AuthedMedia';
+import { AuthedImage, kosongkanCacheBlob } from './AuthedMedia';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  kosongkanCacheBlob();
   // jsdom tidak menyediakan object URL.
   URL.createObjectURL = vi.fn(() => 'blob:foto');
   URL.revokeObjectURL = vi.fn();
@@ -33,4 +34,40 @@ it('menandai foto rusak bila browser gagal men-decode gambarnya', async () => {
 
   expect(screen.getByText('FOTO RUSAK')).toBeTruthy();
   expect(screen.queryByAltText('dokumentasi.png')).toBeNull();
+});
+
+it('foto yang sama dipasang dua kali hanya memicu satu request', async () => {
+  render(
+    <>
+      <AuthedImage lampiranId={7} alt="a" />
+      <AuthedImage lampiranId={7} alt="b" />
+    </>,
+  );
+
+  await screen.findByAltText('a');
+  await screen.findByAltText('b');
+  expect(api.get).toHaveBeenCalledTimes(1);
+});
+
+it('dipasang ulang setelah unmount memakai cache tanpa request baru', async () => {
+  const { unmount } = render(<AuthedImage lampiranId={7} alt="foto" />);
+  await screen.findByAltText('foto');
+  unmount();
+  expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+
+  render(<AuthedImage lampiranId={7} alt="foto" />);
+  // Langsung tampil dari cache, tanpa melewati spinner.
+  expect((screen.getByAltText('foto') as HTMLImageElement).src).toBe('blob:foto');
+  expect(api.get).toHaveBeenCalledTimes(1);
+});
+
+it('galat tidak di-cache sehingga bisa dicoba lagi', async () => {
+  api.get.mockRejectedValueOnce({ response: { status: 500 } });
+  const { unmount } = render(<AuthedImage lampiranId={8} alt="foto" />);
+  expect(await screen.findByText('NO FOTO')).toBeTruthy();
+  unmount();
+
+  render(<AuthedImage lampiranId={8} alt="foto" />);
+  await screen.findByAltText('foto');
+  expect(api.get).toHaveBeenCalledTimes(2);
 });

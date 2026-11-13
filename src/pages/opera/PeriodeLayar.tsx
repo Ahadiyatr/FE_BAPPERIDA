@@ -203,7 +203,7 @@ export default function PeriodeLayar() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {konfirmasi?.ke === "OPEN"
-                ? "Bidang bisa mulai mencatat realisasi. Rencana masih bisa disesuaikan selama periode terbuka."
+                ? "Bidang bisa mulai mencatat realisasi. Target, aktivitas, dan penunjukan tidak bisa diubah lagi setelah periode dibuka."
                 : "Setelah terkunci, pencatatan realisasi berhenti dan capaian periode ini diarsipkan."}
             </AlertDialogDescription>
           </AlertDialogHeader>

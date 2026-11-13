@@ -529,7 +529,6 @@ export interface SimpanPeriodeInput {
 
 export interface SimpanBidangInput {
   id?: number
-  kode: string
   namaBidang: string
 }
 

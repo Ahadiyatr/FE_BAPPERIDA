@@ -20,7 +20,6 @@ const mocks = vi.hoisted(() => ({
   getRankingProgram: vi.fn(),
   getSubkegiatanTertinggal: vi.fn(),
   getTrenCapaian: vi.fn(),
-  eksporLaporan: vi.fn(),
   getAktifitasBidang: vi.fn(),
   getBuktiByBidang: vi.fn(),
   catatRealisasi: vi.fn(),

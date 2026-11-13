@@ -769,7 +769,6 @@ export function PanelPenunjukan({
           onTutup={() => setSalinTerbuka(false)}
           sumber={sumber}
           tujuan={periode}
-          adaIsi={(ringkasan?.jumlahDitugaskan ?? 0) > 0}
           onSelesai={async () => {
             setJejak(null);
             await muat();
