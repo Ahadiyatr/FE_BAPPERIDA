@@ -8,20 +8,6 @@ import { DESIGN_COLOR } from '../lib/design-tokens';
 import { pathnameTujuanLogin, pilihTujuanLogin } from '../lib/tujuan-login';
 import logoOperaInk from '../assets/opera-ink-logo.png';
 
-const AKUN_DEV = [
-  { email: 'admin@bapperida.test', label: 'Admin Aplikasi' },
-  { email: 'ppm@bapperida.test', label: 'Admin PPM' },
-  { email: 'pik@bapperida.test', label: 'Admin PIK' },
-  { email: 'p2epd@bapperida.test', label: 'Admin P2EPD' },
-  { email: 'rinova@bapperida.test', label: 'Admin RINOVA' },
-  { email: 'sekre@bapperida.test', label: 'Admin Sekretariat' },
-  { email: 'keuangan@bapperida.test', label: 'Admin Keuangan' },
-  {
-    email: 'perencanan@bapperida.test',
-    label: 'Admin Subbag Perencanaan',
-  },
-];
-
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -93,38 +79,6 @@ export default function Login() {
 
   return (
     <div className="flex flex-col justify-center min-h-screen py-12 font-sans bg-linear-to-br from-emerald-50 via-slate-50 to-yellow-50 sm:px-6 lg:px-8">
-      {import.meta.env.DEV && (
-      <div className="mb-4 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="p-4 mb-2 text-sm text-yellow-900 border border-yellow-400 shadow rounded-xl bg-yellow-50">
-          <strong>Info Login Developer</strong>
-          <span className="text-yellow-800">
-            {' '}
-            — klik untuk isi otomatis (password{' '}
-            <span className="font-mono">password</span>)
-          </span>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {AKUN_DEV.map(akun => (
-              <button
-                key={akun.email}
-                type="button"
-                title={akun.label}
-                onClick={() => {
-                  setEmail(akun.email);
-                  setPassword('password');
-                }}
-                className={`px-2 py-1 rounded-lg border font-mono text-xs transition-colors ${
-                  email === akun.email
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                    : 'border-yellow-400 bg-white/70 hover:bg-yellow-100'
-                }`}
-              >
-                {akun.email}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      )}
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <img src={logoOperaInk} alt="Logo OPERA-INK" width={192} height={158} className="h-auto w-48" />
