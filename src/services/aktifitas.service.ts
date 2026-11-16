@@ -104,7 +104,6 @@ export async function setAktifAktifitas(id: number, aktif: boolean): Promise<Ind
   })))
 }
 
-/** Server menolak bila aktifitas sudah disalin ke rencana bidang. */
 export async function hapusAktifitas(id: number): Promise<void> {
   await api.delete(`/aktifitas-master/${id}`)
 }

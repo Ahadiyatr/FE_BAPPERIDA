@@ -1,6 +1,3 @@
-// Barrel — komponen memanggil `import { getProgram } from "@/services"`,
-// bukan menunjuk file service satu-satu. Memudahkan Fase 6 kalau susunan
-// file service berubah tanpa mengubah import di tiap halaman.
 export * from "./types"
 export * from "./program.service"
 export * from "./kegiatan.service"

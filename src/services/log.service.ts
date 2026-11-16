@@ -1,15 +1,6 @@
 import { api, dataOf } from "./api"
 import type { AksiLog, GrupLog, LogAktivitas, RingkasanLog, SaringLog } from "./types"
 
-/**
- * Jejak audit (TRANS_LOG_AKTIVITAS), terbaru di atas.
- *
- * PRD §4: admin bidang hanya boleh melihat data bidangnya sendiri. Penyaringan itu
- * ditegakkan di backend, bukan disembunyikan di UI — pemanggil meneruskan `bidangId`
- * miliknya lewat `saring.bidangId`. Saat ini rute `/log` hanya untuk admin_aplikasi,
- * jadi `bidangId` biasanya tidak dikirim.
- */
-
 type Row = {
   id: number
   waktu: string
@@ -38,7 +29,6 @@ const map = (r: Row): LogAktivitas => ({
   bidangId: r.bidang_id,
 })
 
-/** Saringan yang sama dipakai daftar dan ringkasan, supaya angka cocok dengan daftarnya. */
 const paramsOf = (saring: SaringLog) => ({
   bidang_id: saring.bidangId ?? undefined,
   periode_id: saring.periodeId,
@@ -56,7 +46,6 @@ export async function getLog(saring: SaringLog = {}): Promise<LogAktivitas[]> {
   return dataOf<Row[]>(await api.get("/log-aktivitas", { params })).map(map)
 }
 
-/** Hitungan untuk strip ringkasan, mengikuti saringan yang sama dengan `getLog`. */
 export async function getRingkasanLog(saring: SaringLog = {}): Promise<RingkasanLog> {
   const r = dataOf<{
     total: number

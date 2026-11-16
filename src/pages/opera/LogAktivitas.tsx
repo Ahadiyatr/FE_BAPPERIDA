@@ -99,7 +99,6 @@ const inisial = (nama: string) =>
 function LencanaAksi({ aksi }: { aksi: AksiLog }) {
   const meta = META_AKSI[aksi];
   const Ikon = IKON_AKSI[aksi];
-  // Aksi baru dari backend yang belum dikenal FE tetap tampil, bukan hilang diam-diam.
   if (!meta) {
     return (
       <span className="inline-flex h-6 items-center rounded-md bg-slate-100 px-2 text-xs font-semibold text-slate-600">
@@ -143,7 +142,6 @@ function TeksRingkasan({ teks }: { teks: string }) {
 function Pelaku({ l, namaBidang }: { l: Baris; namaBidang: string | null }) {
   const bidang = l.peran === 'admin_bidang';
   return (
-    // Hanya <span>: komponen ini dirender di dalam <button>.
     <span className="flex min-w-0 items-center gap-2.5">
       <span
         className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-bold ${
@@ -180,8 +178,6 @@ const KELAS_BARIS =
 
 export default function LogAktivitasLayar() {
   const { peran, bidangId } = usePeran();
-  // PRD §4: admin bidang hanya melihat jejak bidangnya. Batas ini diteruskan
-  // ke service, bukan disaring di sini — lihat catatan di log.service.ts.
   const batasBidang = peran === 'admin_bidang' ? bidangId : null;
 
   const [baris, setBaris] = React.useState<Baris[]>([]);
@@ -233,16 +229,12 @@ export default function LogAktivitasLayar() {
     [batasBidang, cari, aksi, grup, perhatian, userId, periodeId, riwayat],
   );
 
-  // Saringan baru → kembali ke halaman 1, di render yang sama supaya tidak ada
-  // permintaan sia-sia untuk halaman lama dengan saringan baru.
   const [saringTerakhir, setSaringTerakhir] = React.useState(saring);
   if (saring !== saringTerakhir) {
     setSaringTerakhir(saring);
     setHalaman(1);
   }
 
-  // Ringkasan tidak bergantung pada halaman; `total`-nya sekaligus menjadi
-  // jumlah baris untuk pagination daftar.
   React.useEffect(() => {
     let batal = false;
     getRingkasanLog(saring)
@@ -671,7 +663,6 @@ export default function LogAktivitasLayar() {
 
       <section
         aria-label="Daftar kejadian"
-        // overflow-clip, bukan hidden: hidden menjadikan kartu wadah gulir sehingga judul hari tidak menempel.
         className="overflow-clip rounded-2xl border border-slate-200 bg-white shadow-sm"
       >
         <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 text-[13px] text-slate-500 sm:px-6">

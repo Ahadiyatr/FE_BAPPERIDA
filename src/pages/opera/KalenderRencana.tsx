@@ -34,14 +34,6 @@ import { getKalenderBulan, getPeriode, getRencanaSayaRingkas, hapusAgenda } from
 import type { AgendaKegiatan, DetailSubkegiatan, KalenderBulan, Periode } from "@/services"
 import { apiMessage } from "@/services/api"
 
-/**
- * Kalender rencana pelaksanaan — satu halaman untuk kedua peran.
- *
- * admin_bidang menyusun agenda bidangnya sendiri; admin_aplikasi membaca lintas bidang
- * dengan penyaring bidang dan tanpa satu pun aksi tulis. Keduanya berbagi grid, panel hari,
- * dan pemuatan data — memisahkannya jadi dua halaman berarti menduplikasi ±400 baris yang
- * pasti akan melenceng satu sama lain.
- */
 export default function KalenderRencana() {
   const { peran } = usePeran()
 
@@ -53,7 +45,6 @@ export default function KalenderRencana() {
 
   const [data, setData] = React.useState<KalenderBulan | null>(null)
   const [rencana, setRencana] = React.useState<DetailSubkegiatan[]>([])
-  // Dinaikkan setiap agenda tersimpan/terhapus: jumlah terjadwal per aktivitas ikut berubah.
   const [versiRencana, setVersiRencana] = React.useState(0)
   const [terpilih, setTerpilih] = React.useState<string | null>(null)
   const [memuat, setMemuat] = React.useState(true)
@@ -66,7 +57,6 @@ export default function KalenderRencana() {
   const [tanggalForm, setTanggalForm] = React.useState("")
   const [agendaDihapus, setAgendaDihapus] = React.useState<AgendaKegiatan | null>(null)
 
-  // Navigasi bulan memicu request beruntun yang bisa mendarat tidak berurutan.
   const urutanMuat = React.useRef(0)
 
   React.useEffect(() => {
@@ -90,8 +80,6 @@ export default function KalenderRencana() {
     }
   }, [])
 
-  // Bulan menyesuaikan periode: server yang menentukan bulan bawaan, jadi di sini cukup
-  // dikosongkan supaya panggilan pertama tidak memaksa bulan periode sebelumnya.
   React.useEffect(() => {
     setBulan(null)
     setTerpilih(null)
@@ -106,10 +94,7 @@ export default function KalenderRencana() {
     try {
       const hasil = await getKalenderBulan({
         periodeId,
-        // Tanpa bulan, server memilih bulan hari ini bila di dalam periode, selain itu
-        // bulan awal periode.
         bulan: bulan ? kunciDariBulan(bulan) : "",
-        // admin_bidang JANGAN mengirim bidang_id — server yang mengunci ke bidangnya.
         bidangId: peran === "admin_aplikasi" ? bidangPilihan : null,
       })
       if (urutan !== urutanMuat.current) return
@@ -117,8 +102,6 @@ export default function KalenderRencana() {
       setData(hasil)
       if (!bulan) setBulan(bulanDariKunci(hasil.bulan))
 
-      // Jaring pengaman kalau backend dan FE tidak sepakat awal pekan: selisihnya membuat
-      // agenda hilang dari sel bocoran tanpa error apa pun.
       const lokal = jendelaGrid(bulanDariKunci(hasil.bulan))
       if (import.meta.env.DEV && (lokal.dari !== hasil.rentang.dari || lokal.sampai !== hasil.rentang.sampai)) {
         console.warn("Jendela grid FE dan backend berbeda", { lokal, server: hasil.rentang })
@@ -136,7 +119,6 @@ export default function KalenderRencana() {
     void muat()
   }, [muat])
 
-  // Daftar aktivitas untuk form hanya relevan bagi admin_bidang (satu-satunya penulis).
   React.useEffect(() => {
     if (peran !== "admin_bidang" || periodeId == null) return setRencana([])
     let batal = false
@@ -169,8 +151,6 @@ export default function KalenderRencana() {
     [baris, terpilih],
   )
 
-  // Navigasi dikunci ke rentang periode — tanpa ini pengguna tersasar ke bulan kosong
-  // dan menyimpulkan datanya hilang.
   const daftarBulan = React.useMemo(
     () => (data ? bulanPeriode(data.periode.tanggalMulai, data.periode.tanggalSelesai) : []),
     [data],

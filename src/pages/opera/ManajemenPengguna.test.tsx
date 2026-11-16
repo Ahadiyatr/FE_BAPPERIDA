@@ -22,7 +22,6 @@ vi.mock('@/services/api', () => ({
 vi.mock('@/utils/toast', () => ({
   Toast: { fire: vi.fn() },
 }));
-// Sesi login = Ayu Admin (id 1).
 vi.mock('@/lib/peran', () => ({
   usePeran: () => ({ user: { id: 1 } }),
 }));

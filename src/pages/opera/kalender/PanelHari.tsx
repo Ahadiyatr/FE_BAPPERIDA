@@ -44,8 +44,6 @@ export function PanelHari({
     )
   }
 
-  // Sel di luar periode tetap tergambar karena baris pekan selalu utuh, tapi tidak boleh
-  // menerima agenda — backend akan menolaknya dengan 422 yang sulit dijelaskan pengguna.
   const bolehTambah = bolehTulis && sel.dalamPeriode
 
   return (
@@ -73,7 +71,6 @@ export function PanelHari({
             </p>
           ) : (
             <ul className="mt-2 space-y-2">
-              {/* Key pada id: agenda multi-hari adalah objek yang sama di beberapa sel. */}
               {sel.agenda.map((agenda) => {
                 const { nada, label } = nadaAgenda(agenda)
                 return (

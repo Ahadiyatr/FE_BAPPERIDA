@@ -35,7 +35,6 @@ export default function RencanaSayaDetail() {
 
   React.useEffect(() => { void muat() }, [muat])
 
-  // Setelah menyusun pendukung: segarkan tanpa layar "Memuat…" supaya posisi gulir tidak hilang.
   const segarkan = React.useCallback(async () => { setData(await getRencanaSayaDetail(id)) }, [id])
 
   if (memuat) return <Panel><p className="p-8 text-center text-sm text-slate-400">Memuat detail rencana…</p></Panel>

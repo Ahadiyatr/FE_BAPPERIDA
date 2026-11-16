@@ -33,13 +33,11 @@ const KELAS_SELECT =
 
 type Saringan = 'semua' | 'belum' | 'sudah';
 
-/** Perubahan terakhir yang bisa diurungkan: bidang tiap baris sebelum diubah. */
 interface Jejak {
   pesan: string;
   sebelum: { subkegiatanId: number; bidangId: number | null }[];
 }
 
-/** `""` = belum ditugaskan, `"campuran"` = anak kegiatan berbeda bidang. */
 function PilihBidang({
   nilai,
   bidang,
@@ -96,19 +94,6 @@ function PilihBidang({
   );
 }
 
-/**
- * Penunjukan bidang: memetakan katalog subkegiatan ke bidang penanggung jawab
- * untuk satu periode DRAFT.
- *
- * Aksi utamanya ada di baris KEGIATAN, dan subkegiatan disembunyikan sampai
- * kegiatannya dibuka. Di katalog resmi seluruh subkegiatan dalam satu kegiatan
- * selalu dipegang bidang yang sama (0 dari 20 kegiatan campur), jadi 20 pilihan
- * cukup untuk memetakan 78 subkegiatan. Kegiatan yang isinya campuran selalu
- * terbuka supaya perbedaannya terlihat.
- *
- * Sengaja TIDAK ada aksi setara di header program: 2 dari 5 program memang lintas
- * bidang, jadi tombol itu justru akan menyeragamkan yang seharusnya berbeda.
- */
 export function PanelPenunjukan({
   periode,
   sumber,
@@ -161,7 +146,6 @@ export function PanelPenunjukan({
   const semua = React.useMemo(() => (data ? ratakan(data.program) : []), [data]);
   const namaBidang = (id: number) => bidang.find(b => b.id === id)?.namaBidang ?? `Bidang #${id}`;
 
-  /** Beban dihitung dari baris, bukan dari ringkasan, supaya bidang tanpa tugas tetap tampil. */
   const beban = React.useMemo(
     () =>
       bidang.map(b => {
@@ -178,8 +162,6 @@ export function PanelPenunjukan({
   const jumlahBelum = semua.filter(s => s.bidangId === null).length;
   const bebanMaks = Math.max(1, ...beban.map(b => b.jumlah));
 
-  // Saring dulu, baru buang kegiatan/program yang jadi kosong — supaya heading
-  // tidak menggantung tanpa isi.
   const program = React.useMemo(() => {
     if (!data) return [];
     const kata = cari.trim().toLowerCase();
@@ -223,7 +205,6 @@ export function PanelPenunjukan({
   const kosong = (r: RencanaAksiKegiatan) =>
     !r.tugaskanIds.length && !r.pindahIds.length && !r.cabutIds.length;
 
-  /** Jalankan satu rencana aksi: satu POST bulk + PATCH/DELETE per baris. */
   async function jalankan(rows: BarisPenunjukan[], tujuan: number | null) {
     if (!dapatDisunting || sibuk) return;
     const rencana = rencanaAksiKegiatan(rows, tujuan);
@@ -266,7 +247,6 @@ export function PanelPenunjukan({
     }
   }
 
-  /** Kembalikan tiap baris ke bidang sebelumnya, dikelompokkan per bidang asal. */
   async function urungkan() {
     if (!jejak || !data || sibuk) return;
     const peta = new Map(semua.map(b => [b.subkegiatanId, b]));
@@ -394,7 +374,6 @@ export function PanelPenunjukan({
         <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-700">{catatan}</p>
       )}
 
-      {/* Progres: satu segmen per bidang, sisanya belum ditugaskan */}
       <div className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
           <Eyebrow>Progres penunjukan</Eyebrow>
@@ -451,7 +430,6 @@ export function PanelPenunjukan({
         <aside className="xl:sticky xl:top-4 xl:order-2">{panelBeban}</aside>
 
         <div className="min-w-0 space-y-4 xl:order-1">
-          {/* Saringan */}
           <div className="flex flex-wrap items-center gap-2">
             <div
               role="group"
@@ -502,7 +480,6 @@ export function PanelPenunjukan({
             </Button>
           </div>
 
-          {/* Daftar */}
           {data === null && <Skeleton className="h-64" />}
 
           {data !== null && !program.length && (
@@ -697,7 +674,6 @@ export function PanelPenunjukan({
         </div>
       </div>
 
-      {/* Bar aksi massal lintas kegiatan */}
       {dapatDisunting && dipilih.length > 0 && (
         <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-2.5 rounded-xl bg-slate-900 px-4 py-2.5 text-white shadow-lg">
           <span className="text-sm">
@@ -737,7 +713,6 @@ export function PanelPenunjukan({
         </div>
       )}
 
-      {/* Konfirmasi perubahan terakhir, dengan jalan kembali */}
       {jejak && !dipilih.length && (
         <div
           role="status"

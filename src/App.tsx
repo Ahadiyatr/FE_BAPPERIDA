@@ -4,8 +4,6 @@ import DashboardLayout from "./layouts/DashboardLayout"
 import { PenyediaPeran } from "./lib/peran"
 import { PenjagaPeran } from "./pages/opera/bagian/PenjagaPeran"
 
-// Setiap halaman dimuat terpisah supaya pengunjung halaman publik tidak ikut
-// mengunduh semua layar admin. Kerangka (layout, penjaga peran) tetap di bundel utama.
 const Detail = lazy(() => import("./pages/Detail"))
 const Landing = lazy(() => import("./pages/Landing"))
 const Login = lazy(() => import("./pages/Login"))
@@ -35,7 +33,6 @@ const Memuat = () => (
   </div>
 )
 
-// Suspense di dalam jaga() supaya sidebar & header tetap tampil saat layar dimuat.
 const jaga = (halaman: React.ReactNode) => (
   <PenjagaPeran>
     <Suspense fallback={<Memuat />}>{halaman}</Suspense>

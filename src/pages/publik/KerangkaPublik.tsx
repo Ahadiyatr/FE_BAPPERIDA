@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-// Subset latin saja — cukup untuk teks Indonesia, tanpa berkas devanagari/cyrillic.
 import '@fontsource/lora/latin-400-italic.css';
 import '@fontsource/lora/latin-600.css';
 import '@fontsource/lora/latin-700.css';
@@ -10,10 +9,6 @@ import '@fontsource/poppins/latin-700.css';
 import '../landing.css';
 import logoTabalong from '../../assets/logo-tabalong.png';
 
-/**
- * Header + footer halaman publik (landing dan detail bidang). Teks identitas dan
- * hak cipta hidup di sini saja supaya kedua halaman tidak pernah berbeda.
- */
 export function KerangkaPublik({ nav, children }: { nav?: ReactNode; children: ReactNode }) {
   return (
     <div className="lp">

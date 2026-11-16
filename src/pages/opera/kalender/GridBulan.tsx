@@ -1,10 +1,5 @@
 import { NAMA_HARI, ringkasSel, type SelKalender } from "@/lib/kalender"
 
-/* Grid bulan hand-rolled — tanpa pustaka tanggal, sesuai konvensi proyek.
-
-   Penanda rencana dan realisasi sengaja berbeda BENTUK sekaligus warna (titik vs kotak),
-   supaya tetap terbaca saat buta warna atau dicetak abu-abu. */
-
 const MAKS_PENANDA = 3
 
 function Penanda({ sel }: { sel: SelKalender }) {
@@ -78,8 +73,6 @@ export function GridBulan({
                 className={[
                   "text-xs font-semibold tabular",
                   !sel.bulanIni ? "text-slate-300" : "text-slate-700",
-                  // Sel di luar periode tetap tergambar (baris pekan selalu utuh) tapi
-                  // diredupkan dan dicoret — aksi tambah agenda dimatikan di sana.
                   !sel.dalamPeriode ? "text-slate-300 line-through" : "",
                   sel.hariIni ? "rounded-md bg-emerald-600 px-1.5 py-0.5 text-white" : "",
                 ].join(" ")}

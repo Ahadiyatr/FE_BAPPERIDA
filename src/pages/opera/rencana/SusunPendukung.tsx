@@ -12,12 +12,6 @@ import { apiMessage } from "@/services/api"
 import { cn } from "@/lib/utils"
 import { Panel, persen1 } from "../bagian/ui"
 
-/**
- * Penyusunan aktivitas pendukung oleh admin bidang, hanya saat periode DRAFT (PRD §3.2).
- * Pengubahan target tetap milik admin aplikasi di `/rencana/:bidangId`; di sini hanya
- * pakai/tidak pakai, tambah, dan hapus ad-hoc — tiga jalur `aktifitas-bidang` yang terbuka
- * untuk peran bidang. Backend tetap penegak akhir (pendukung terakhir, status periode).
- */
 export function SusunPendukung({
   rencanaId, aktifitas, onBerubah,
 }: {

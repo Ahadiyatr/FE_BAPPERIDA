@@ -4,7 +4,6 @@ import { FileText, Paperclip, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-/** Identitas berkas untuk membuang duplikat saat memilih lagi. */
 const kunciBerkas = (f: File) => `${f.name}|${f.size}|${f.lastModified}`
 
 const ukuran = (byte: number) =>
@@ -19,7 +18,6 @@ function Pratinjau({ berkas }: { berkas: File }) {
   const [url, setUrl] = React.useState<string | null>(null)
 
   React.useEffect(() => {
-    // jsdom tidak punya createObjectURL; tanpa pratinjau ikon dokumen tetap tampil.
     if (!gambar || typeof URL.createObjectURL !== "function") return
     const u = URL.createObjectURL(berkas)
     setUrl(u)
@@ -35,13 +33,6 @@ function Pratinjau({ berkas }: { berkas: File }) {
   )
 }
 
-/**
- * Pemilih berkas yang menampilkan pilihannya.
- *
- * Input file bawaan hanya menulis "2 files" dan tidak bisa membatalkan satu berkas;
- * memilih lagi juga menimpa pilihan sebelumnya. Di sini pilihan ditambahkan
- * (duplikat dibuang) dan setiap berkas bisa dilepas sendiri.
- */
 export function PilihBerkas({
   nilai,
   onUbah,
@@ -61,7 +52,6 @@ export function PilihBerkas({
     const baru = Array.from(daftar ?? [])
     const ada = new Set(nilai.map(kunciBerkas))
     onUbah([...nilai, ...baru.filter((f) => !ada.has(kunciBerkas(f)))])
-    // Kosongkan supaya berkas yang sama bisa dipilih lagi setelah dilepas.
     if (input.current) input.current.value = ""
   }
 

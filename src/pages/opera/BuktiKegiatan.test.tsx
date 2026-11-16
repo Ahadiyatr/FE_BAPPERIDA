@@ -21,7 +21,6 @@ const sesi = vi.hoisted(() => ({
 
 vi.mock('@/services', () => mocks);
 vi.mock('@/lib/peran', () => ({ usePeran: () => sesi.current }));
-// Thumbnail menarik blob ber-auth; di tes cukup ganti dengan <img> biasa.
 vi.mock('@/components/AuthedMedia', () => ({
   AuthedImage: ({ alt }: { alt?: string }) => <img alt={alt} />,
   DocumentPreview: () => null,
@@ -178,7 +177,6 @@ it('hanya grup pertama terbuka di awal; grup tertutup tidak merender thumbnail',
   expect(headerGrup('5.1.1.2.02.9').getAttribute('aria-expanded')).toBe('false');
   expect(screen.queryByText('Dokumentasi Rapat Anggaran')).toBeNull();
   expect(screen.queryByAltText('foto-41.jpg')).toBeNull();
-  // Header grup tertutup tetap menunjukkan jumlah berkas tanpa memuat fotonya.
   expect(headerGrup('5.1.1.2.02.9').textContent).toContain('1 foto · 0 dok');
 
   fireEvent.click(headerGrup('5.1.1.2.02.9'));

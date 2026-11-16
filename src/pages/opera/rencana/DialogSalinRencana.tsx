@@ -15,12 +15,6 @@ import { salinRencana } from '@/services';
 import { apiMessage } from '@/services/api';
 import type { Periode } from '@/services';
 
-/**
- * Salin pembagian bidang + isinya dari periode sebelumnya. Dipakai dua tab
- * (Penunjukan dan Papan Kesiapan) karena inilah jalur normal untuk periode rutin —
- * katalog resmi selalu punya penanggung jawab, jadi penunjukan manual hanya perlu
- * untuk periode pertama atau saat struktur organisasi berubah.
- */
 export function DialogSalinRencana({
   terbuka,
   onTutup,

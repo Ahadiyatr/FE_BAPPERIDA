@@ -11,7 +11,6 @@ import { AuthedImage, kosongkanCacheBlob } from './AuthedMedia';
 beforeEach(() => {
   vi.clearAllMocks();
   kosongkanCacheBlob();
-  // jsdom tidak menyediakan object URL.
   URL.createObjectURL = vi.fn(() => 'blob:foto');
   URL.revokeObjectURL = vi.fn();
   api.get.mockResolvedValue({ data: new Blob(['x']) });
@@ -56,7 +55,6 @@ it('dipasang ulang setelah unmount memakai cache tanpa request baru', async () =
   expect(URL.revokeObjectURL).not.toHaveBeenCalled();
 
   render(<AuthedImage lampiranId={7} alt="foto" />);
-  // Langsung tampil dari cache, tanpa melewati spinner.
   expect((screen.getByAltText('foto') as HTMLImageElement).src).toBe('blob:foto');
   expect(api.get).toHaveBeenCalledTimes(1);
 });

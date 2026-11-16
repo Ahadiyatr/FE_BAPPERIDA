@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DashboardUmum from './DashboardUmum';
 
 const sesi = vi.hoisted(() => ({ current: { peran: 'admin_aplikasi', bidangId: null as number | null } }));
-// Data capaian sengaja tidak pernah selesai dimuat: yang diuji hanya baris header.
 const tertunda = vi.hoisted(() => () => new Promise(() => {}));
 
 vi.mock('@/services', () => ({

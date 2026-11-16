@@ -1,11 +1,6 @@
 import { api, dataOf } from "./api"
 import type { RealisasiLampiran, StatusPeriode, TipeAktifitas } from "./types"
 
-/* Layar Monitoring Kinerja — pohon Program → Kegiatan → Subkegiatan → Aktifitas
-   untuk satu periode. Read only, terbuka untuk admin_bidang & admin_aplikasi
-   (kedua peran melihat seluruh bidang). Sumbernya endpoint tunggal
-   GET /monitoring/kinerja di opera-backend. */
-
 export interface MonitoringAktifitas {
   id: number
   namaAktifitas: string
@@ -18,10 +13,8 @@ export interface MonitoringAktifitas {
   jumlahCatatan: number
   jumlahLampiran: number
   flagAdhoc: boolean
-  /** Pendukung yang dikeluarkan bidang dari pembagi 30/n. Hanya terlihat di layar penyusunan (DRAFT). */
   dipakai: boolean
   urutan: number
-  /** Total jumlah rencana agenda kalender (tanpa BATAL). Hanya dari GET bidang-saya/rencana. */
   jumlahTerjadwal?: number
 }
 
@@ -75,8 +68,6 @@ export interface MonitoringKinerja {
   ringkasan: MonitoringRingkasan | null
   program: MonitoringProgram[]
 }
-
-/* ── Bentuk mentah dari backend (snake_case) ───────────────────────────── */
 
 type AktifitasRow = {
   id: number
@@ -205,23 +196,16 @@ export async function getMonitoringKinerja(periodeId?: number): Promise<Monitori
   }
 }
 
-/* ── Detail Subkegiatan ────────────────────────────────────────────────────
-   GET /monitoring/subkegiatan/{id} — isi lengkap satu subkegiatan (rencana id)
-   sampai catatan realisasi + lampiran. admin_aplikasi saja. Respons = bentuk
-   TransSubkegiatanBidangResource dengan `aktifitas[]` bersarang. */
-
 export interface DetailCatatanRealisasi {
   id: number
   tanggalKegiatan: string
   jumlahRealisasi: number
   keterangan: string
-  /** pencatat.name, jatuh ke log_entry_name (nama beku) bila user terhapus. */
   pencatat: string
   lampiran: RealisasiLampiran[]
 }
 
 export interface DetailAktifitas extends MonitoringAktifitas {
-  /** Catatan realisasi harian, terbaru dulu. */
   catatan: DetailCatatanRealisasi[]
 }
 

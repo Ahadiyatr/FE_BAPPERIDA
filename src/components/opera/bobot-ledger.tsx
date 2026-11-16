@@ -2,31 +2,15 @@ import * as React from "react"
 import { persen1, persen2 } from "@/lib/format-angka"
 import { cn } from "@/lib/utils"
 
-/**
- * BobotLedger — buku besar bobot.
- *
- * Menampilkan perhitungan 70/30 sebagai baris-baris yang bisa dibaca, bukan
- * angka akhir saja. Dipakai di tiga tempat: detail subkegiatan, form tambah
- * aktifitas pendukung, dan sebelum tombol simpan pada pencatatan realisasi.
- *
- * Alasannya bukan estetika. Keluhan nomor satu saat pindah dari Excel adalah
- * "kok angkanya beda dari hitungan saya" — dan satu-satunya obatnya adalah
- * menunjukkan hitungannya, termasuk konsekuensi dari perubahan yang belum
- * disimpan.
- */
-
 interface Baris {
   label: string
   nilai: string
-  /** Tandai baris hasil akhir — dicetak emerald dan tebal. */
   total?: boolean
 }
 
 interface BobotLedgerProps extends React.HTMLAttributes<HTMLDivElement> {
   baris: Baris[]
-  /** Gambar meter mini di bawah baris. */
   meter?: { jumlahPendukung: number; segmenBaru?: boolean }
-  /** Kalimat konsekuensi, dicetak amber. */
   peringatan?: string
 }
 
@@ -97,11 +81,6 @@ export function BobotLedger({
   )
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Pembungkus siap pakai untuk dua kasus tersering.
-   ───────────────────────────────────────────────────────────── */
-
-/** Rincian capaian sebuah subkegiatan. */
 export function LedgerCapaian({
   bobotUtama,
   bobotPendukung,
@@ -129,7 +108,6 @@ export function LedgerCapaian({
   )
 }
 
-/** Akibat menambah satu aktifitas pendukung baru. */
 export function LedgerTambahPendukung({
   jumlahSekarang,
 }: {

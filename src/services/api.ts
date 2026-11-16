@@ -22,8 +22,6 @@ const appUrl = (
 export const api = axios.create({
   baseURL: `${appUrl}/api/v1`,
   withCredentials: true,
-  // Port Vite dan Laravel berbeda sehingga request adalah cross-origin.
-  // Axios perlu flag ini agar cookie XSRF-TOKEN juga menjadi header X-XSRF-TOKEN.
   withXSRFToken: true,
   headers: { Accept: 'application/json' },
   xsrfCookieName: 'XSRF-TOKEN',

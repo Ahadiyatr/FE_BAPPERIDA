@@ -1,28 +1,4 @@
 #!/usr/bin/env python3
-"""
-Menghasilkan src/mocks/data/{program,kegiatan,subkegiatan,aktifitas}.ts
-dan src/mocks/data/penugasan-awal.ts dari sumber Excel asli.
-
-Kenapa: roadmap-refactor-ui.md Fase 0 minta data dummy mengikuti bentuk
-ERD TUJUAN, bukan dikarang bebas. File ini membaca struktur baris/kolom
-asli "Operasional Indikator Kinerja BAPPERIDA.xlsx" dan memetakannya ke
-MASTER_PROGRAM / MASTER_KEGIATAN / MASTER_INDIKATOR_UTAMA / MASTER_INDIKATOR
-(lihat docs/erd.md), supaya 78 subkegiatan dan aktifitasnya di layar demo
-adalah nama asli BAPPERIDA, bukan "Subkegiatan 1..78".
-
-Jalankan ulang tiap kali file Excel sumber berubah:
-    python3 scripts/seed_from_xlsx.py
-
-Yang TIDAK diambil dari Excel (tidak ada di sana / nilainya basi):
-- BOBOT_TARGET aktifitas pendukung: Excel selalu menulis 0.1 per baris
-  apa pun jumlah pendukungnya (kadang totalnya jadi 40%, bukan 30%).
-  Bobot yang benar dihitung ulang di runtime oleh src/lib/bobot.ts
-  (30% ÷ jumlah aktifitas pendukung AKTIF), sesuai aturan REFACTOR.md
-  "bobot tidak pernah jadi input/nilai tersimpan yang dipercaya mentah".
-- Realisasi: template Excel ini kosong (semua Bobot Realisasi = 0),
-  jadi bukan sumber untuk data realisasi contoh. Itu digenerate terpisah
-  oleh src/mocks/db.ts memakai PRNG berbenih (deterministik).
-"""
 import json
 import re
 import sys
@@ -46,7 +22,7 @@ SHEET_NAME = "OPERA INK"
 BIDANG_MAP = {
     "P2EPD": "P2EPD",
     "SEKRETARIAT": "SEKRETARIAT",
-    "SEKERTARIAT": "SEKRETARIAT",  # salah ketik di sumber, disamakan
+    "SEKERTARIAT": "SEKRETARIAT",
     "PIK": "PIK",
     "RINOVA": "RINOVA",
     "PERENCANAAN": "SUBBAG_PERENCANAAN",
@@ -72,7 +48,6 @@ def normalize_bidang(raw):
 
 
 def fmt_segment(v):
-    """5.0 -> '5', 2.01 -> '2.01' — meniru format kode Dinas di Excel."""
     if v is None or v == "":
         return None
     if isinstance(v, float):
@@ -88,7 +63,6 @@ def build_kode(*segments):
 
 
 def split_target(raw):
-    """'2 Dokumen' -> (2.0, 'Dokumen'); 6 -> (6.0, None)."""
     if raw is None:
         return 0.0, None
     if isinstance(raw, (int, float)):
@@ -125,9 +99,6 @@ def parse_workbook():
     while r <= max_r:
         d = depth_of(r)
 
-        # Kedalaman 2 = URUSAN (mis. "5.0.1.0 PERENCANAAN"). Excel menandainya
-        # dengan label "KINERJA URUSAN" di kolom 12. Dipakai sebagai induk
-        # pengelompokan program di layar Capaian Program.
         if d == 2:
             urusan_seq += 1
             urusans.append(
@@ -211,7 +182,7 @@ def parse_workbook():
                     rr += 1
 
                 if rr <= max_r:
-                    rr += 1  # lewati header "Aktifitas Pendukung..."
+                    rr += 1
                     while rr <= max_r and cell(rr, 5) == "*":
                         nama_p = (cell(rr, 6) or "").strip()
                         if nama_p and nama_p != "Tambahkan Indikator Pendukung Lainnya":
@@ -344,10 +315,6 @@ def write_aktifitas(subs):
 
 
 def write_penugasan_awal(subs):
-    """Pemetaan indikatorUtamaId -> kode bidang, dari kolom BIDANG di Excel.
-    Dipakai HANYA sebagai benih TRANS_SUBKEGIATAN_BIDANG periode aktif di
-    src/mocks/db.ts — bukan bagian dari master, sesuai prinsip ERD bahwa
-    penugasan bidang adalah data transaksi per periode, bukan katalog."""
     lines = [GENERATED_HEADER.format(sheet=SHEET_NAME)]
     lines.append(
         "// indikatorUtamaId -> kode MASTER_BIDANG, dipakai db.ts untuk\n"

@@ -79,7 +79,6 @@ export default function DataMaster() {
 
   React.useEffect(() => { setBaris(null); void muat() }, [muat])
 
-  // Angka di ChainNav — katalog penuh, tidak ikut tersaring scope.
   React.useEffect(() => {
     let batal = false
     Promise.all([
@@ -90,11 +89,10 @@ export default function DataMaster() {
     ]).then(([p, k, s, jmlAktifitas]) => {
       if (!batal)
         setJumlah({ program: p.length, kegiatan: k.length, subkegiatan: s.length, aktifitas: jmlAktifitas })
-    }).catch(() => { /* angka rantai bukan alasan menjatuhkan layar */ })
+    }).catch(() => {})
     return () => { batal = true }
   }, [])
 
-  // Nama induk untuk pita scope.
   React.useEffect(() => {
     let batal = false
     if (indukId == null || !def.induk) { setNamaInduk(null); return }
@@ -143,7 +141,6 @@ export default function DataMaster() {
     }
   }
 
-  // Aturan hapus ditegakkan server; alasan penolakannya ditampilkan apa adanya.
   async function hapus(row: BarisMaster) {
     try {
       await def.hapus(row.id)

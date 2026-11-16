@@ -1,23 +1,11 @@
 import type { IndikatorBidang } from '@/services';
 
-/**
- * Aturan "pakai / tidak pakai" aktivitas pendukung, dipisah dari komponen supaya bisa
- * diuji tanpa DOM dan supaya pratinjau di layar memakai rumus yang sama dengan backend.
- *
- * Backend tetap sumber kebenaran `bobotTarget`; fungsi di sini hanya memperkirakan
- * hasilnya untuk teks bantuan sebelum perubahan disimpan.
- */
-
 export const pendukungDipakai = (aktifitas: IndikatorBidang[]): IndikatorBidang[] =>
   aktifitas.filter(a => a.tipeAktifitas === 'PENDUKUNG' && a.dipakai);
 
 export const pendukungSemua = (aktifitas: IndikatorBidang[]): IndikatorBidang[] =>
   aktifitas.filter(a => a.tipeAktifitas === 'PENDUKUNG');
 
-/**
- * Pembagian 30% ke n pendukung — selisih pembulatan jatuh ke elemen terakhir supaya
- * totalnya tepat 30, persis `CapaianService::bobotTarget` di backend.
- */
 export function bagiBobotPendukung(n: number): number[] {
   if (n <= 0) return [];
   const masing = Math.round((30 / n) * 100) / 100;
@@ -26,10 +14,6 @@ export function bagiBobotPendukung(n: number): number[] {
   );
 }
 
-/**
- * Alasan kenapa centang sebuah pendukung tidak boleh diubah — `null` kalau boleh.
- * Urutan pemeriksaan mengikuti backend supaya pesan di layar sama dengan yang ditolak API.
- */
 export function alasanCentangTerkunci(
   aktifitas: IndikatorBidang,
   semuaAktifitas: IndikatorBidang[],
@@ -46,7 +30,6 @@ export function alasanCentangTerkunci(
   return null;
 }
 
-/** Bobot tiap pendukung yang dipakai SETELAH satu baris di-toggle. Untuk teks pratinjau. */
 export function bobotSetelahToggle(
   aktifitas: IndikatorBidang[],
   idDitoggle: number,

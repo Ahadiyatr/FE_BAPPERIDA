@@ -1,20 +1,15 @@
 import type { AksiLog, GrupLog, LogAktivitas } from "@/services"
 
-/* Logika murni layar Log Aktivitas — dipisah dari komponen supaya bisa diuji tanpa DOM. */
-
 export type NadaAksi = "positif" | "netral" | "info" | "waspada" | "kritis"
 
 interface MetaAksi {
   label: string
   grup: GrupLog
   nada: NadaAksi
-  /** 0 biasa, 1 perlu perhatian, 2 kritis. Himpunan berat ≥ 1 = `LogAktivitasController::PERHATIAN`. */
   berat: 0 | 1 | 2
-  /** Kata kerja untuk kalimat rangkaian ("Membuat 6 kegiatan"). */
   kerja?: string
 }
 
-/** Warna menandai berat-ringannya tindakan, bukan jenis datanya. */
 export const META_AKSI: Record<AksiLog, MetaAksi> = {
   BUAT: { label: "Tambah", grup: "master", nada: "positif", berat: 0, kerja: "Membuat" },
   UBAH: { label: "Ubah", grup: "master", nada: "netral", berat: 0, kerja: "Mengubah" },
@@ -59,12 +54,9 @@ const LABEL_ENTITAS: Record<string, string> = {
   USERS: "Pengguna",
 }
 
-/** Nama tabel mentah → nama yang dikenali pengguna. Tabel baru tampil apa adanya. */
 export const labelEntitas = (entitas: string) =>
   LABEL_ENTITAS[entitas.toUpperCase()] ?? entitas
 
-/* `waktu` dikirim dengan offset +08:00. Hari dan jam dibaca dalam WITA, bukan zona
-   browser, supaya kejadian dekat tengah malam tidak pindah hari. */
 const ZONA = "Asia/Makassar"
 const fmtTanggal = new Intl.DateTimeFormat("en-CA", { timeZone: ZONA, year: "numeric", month: "2-digit", day: "2-digit" })
 const fmtJam = new Intl.DateTimeFormat("id-ID", { timeZone: ZONA, hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
@@ -98,11 +90,6 @@ export type ButirLinimasa =
 const JEDA_RANGKAIAN_MS = 15 * 60_000
 const MIN_RANGKAIAN = 3
 
-/**
- * Kejadian beruntun — pelaku, tindakan, dan tabel sama, jeda antar-kejadian ≤ 15 menit —
- * dilipat menjadi satu butir. Masukan harus terbaru-dulu dan berasal dari satu hari.
- * Sesi masuk tidak pernah dilipat: tiap login adalah bukti tersendiri.
- */
 export function lipatBeruntun(baris: LogAktivitas[]): ButirLinimasa[] {
   const kelompok: LogAktivitas[][] = []
   for (const b of baris) {
@@ -128,7 +115,6 @@ export function lipatBeruntun(baris: LogAktivitas[]): ButirLinimasa[] {
 
 export type PotonganRingkasan = { jenis: "teks" | "kode" | "nama"; isi: string }
 
-/** Pecah ringkasan untuk ditampilkan: kode berjenjang (5.01.02) dan nama dalam kutip disorot. */
 export function pecahRingkasan(teks: string): PotonganRingkasan[] {
   const hasil: PotonganRingkasan[] = []
   const pola = /"([^"]+)"|\b(\d+(?:\.\d+)+)\b/g
@@ -142,7 +128,6 @@ export function pecahRingkasan(teks: string): PotonganRingkasan[] {
   return hasil
 }
 
-/** "Membuat 6 kegiatan" — atau "6× Kunci periode" bila tindakan tak punya kata kerja. */
 export function kalimatRangkaian(baris: LogAktivitas[]) {
   const meta = META_AKSI[baris[0].aksi]
   const n = baris.length

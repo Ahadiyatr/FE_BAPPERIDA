@@ -23,7 +23,6 @@ type AktifitasRow = {
   subkegiatan_bidang_id: number;
   master_aktifitas_id: number | null;
   flag_adhoc: boolean;
-  /** Opsional: endpoint lama belum mengirimnya. */
   dipakai?: boolean;
   nama_aktifitas: string;
   tipe_aktifitas: 'UTAMA' | 'PENDUKUNG';
@@ -63,7 +62,6 @@ const aktifitas = (r: AktifitasRow): IndikatorBidang => ({
   subkegiatanBidangId: r.subkegiatan_bidang_id,
   masterIndikatorId: r.master_aktifitas_id ?? 0,
   flagAdhoc: r.flag_adhoc,
-  // Baris lama / endpoint yang belum mengirim field ini dianggap dipakai.
   dipakai: r.dipakai ?? true,
   tipeAktifitas: r.tipe_aktifitas,
   namaAktifitas: r.nama_aktifitas,
@@ -183,10 +181,6 @@ export async function tambahAktifitasKeRencana(i: {
 export async function hapusAktifitasDariRencana(id: number): Promise<void> {
   await api.delete(`/aktifitas-bidang/${id}`);
 }
-/**
- * Pakai / tidak pakai satu aktivitas pendukung pada periode ini. Bukan penghapusan:
- * barisnya tetap ada, hanya keluar dari pembagi 30/n. Hanya saat periode DRAFT.
- */
 export async function setDipakaiAktifitas(
   id: number,
   dipakai: boolean,
@@ -217,7 +211,6 @@ export async function getKatalogTersedia(
       jumlahAktifitas: 0,
     }));
 }
-/** Tugaskan sekaligus — backend menerima array, jadi satu kegiatan cukup satu panggilan. */
 export async function tugaskanSubkegiatan(i: {
   bidangId: number;
   periodeId: number;
@@ -245,7 +238,6 @@ export async function tambahSubkegiatanKeRencana(i: {
 export async function cabutSubkegiatanDariRencana(id: number): Promise<void> {
   await api.delete(`/rencana/${id}`);
 }
-/** Ganti bidang penanggung jawab tanpa kehilangan target & aktifitas ad-hoc yang sudah disetel. */
 export async function pindahBidangSubkegiatan(
   rencanaId: number,
   bidangId: number,
@@ -405,7 +397,6 @@ export async function salinRencana(
 
 type RiwayatRencanaRow = { periode_id: number };
 
-/** Periode LOCKED yang benar-benar mempunyai rencana milik bidang pengguna. */
 export async function getPeriodeRiwayatRencanaSaya(): Promise<Set<number>> {
   const rows = dataOf<RiwayatRencanaRow[]>(
     await api.get('/bidang-saya/riwayat'),

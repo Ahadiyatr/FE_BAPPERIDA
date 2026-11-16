@@ -7,7 +7,6 @@ export interface Paginasi<T> {
   ukuran: number
   totalHalaman: number
   total: number
-  /** Nomor baris pertama dan terakhir yang tampil, berbasis 1; 0 bila kosong. */
   dari: number
   sampai: number
   potongan: T[]
@@ -15,13 +14,6 @@ export interface Paginasi<T> {
   setUkuran: (ukuran: number) => void
 }
 
-/* Pagination sisi klien: layar daftar OPERA sudah memuat seluruh barisnya,
-   jadi cukup dipotong di sini.
-
-   Halaman kembali ke 1 hanya saat `kunciReset` berubah (cari, saringan, tab) —
-   bukan saat data dimuat ulang, supaya pengguna yang baru menyunting baris di
-   halaman 3 tidak dilempar ke halaman 1. Bila baris menyusut (mis. sesudah
-   hapus), halaman dijepit ke halaman terakhir yang masih ada. */
 export function usePaginasi<T>(
   baris: readonly T[],
   { ukuranAwal = 10, kunciReset }: { ukuranAwal?: number; kunciReset?: unknown } = {},
@@ -60,7 +52,6 @@ export function usePaginasi<T>(
   }
 }
 
-/** Nomor halaman yang ditampilkan, dengan `null` sebagai elipsis: 1 … 4 5 6 … 20. */
 export function nomorHalaman(halaman: number, totalHalaman: number): (number | null)[] {
   if (totalHalaman <= 7) return Array.from({ length: totalHalaman }, (_, i) => i + 1)
   const tengah = [halaman - 1, halaman, halaman + 1].filter((n) => n > 1 && n < totalHalaman)

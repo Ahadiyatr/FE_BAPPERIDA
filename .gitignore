@@ -2,12 +2,9 @@ node_modules/
 .DS_Store
 **/.DS_Store
 
-# hasil build
 dist
 opera-ink-fe-bundle/
 
-# dokumentasi internal
 docs/
 
-# claude code
 .claude/

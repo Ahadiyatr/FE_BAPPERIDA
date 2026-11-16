@@ -57,30 +57,8 @@ export async function hitungUlangCapaian(periodeId: number): Promise<CapaianPeri
   return mapCapaianPeriode(dataOf<CapaianPeriodeRow>(await api.post(`/periode/${periodeId}/hitung-ulang`)))
 }
 
-/**
- * Rollup capaian.
- *
- * Semua data capaian berasal dari API. Rollup dilakukan backend dari transaksi
- * yang tersimpan; frontend hanya memetakan bentuk respons untuk tampilan.
- */
-
 const bulat2 = (n: number) => Math.round(n * 100) / 100
 
-/**
- * ⚠️ ASUMSI SEMENTARA — rumus rollup capaian program BELUM diputuskan.
- *
- * Excel sumber memberi label `Capaian Kinerja "Program"` tetapi tidak pernah
- * menghitungnya: dari 3 baris berlabel, NOL yang berangka, dan seluruh 77
- * rumus capaian berhenti di tingkat subkegiatan.
- *
- * Yang dipakai di sini: rata-rata TAK BERBOBOT seluruh subkegiatan program.
- * Alternatifnya (berjenjang lewat kegiatan) memberi angka berbeda karena
- * jumlah subkegiatan antar kegiatan timpang di 4 dari 5 program.
- *
- * Lihat docs/keputusan-terbuka.md butir 1 (di opera-ink-fe-bundle).
- *
- * Backend menerapkan konvensi ini pada DashboardService dan MonitoringController.
- */
 export async function getRankingBidang(periodeId: number): Promise<CapaianBidang[]> {
   const h=dataOf<any>(await api.get("/dashboard",{params:{periode_id:periodeId}}))
   return (h.bidang??[]).map((r:any)=>({bidangId:r.bidang_id,namaBidang:r.nama_bidang,capaianBidang:Number(r.capaian_bidang),jumlahSubkegiatan:r.jumlah_subkegiatan})).sort((a:CapaianBidang,b:CapaianBidang)=>b.capaianBidang-a.capaianBidang)
@@ -101,9 +79,6 @@ export async function getRankingProgram(periodeId: number): Promise<CapaianProgr
   return (h.program??[]).map((r:any,i:number)=>({programId:i+1,kodeProgram:r.kode_program,namaProgram:r.nama_program,capaian:Number(r.capaian),jumlahSubkegiatan:r.jumlah_subkegiatan})).sort((a:CapaianProgram,b:CapaianProgram)=>b.capaian-a.capaian)
 }
 
-/**
- * Capaian program lengkap dengan rincian per bidang dan per kegiatan.
- */
 export async function getCapaianProgram(periodeId: number): Promise<ProgramBerurusan[]> {
   const [kinerja, programMaster, kegiatanMaster, bidang] = await Promise.all([
     getKinerja(periodeId),
@@ -167,7 +142,6 @@ export async function getRingkasanDashboard(periodeId: number): Promise<Ringkasa
   }
 }
 
-/** Tren sampai periode terpilih; scope mengikuti peran pengguna yang masuk. */
 export async function getTrenCapaian(periodeId: number, batas = 6): Promise<TrenCapaian[]> {
   const rows = dataOf<Array<{ periode_id:number; nama_periode:string; status:TrenCapaian["status"]; capaian:number; jumlah_subkegiatan:number }>>(
     await api.get("/dashboard/tren", { params: { periode_id: periodeId, batas } })
@@ -181,8 +155,6 @@ export async function getTrenCapaian(periodeId: number, batas = 6): Promise<Tren
   }))
 }
 
-/** Telusur Struktur Program — subkegiatan satu kegiatan beserta bidang
- * penanggung jawab dan capaiannya pada periode terpilih. */
 export async function getStrukturSubkegiatan(
   kegiatanId: number,
   periodeId: number
@@ -199,11 +171,6 @@ export async function getStrukturSubkegiatan(
   }))
 }
 
-/**
- * Rincian satu kegiatan sampai tingkat aktifitas — dasar hirarki Excel.
- * Dipakai layar Capaian Program untuk turun dari kegiatan ke subkegiatan
- * lalu ke aktifitas, tempat pembagian 70/30 baru benar-benar terlihat.
- */
 export async function getRincianKegiatan(
   kegiatanId: number,
   periodeId: number

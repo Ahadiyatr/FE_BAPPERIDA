@@ -49,7 +49,6 @@ function tampilkan() {
   );
 }
 
-/** Klik Hapus → konfirmasi; mengembalikan jumlah panggilan getProgram sebelum menghapus. */
 async function hapusBaris(kode: string): Promise<number> {
   const baris = (await screen.findByText(kode)).closest('tr') as HTMLElement;
   const sebelum = getProgram.mock.calls.length;

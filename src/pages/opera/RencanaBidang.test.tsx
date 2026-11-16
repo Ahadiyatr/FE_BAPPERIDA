@@ -90,15 +90,12 @@ function pasang() {
   );
 }
 
-/** Checkbox pendukung, urut sesuai baris di daftar aktivitas. */
 const checkboxPendukung = () => screen.getAllByRole('checkbox');
 
 const utama = akt({ id: 0, tipeAktifitas: 'UTAMA', bobotTarget: 70, namaAktifitas: 'Aktivitas utama' });
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // jsdom tidak mengimplementasikan scrollIntoView; halaman ini memakainya untuk
-  // menggulirkan navigator ke subkegiatan terpilih.
   Element.prototype.scrollIntoView = vi.fn();
   periksaKesiapan.mockResolvedValue({
     butir: [],
@@ -149,7 +146,6 @@ describe('RencanaBidang — pakai/tidak pakai aktivitas pendukung', () => {
     pasang();
     await screen.findByText('Aktivitas utama');
 
-    // Dua pendukung → dua checkbox; utama tidak ikut.
     expect(checkboxPendukung()).toHaveLength(2);
   });
 
@@ -164,7 +160,6 @@ describe('RencanaBidang — pakai/tidak pakai aktivitas pendukung', () => {
     const [satuSatunya, yangNonaktif] = checkboxPendukung();
     expect((satuSatunya as HTMLButtonElement).disabled).toBe(true);
     expect(satuSatunya.getAttribute('title')).toMatch(/minimal satu/i);
-    // Yang nonaktif tetap bisa dipakai kembali.
     expect((yangNonaktif as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -206,7 +201,6 @@ describe('RencanaBidang — pakai/tidak pakai aktivitas pendukung', () => {
     await screen.findByText('Pendukung 2');
 
     expect(screen.getByText('1 tidak dipakai periode ini')).toBeTruthy();
-    // Bobot ditulis "—", bukan "0,0%", supaya tidak terbaca sebagai capaian nol.
     expect(screen.getByText('—')).toBeTruthy();
     expect(screen.queryByText('0,0%')).toBeNull();
   });

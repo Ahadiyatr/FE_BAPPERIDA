@@ -3,14 +3,6 @@ import { ShieldAlert } from "lucide-react"
 
 import { LABEL_PERAN, bolehAkses, peranYangBoleh, usePeran } from "@/lib/peran"
 
-/**
- * Penjaga rute untuk layar hasil refactor.
- *
- * SEMENTARA — berpasangan dengan saklar peran dummy. Fase 6 mengganti
- * sumber peran dengan sesi login sungguhan; komponen ini tetap dipakai,
- * hanya nilainya yang datang dari server. Penjaga di klien tidak pernah
- * cukup sendirian: backend tetap wajib menolak permintaan yang sama.
- */
 export function PenjagaPeran({ children }: { children: React.ReactNode }) {
   const { peran, memuat } = usePeran()
   const { pathname, search, hash } = useLocation()
@@ -18,8 +10,6 @@ export function PenjagaPeran({ children }: { children: React.ReactNode }) {
   if (memuat) return <div className="p-8 text-center text-sm text-slate-500">Memeriksa sesi…</div>
   if (bolehAkses(peran, pathname)) return <>{children}</>
 
-  // Pengunjung tanpa login tidak melihat halaman penolakan — ia diantar ke
-  // landing publik yang memang tempatnya (keputusan 29 Agustus 2026).
   if (peran === "publik") {
     return <Navigate to="/login" replace state={{ dari: `${pathname}${search}${hash}` }} />
   }

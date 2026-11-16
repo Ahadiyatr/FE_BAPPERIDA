@@ -29,8 +29,6 @@ import { apiMessage } from "@/services/api"
 
 const persen = persen1
 
-/* ── kolom 3: pemeriksaan ──────────────────────────────────── */
-
 function PanelPemeriksaan({
   hasil, baris, status, statusPeriode, onPilih, onTandai, sedangMenandai,
 }: {
@@ -121,8 +119,6 @@ function PanelPemeriksaan({
   )
 }
 
-/* ── kolom 2: editor satu subkegiatan ──────────────────────── */
-
 function Editor({
   baris, dapatDisunting, onBerubah, onGalat,
 }: {
@@ -139,8 +135,6 @@ function Editor({
   React.useEffect(() => { setTarget(String(skb.target)) }, [skb.id, skb.target])
 
   const utama = baris.aktifitas.find((a) => a.tipeAktifitas === "UTAMA")
-  // Meter dan Σ hanya memperhitungkan pendukung yang dipakai — yang tidak dipakai
-  // berbobot 0, jadi memasukkannya cuma menambah petak kosong tanpa arti.
   const pendukung = pendukungDipakai(baris.aktifitas)
   const total = (utama?.bobotTarget ?? 0) + pendukung.reduce((a, x) => a + x.bobotTarget, 0)
   const jumlahTidakDipakai = baris.aktifitas.filter((a) => !a.dipakai).length
@@ -230,7 +224,6 @@ function Editor({
                     onCheckedChange={(v) => void bungkus(() => setDipakaiAktifitas(a.id, v === true))}
                   />
                 ) : (
-                  // Ruang sepadan supaya kolom nama tetap sejajar dengan baris pendukung.
                   <span className="size-4 shrink-0" aria-hidden />
                 )}
                 <span
@@ -328,8 +321,6 @@ function Editor({
   )
 }
 
-/* ── layar ─────────────────────────────────────────────────── */
-
 export default function RencanaBidang() {
   const { bidangId } = useParams()
   const [sp] = useSearchParams()
@@ -404,7 +395,6 @@ export default function RencanaBidang() {
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="ghost" size="sm" asChild>
-          {/* Kembali ke tab dan periode asal, bukan ke tab bawaan (Penunjukan). */}
           <Link to={`/rencana?tab=kesiapan${periodeId != null ? `&periode=${periodeId}` : ""}`}><ArrowLeft className="size-3.5" /> Papan kesiapan</Link>
         </Button>
         <div className="min-w-0">
@@ -487,7 +477,6 @@ export default function RencanaBidang() {
 
       {!tidakAda && (
       <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[16rem_1fr_18rem]">
-        {/* navigator */}
         <div className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center gap-2 border-b px-3 py-2">
             <h3 className="font-bold text-[13px]">Subkegiatan bidang ini</h3>
@@ -531,7 +520,6 @@ export default function RencanaBidang() {
           </ScrollArea>
         </div>
 
-        {/* editor */}
         <div className="min-h-0 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
           {!rencana && <div className="p-4"><Skeleton className="h-40" /></div>}
           {rencana && !terpilih && (

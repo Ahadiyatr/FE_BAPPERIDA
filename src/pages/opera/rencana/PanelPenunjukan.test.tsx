@@ -96,7 +96,6 @@ function selectBaris(id: number): HTMLSelectElement {
   return screen.getByLabelText(`Bidang untuk ${KEGIATAN}.${id}`) as HTMLSelectElement;
 }
 
-/** Subkegiatan tersembunyi sampai kegiatannya dibuka. */
 async function bukaKegiatan() {
   await userEvent.click(
     await screen.findByRole('button', { name: `Buka subkegiatan ${KEGIATAN}` }),
@@ -111,9 +110,6 @@ beforeEach(() => {
   ]);
 });
 
-// Proyek tidak memakai `globals: true`, jadi auto-cleanup Testing Library tidak
-// terpasang sendiri — tanpa ini DOM antar-tes menumpuk dan query berbasis indeks
-// (getAllByRole(...)[1]) mengambil elemen milik tes sebelumnya.
 afterEach(cleanup);
 
 describe('PanelPenunjukan', () => {
@@ -273,7 +269,6 @@ describe('PanelPenunjukan', () => {
         onPerubahan={vi.fn()}
       />,
     );
-    // Kegiatan campuran selalu terbuka, jadi tidak perlu dibuka manual.
     await screen.findByText('Subkegiatan 1');
 
     await userEvent.click(
@@ -352,7 +347,6 @@ describe('PanelPenunjukan', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Urungkan' }));
 
-    // Baris 1 kembali ke P2EPD (pindah), baris 2 kembali belum ditugaskan (cabut).
     await waitFor(() => expect(cabutSubkegiatanDariRencana).toHaveBeenCalledWith(78));
     expect(pindahBidangSubkegiatan).toHaveBeenCalledWith(77, P2EPD);
     expect(tugaskanSubkegiatan).not.toHaveBeenCalled();

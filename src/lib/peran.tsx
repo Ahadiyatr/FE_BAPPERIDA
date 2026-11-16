@@ -45,9 +45,6 @@ export function PenyediaPeran({ children }: { children: React.ReactNode }) {
   const [sesiBerakhir, setSesiBerakhir] = React.useState(false);
 
   React.useEffect(() => {
-    // Landing, detail bidang, dan login memakai endpoint publik. Jangan memanggil `/me`
-    // pada route ini karena pengunjung tanpa sesi akan selalu mendapat 401
-    // yang tidak diperlukan dan terlihat sebagai error di Network browser.
     if (
       window.location.pathname === '/' ||
       window.location.pathname === '/detail' ||
@@ -83,15 +80,10 @@ export function PenyediaPeran({ children }: { children: React.ReactNode }) {
   }, []);
   const logout = React.useCallback(async () => {
     try {
-      // Logout tetap berhasil secara lokal jika sesi/CSRF di server sudah kedaluwarsa.
-      // Status tersebut sengaja dianggap respons final agar interceptor tidak mencoba
-      // ulang request logout lalu memancarkan galat 401 yang tidak relevan.
       await api.post('/logout', undefined, {
         validateStatus: status =>
           (status >= 200 && status < 300) || status === 401 || status === 419,
-      });
-    } catch {
-      // Gangguan jaringan tidak boleh menahan pengguna pada sesi lokal.
+      }).catch(() => {});
     } finally {
       setUser(null);
     }
@@ -135,14 +127,10 @@ export function PenyediaPeran({ children }: { children: React.ReactNode }) {
 export const AKSES: { awalan: string; peran: Peran[] }[] = [
   { awalan: '/dashboard', peran: ['admin_bidang', 'admin_aplikasi'] },
   { awalan: '/monitoring', peran: ['admin_bidang', 'admin_aplikasi'] },
-  // Detail satu subkegiatan sampai lampiran — endpoint backend admin_aplikasi saja.
   { awalan: '/monitoring/subkegiatan', peran: ['admin_aplikasi'] },
-  // Endpoint katalog, rincian program, dan rencana lintas-bidang hanya tersedia
-  // untuk admin_aplikasi; admin_bidang memakai Rencana Saya dan Dashboard.
   { awalan: '/bidang', peran: ['admin_aplikasi'] },
   { awalan: '/struktur', peran: ['admin_aplikasi'] },
   { awalan: '/capaian-program', peran: ['admin_aplikasi'] },
-  // Kalender dibaca kedua peran; aksi tulisnya dikunci server lewat `dapat_menjadwalkan`.
   { awalan: '/kalender', peran: ['admin_bidang', 'admin_aplikasi'] },
   { awalan: '/realisasi', peran: ['admin_bidang'] },
   { awalan: '/bukti', peran: ['admin_bidang', 'admin_aplikasi'] },

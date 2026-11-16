@@ -130,8 +130,6 @@ export async function uploadLampiran(
     if (f.type.startsWith('image/')) form.append('fotos[]', f);
     else form.append('dokumens[]', f);
   }
-  // POST /lampiran mengembalikan realisasi + seluruh lampiran-nya (TransRealisasiKegiatanResource),
-  // bukan array lampiran. Ambil daftar lampiran terbaru dari situ.
   const r = dataOf<RealisasiRow>(await api.post('/lampiran', form));
   return (r.lampiran ?? []).map(x => lampiran(x, realisasiId));
 }

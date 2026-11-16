@@ -112,17 +112,14 @@ describe('bulanDariKunci / kunciDariBulan / geserBulan', () => {
 
 describe('jendelaGrid', () => {
   it('memundurkan ke Senin dan memajukan ke Minggu', () => {
-    // 1 Feb 2026 hari Minggu, 28 Feb hari Sabtu.
     expect(jendelaGrid(FEB)).toEqual({ dari: '2026-01-26', sampai: '2026-03-01' });
   });
 
   it('tidak menambah sel bocoran saat bulan sudah mulai Senin', () => {
-    // 1 Jun 2026 hari Senin.
     expect(jendelaGrid({ tahun: 2026, bulan: 6 }).dari).toBe('2026-06-01');
   });
 
   it('cocok dengan rentang yang dihitung backend untuk bulan yang sama', () => {
-    // Dipaku bersama JadwalKegiatanTest::test_kalender_mengembalikan_jendela_pekan_penuh_mulai_senin.
     const { dari, sampai } = jendelaGrid(FEB);
     expect(dari).toBe('2026-01-26');
     expect(sampai).toBe('2026-03-01');
@@ -195,7 +192,6 @@ describe('susunGridBulan', () => {
     expect(cari(baris, '2026-02-11').agenda.length).toBe(1);
     expect(cari(baris, '2026-02-12').agenda.length).toBe(1);
     expect(cari(baris, '2026-02-13').agenda.length).toBe(0);
-    // Objek yang sama, bukan salinan — karena itu konsumen wajib meng-key dengan id.
     expect(cari(baris, '2026-02-10').agenda[0]).toBe(cari(baris, '2026-02-12').agenda[0]);
   });
 
@@ -205,7 +201,6 @@ describe('susunGridBulan', () => {
       agenda: [agenda({ tanggalMulai: '2026-01-20', tanggalSelesai: '2026-01-27' })],
     });
 
-    // 26 & 27 Jan ada di jendela (sel bocoran); 20 Jan di luar dan tidak punya sel.
     expect(cari(baris, '2026-01-26').agenda.length).toBe(1);
     expect(cari(baris, '2026-01-27').agenda.length).toBe(1);
     expect(baris.flat().some((s) => s.kunci === '2026-01-20')).toBe(false);
@@ -238,8 +233,8 @@ describe('susunGridBulan', () => {
 
   it('menandai akhir pekan', () => {
     const baris = susunGridBulan(dasar);
-    expect(cari(baris, '2026-02-07').akhirPekan).toBe(true); // Sabtu
-    expect(cari(baris, '2026-02-09').akhirPekan).toBe(false); // Senin
+    expect(cari(baris, '2026-02-07').akhirPekan).toBe(true);
+    expect(cari(baris, '2026-02-09').akhirPekan).toBe(false);
   });
 });
 

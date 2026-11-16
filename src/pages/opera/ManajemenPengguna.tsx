@@ -246,7 +246,6 @@ export default function ManajemenPengguna() {
                   </span>
                 </td>
                 <td className="px-6 py-3 text-right whitespace-nowrap">
-                  {/* Akun sendiri dikelola lewat menu avatar, bukan dari sini — server juga menolaknya. */}
                   {u.id === sesi?.id ? (
                     <span className="text-xs text-slate-400">Akun Anda</span>
                   ) : (

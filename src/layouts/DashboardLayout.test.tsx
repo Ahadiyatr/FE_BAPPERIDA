@@ -56,7 +56,6 @@ describe('DashboardLayout — nama menu per peran', () => {
     const nav = tampilkan('admin_aplikasi', '/monitoring');
 
     expect(nav.getByRole('link', { name: 'Monitoring Kinerja' }).getAttribute('href')).toBe('/monitoring');
-    // "Capaian Program" milik admin aplikasi tetap menunjuk halamannya sendiri.
     expect(nav.getByRole('link', { name: 'Capaian Program' }).getAttribute('href')).toBe('/capaian-program');
     expect(nav.queryByText('Program Bidang')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Monitoring Kinerja' })).toBeTruthy();

@@ -3,13 +3,6 @@ import { ChevronRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
-/* ═══════════════════════════════════════════════════════════════
-   Primitif kecil yang dipakai berulang di seluruh OPERA.
-   Semuanya tipis — sengaja, supaya tidak jadi lapisan abstraksi
-   yang harus dipelihara.
-   ═══════════════════════════════════════════════════════════════ */
-
-/** Label kapital berspasi lebar di atas judul. */
 export function Eyebrow({
   className,
   ...props
@@ -25,7 +18,6 @@ export function Eyebrow({
   )
 }
 
-/** Kode rekening Kepmendagri 050: 5.01.02.2.01.0001. Selalu mono, selalu tabular. */
 export function Kode({
   className,
   ...props
@@ -40,11 +32,6 @@ export function Kode({
     />
   )
 }
-
-/* ─────────────────────────────────────────────────────────────
-   Status. Ambang batas ditetapkan di satu tempat supaya seluruh
-   aplikasi memberi warna yang sama untuk angka yang sama.
-   ───────────────────────────────────────────────────────────── */
 
 export type Nada = "baik" | "sedang" | "buruk" | "utama" | "netral"
 
@@ -67,11 +54,6 @@ const kelasTeks: Record<Nada, string> = {
   netral: "text-muted-foreground",
 }
 
-/**
- * Lencana status. Membungkus <Badge> shadcn, bukan menggantikannya —
- * varian bawaan (default/secondary/destructive) tidak punya nada
- * baik/sedang/buruk untuk ambang capaian.
- */
 export function StatusBadge({
   nada = "netral",
   className,
@@ -90,7 +72,6 @@ export function StatusBadge({
   )
 }
 
-/** Angka persen capaian, diberi warna sesuai ambang. */
 export function CapaianPersen({
   nilai,
   desimal = 1,
@@ -113,19 +94,11 @@ export function CapaianPersen({
   )
 }
 
-/* ─────────────────────────────────────────────────────────────
-   ChainNav — navigasi data berjenjang.
-   Dipakai di layar Data Master untuk Program → Kegiatan →
-   Subkegiatan → Aktivitas. Bukan <Tabs>: tab sejajar menyiratkan
-   lima hal setara, padahal ini rantai induk-anak.
-   ───────────────────────────────────────────────────────────── */
-
 export interface MataRantai {
   id: string
   tingkat: string
   label: string
   jumlah: number
-  /** Titik amber di pojok — menandai masalah skema yang belum beres. */
   bermasalah?: boolean
 }
 

@@ -4,10 +4,6 @@ import api from "../services/api";
 
 type BlobError = false | "unauthorized" | "notfound" | "unknown";
 
-// Cache object URL selama sesi, kunci = apiPath. Urutan sisip Map dipakai
-// sebagai LRU: entri tertua dibuang (dan di-revoke) saat melewati batas.
-// Tanpa cache, membuka-tutup grup di Bukti Kegiatan atau pindah tab
-// mengunduh ulang setiap foto.
 const BATAS_CACHE = 300;
 const cacheBlob = new Map<string, string>();
 const sedangDimuat = new Map<string, Promise<string>>();
@@ -19,7 +15,6 @@ function ambilBlobUrl(apiPath: string): Promise<string> {
     cacheBlob.set(apiPath, tersimpan);
     return Promise.resolve(tersimpan);
   }
-  // Dua komponen yang meminta berkas yang sama berbagi satu request.
   const berjalan = sedangDimuat.get(apiPath);
   if (berjalan) return berjalan;
 
@@ -40,16 +35,12 @@ function ambilBlobUrl(apiPath: string): Promise<string> {
   return janji;
 }
 
-/** Kosongkan cache blob, mis. saat keluar supaya berkas tidak terbawa ke sesi berikutnya. */
 export function kosongkanCacheBlob() {
   for (const url of cacheBlob.values()) URL.revokeObjectURL(url);
   cacheBlob.clear();
   sedangDimuat.clear();
 }
 
-// Fetches a protected API path as a blob and exposes an object URL.
-// Object URL hidup di cache modul, bukan milik komponen, jadi tidak
-// di-revoke saat unmount; galat tidak di-cache supaya bisa dicoba lagi.
 export function useAuthedBlobUrl(apiPath: string | null) {
   const [url, setUrl] = useState<string | null>(() =>
     apiPath ? cacheBlob.get(apiPath) ?? null : null
@@ -106,7 +97,6 @@ function LoadingBox({ className }: { className?: string }) {
   );
 }
 
-// "rusak": berkas berhasil diunduh tapi browser gagal men-decode gambarnya.
 function ErrorBox({ className, error }: { className?: string; error: BlobError | "rusak" }) {
   const label =
     error === "unauthorized" ? "SESI HABIS" : error === "rusak" ? "FOTO RUSAK" : "NO FOTO";
@@ -139,7 +129,6 @@ export function AuthedImage({
   const { url, loading, error } = useAuthedBlobUrl(
     lampiranId ? `/lampiran/${lampiranId}/preview` : null
   );
-  // Disimpan per-URL supaya otomatis pulih ketika lampiran berganti.
   const [urlRusak, setUrlRusak] = useState<string | null>(null);
 
   if (loading) return <LoadingBox className={className} />;
@@ -203,8 +192,6 @@ export function DocumentPreview({ id, ext }: { id: number; ext: string }) {
   );
 }
 
-// Fetches a protected file as a blob and triggers a browser save,
-// since a plain <a href> cannot carry the Authorization header.
 export async function downloadAuthedFile(apiPath: string, filename: string) {
   const res = await api.get(apiPath, { responseType: "blob" });
   const objectUrl = URL.createObjectURL(res.data);

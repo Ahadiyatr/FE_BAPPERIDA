@@ -191,17 +191,6 @@ function BarisBidang({
   );
 }
 
-/**
- * Kesiapan rencana per bidang + gerbang membuka periode.
- *
- * Gerbang diletakkan di atas karena membuka periode adalah keputusan utama layar ini;
- * syaratnya dicerminkan dari `PeriodeController::buka` supaya admin tahu apa yang masih
- * kurang sebelum menekan tombol. Server tetap yang menegakkan.
- *
- * Papan hanya memuat bidang yang SUDAH mendapat pembagian (backend
- * `KesiapanRencanaService::papanPeriode` bersumber dari TRANS_SUBKEGIATAN_BIDANG),
- * jadi untuk periode yang masih kosong tab Penunjukan-lah pintu masuknya.
- */
 export function PapanKesiapan({
   periode,
   sumber,
@@ -209,9 +198,7 @@ export function PapanKesiapan({
   onPerubahan,
 }: {
   periode: Periode;
-  /** Periode sebelumnya untuk disalin, bila ada. */
   sumber: Periode | null;
-  /** Periode OPEN selain yang ini — menghalangi pembukaan. */
   periodeLainTerbuka?: Periode | null;
   onPerubahan: () => void | Promise<void>;
 }) {
@@ -239,7 +226,6 @@ export function PapanKesiapan({
   React.useEffect(() => {
     setPapan(null);
     void muat();
-    // Hanya peringatan lunak; kegagalannya tidak perlu mengganggu papan.
     getPenunjukan(periode.id)
       .then(p => setJumlahBelumDitugaskan(p.ringkasan.jumlahBelum))
       .catch(() => {});
@@ -318,7 +304,6 @@ export function PapanKesiapan({
         </p>
       )}
 
-      {/* Gerbang pembukaan periode */}
       <section
         aria-label="Pembukaan periode"
         className="grid overflow-hidden rounded-xl border bg-card shadow-sm lg:grid-cols-[minmax(0,1fr)_19rem]"
@@ -421,7 +406,6 @@ export function PapanKesiapan({
         </div>
       </section>
 
-      {/* Tahap */}
       <div role="group" aria-label="Saring menurut tahap" className="grid gap-2.5 sm:grid-cols-3">
         {(Object.keys(TAHAP) as TahapKesiapan[]).map(k => {
           const aktif = saring === k;
@@ -447,7 +431,6 @@ export function PapanKesiapan({
         })}
       </div>
 
-      {/* Daftar bidang */}
       <div className="flex flex-wrap items-baseline justify-between gap-2 px-1 text-xs text-muted-foreground">
         <span>
           {saring ? (

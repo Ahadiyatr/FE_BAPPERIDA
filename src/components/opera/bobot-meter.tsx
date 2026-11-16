@@ -3,33 +3,17 @@ import { Tooltip } from "radix-ui"
 import { persen1 } from "@/lib/format-angka"
 import { cn } from "@/lib/utils"
 
-/**
- * BobotMeter — batang tersegmen yang memperlihatkan pembagian 70/30.
- *
- * Ini komponen inti OPERA. Di Excel, capaian subkegiatan cuma angka hasil
- * formula; di sini blok besar (emerald) adalah aktifitas utama dengan bobot
- * 70%, dan tiap petak kecil (teal) satu aktifitas pendukung dengan bobot
- * 30% dibagi jumlahnya. Isi tiap segmen = realisasi dibagi target.
- *
- * Jangan ganti dengan <Progress> shadcn: satu batang tunggal menyembunyikan
- * justru informasi yang paling dibutuhkan pengguna — aktifitas mana yang
- * belum jalan.
- */
-
 export interface AktifitasBobot {
   nama: string
   target: number
   realisasi: number
-  /** Bobot transaksi aktual dari backend, bukan hasil pembagian di UI. */
   bobotTarget: number
 }
 
 interface BobotMeterProps extends React.HTMLAttributes<HTMLDivElement> {
   utama: AktifitasBobot
   pendukung: AktifitasBobot[]
-  /** Tinggi batang dalam px. Tabel padat pakai 8, kartu pakai 12-14. */
   tinggi?: number
-  /** Sembunyikan tooltip untuk konteks yang sangat padat. */
   tanpaTooltip?: boolean
 }
 
@@ -131,7 +115,6 @@ export function BobotMeter({
   )
 }
 
-/** Keterangan warna, dipakai di bawah meter pada tampilan detail. */
 export function BobotMeterLegenda({
   bobotPendukung,
   bobotUtama = 70,

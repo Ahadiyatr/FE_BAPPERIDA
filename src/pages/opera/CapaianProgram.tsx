@@ -29,7 +29,6 @@ import {
 const angka = (n: number) =>
   n.toLocaleString('id-ID', { maximumFractionDigits: 2 });
 
-/** Satu subkegiatan beserta aktifitasnya — dasar hirarki, tempat 70/30 terlihat. */
 function KartuSubkegiatan({
   s,
   bidangSaya,
@@ -162,8 +161,6 @@ function KartuSubkegiatan({
   );
 }
 
-/** Baris kegiatan yang bisa dibuka sampai aktifitas. Rinciannya dimuat
- * saat dibuka, bukan di awal — satu program bisa punya 8 kegiatan. */
 function BarisKegiatan({
   k,
   periodeId,
@@ -250,7 +247,6 @@ function BarisKegiatan({
   );
 }
 
-/** Satu program: ringkasan yang bisa dibuka jadi rincian bidang + kegiatan. */
 function BarisProgram({
   p,
   periodeId,

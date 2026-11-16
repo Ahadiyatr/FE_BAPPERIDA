@@ -1,10 +1,3 @@
-/**
- * Warna penanda bidang di layar penunjukan.
- *
- * Warna diambil dari urutan bidang dalam daftar (bukan dari ID), supaya tujuh
- * unit OPERA INK selalu mendapat tujuh warna berbeda. Urutan daftar bidang
- * stabil (diurutkan backend), jadi warna satu bidang tidak berpindah antar-muat.
- */
 const PALET = [
   'bg-sky-600',
   'bg-emerald-600',

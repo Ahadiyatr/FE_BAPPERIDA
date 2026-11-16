@@ -1,4 +1,3 @@
-/** Token warna untuk nilai yang harus dipakai JavaScript/SVG (chart dan dialog). */
 export const DESIGN_COLOR = {
   brand: "var(--color-brand)", brandStrong: "var(--color-brand-strong)",
   success: "var(--color-status-success)", warning: "var(--color-status-warning)",

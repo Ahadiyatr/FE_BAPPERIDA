@@ -33,7 +33,6 @@ interface ItemMenu {
   name: string;
   href: string;
   icon: typeof Database;
-  /** Label lain untuk admin bidang, bila halaman yang sama dipakai dua peran. */
   namaAdminBidang?: string;
 }
 
@@ -61,7 +60,6 @@ const semuaMenu: { label: string; items: ItemMenu[] }[] = [
     items: [
       { name: 'Periode', href: '/periode', icon: Calendar },
       { name: 'Penyusunan Rencana', href: '/rencana', icon: Target },
-      // Hanya untuk admin bidang (lihat peran.tsx).
       { name: 'Program Bidang', href: '/rencana-saya', icon: Target },
     ],
   },

@@ -1,12 +1,5 @@
 import type { KesiapanBidang, Periode } from '@/services';
 
-/**
- * Logika murni Papan Kesiapan, dipisah dari komponen supaya bisa diuji tanpa DOM.
- *
- * Status kesiapan dari backend hanya dua (DRAFT/SIAP), padahal "DRAFT" mencakup dua
- * keadaan yang tindak lanjutnya berbeda: rencana yang masih cacat (harus dilengkapi)
- * dan rencana yang sudah lengkap tapi belum ditandai (tinggal ditinjau).
- */
 export type TahapKesiapan = 'kurang' | 'menunggu' | 'siap';
 
 export function tahapKesiapan(b: KesiapanBidang): TahapKesiapan {
@@ -16,7 +9,6 @@ export function tahapKesiapan(b: KesiapanBidang): TahapKesiapan {
 
 const URUTAN: Record<TahapKesiapan, number> = { kurang: 0, menunggu: 1, siap: 2 };
 
-/** Yang perlu ditindaklanjuti di atas; di dalam satu tahap urut nama. */
 export function urutkanKesiapan(papan: KesiapanBidang[]): KesiapanBidang[] {
   return [...papan].sort(
     (a, b) =>
@@ -26,15 +18,10 @@ export function urutkanKesiapan(papan: KesiapanBidang[]): KesiapanBidang[] {
 }
 
 export interface ButirKekurangan {
-  /** Kode subkegiatan, atau null untuk butir tingkat bidang. */
   kode: string | null;
   pesan: string;
 }
 
-/**
- * Backend mengirim butir sebagai kalimat "KODE: pesan." (KesiapanRencanaService).
- * Dipecah supaya kode bisa ditampilkan terpisah dan dihitung per subkegiatan.
- */
 export function pecahButir(butir: string): ButirKekurangan {
   const m = /^(\d+(?:\.\d+)+):\s*(.+)$/.exec(butir.trim());
   if (!m) return { kode: null, pesan: butir.trim() };
@@ -42,7 +29,6 @@ export function pecahButir(butir: string): ButirKekurangan {
   return { kode: m[1], pesan };
 }
 
-/** Jumlah subkegiatan berbeda yang masih punya kekurangan. */
 export function jumlahSubkegiatanKurang(b: KesiapanBidang): number {
   const kode = new Set(b.butir.map(x => pecahButir(x).kode).filter(Boolean));
   return kode.size || (b.butir.length ? 1 : 0);
@@ -56,10 +42,6 @@ export interface SyaratBuka {
   hitungan?: string;
 }
 
-/**
- * Syarat membuka periode — cermin aturan `PeriodeController::buka` di backend.
- * Server tetap yang menegakkan; ini hanya supaya admin tahu sebelum menekan tombol.
- */
 export function syaratBukaPeriode(
   papan: KesiapanBidang[],
   periodeLainTerbuka: Periode | null,

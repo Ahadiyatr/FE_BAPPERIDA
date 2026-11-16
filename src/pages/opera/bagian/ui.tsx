@@ -1,10 +1,6 @@
 import * as React from "react"
 import { Link } from "react-router-dom"
 
-/* Potongan tampilan bersama untuk layar hasil refactor.
-   Kelasnya mengikuti kosakata halaman lama: kartu putih rounded-2xl,
-   border slate-200, header tabel slate-50 uppercase. */
-
 export function Panel({
   judul, aksi, children, className = "",
 }: {
@@ -59,7 +55,6 @@ export function KartuKpi({
   )
 }
 
-/** Ambang warna capaian — satu tempat untuk seluruh layar. */
 export function warnaCapaian(persen: number): string {
   if (persen >= 90) return "text-emerald-700"
   if (persen >= 60) return "text-amber-600"

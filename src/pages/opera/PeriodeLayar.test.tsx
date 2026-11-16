@@ -66,7 +66,6 @@ describe('PeriodeLayar', () => {
 
     render(<PeriodeLayar />);
 
-    // Satu desimal, sama dengan halaman publik: 70,08 tampil 70,1% di kedua tempat.
     expect(await screen.findByText('70,1%')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Hitung ulang' }));
 

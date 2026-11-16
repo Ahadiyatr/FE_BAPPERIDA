@@ -96,10 +96,8 @@ export function LaciMaster({
   onTersimpan,
 }: {
   tingkat: IdTingkat
-  /** null = tambah baru */
   baris: BarisMaster | null
   indukId: number | null
-  /** Untuk pratinjau 30%÷n saat menambah pendukung baru. */
   jumlahPendukungAktif: number
   terbuka: boolean
   onTutup: () => void
@@ -108,8 +106,6 @@ export function LaciMaster({
   const def = TINGKAT[tingkat]
   const [galat, setGalat] = React.useState<string | null>(null)
 
-  // Backend OPERA menempatkan program pada satu dokumen perencanaan.
-  // Konsep "urusan" hanya ada di mock lama dan belum menjadi resource API.
   const [dokumens, setDokumens] = React.useState<Dokumen[]>([])
   const [dokumenId, setDokumenId] = React.useState<number | null>(null)
   const kodeTerisiOtomatis = React.useRef<string | null>(null)
@@ -132,9 +128,6 @@ export function LaciMaster({
 
   const tipe = form.watch("tipeAktifitas")
 
-  // Prefill hanya untuk baris baru. Nilainya tetap input biasa dan langsung
-  // dapat diedit; perubahan pilihan tipe aktifitas memperbarui saran selama
-  // pengguna belum mengganti kode tersebut sendiri.
   React.useEffect(() => {
     if (!terbuka || baris) return
     let batal = false
@@ -182,7 +175,6 @@ export function LaciMaster({
           ...(nilai as unknown as SimpanProgramInput),
           id: baris?.id,
           dokumenId: dokumenId!,
-          // Dipertahankan di tipe UI lama; backend tidak menggunakan nilainya.
           urusanId: 0,
         })
       } else if (tingkat === "kegiatan") {

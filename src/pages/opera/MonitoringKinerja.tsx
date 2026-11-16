@@ -31,8 +31,6 @@ const angka = (n: number) =>
   n.toLocaleString('id-ID', { maximumFractionDigits: 2 });
 const cocok = (teks: string, q: string) => teks.toLowerCase().includes(q);
 
-/** Saring pohon monitoring menurut kata kunci & bidang, sambil menyisakan
- * seluruh leluhur dari baris yang cocok (perilaku "filter Excel"). */
 function saring(
   data: MonitoringProgram[],
   q: string,
@@ -95,7 +93,6 @@ export default function MonitoringKinerja() {
 
   const [cari, setCari] = React.useState('');
   const [bidangPilih, setBidangPilih] = React.useState('');
-  // Bawaan: semua lipat — hanya baris program yang tampil. Isi set = yang dibuka.
   const [programBuka, setProgramBuka] = React.useState<Set<string>>(new Set());
   const [kegiatanBuka, setKegiatanBuka] = React.useState<Set<string>>(
     new Set(),

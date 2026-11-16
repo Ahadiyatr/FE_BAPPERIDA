@@ -63,7 +63,6 @@ function FormCatat({
   const n = Number(jumlah)
   const sahih = Number.isSafeInteger(n) && n > 0
 
-  // Pratinjau dihitung di service, bukan di komponen — rumusnya satu tempat.
   React.useEffect(() => {
     if (!sahih) { setPratinjau(null); return }
     let batal = false
@@ -231,9 +230,6 @@ export function RiwayatRealisasi({ baris, bolehUbah, onTutup, onTersimpan }: { b
 export default function CatatRealisasi() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { peran, bidangId: bidangPeran } = usePeran()
-  // Tautan dibaca sekali saat halaman dibuka. Kalau dibaca ulang dari URL, penghapusan
-  // parameter setelah form dibuka menjalankan ulang muatAwal: `memuat` menyala tetapi
-  // periodeId tidak berubah, sehingga tabel macet di "Memuat…" atau pindah ke periode OPEN (P2-R11).
   const [{ periodeTautan, aktivitasTautan }] = React.useState(() => ({
     periodeTautan: Number(searchParams.get("periode")),
     aktivitasTautan: searchParams.has("aktifitas") ? Number(searchParams.get("aktifitas")) : null,

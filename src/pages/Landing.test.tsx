@@ -43,7 +43,6 @@ const landingTerisi = {
 };
 
 beforeAll(() => {
-  // Recharts ResponsiveContainer membutuhkan ResizeObserver yang tidak ada di jsdom.
   globalThis.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
 });
 
@@ -84,7 +83,6 @@ describe('Landing publik — capaian per program', () => {
     const bagian = (await screen.findByText('Capaian Per Program')).closest('section') as HTMLElement;
     expect(within(bagian).getByText('Program Koordinasi dan Sinkronisasi Perencanaan Pembangunan Daerah')).toBeTruthy();
     expect(within(bagian).getByText('Program Penunjang Urusan Pemerintahan Daerah Kabupaten/Kota')).toBeTruthy();
-    // persen1 membulatkan setengah ke atas: 3,85 → 3,9%.
     expect(within(bagian).getByText('3,9%')).toBeTruthy();
     expect(within(bagian).getByText('Berjalan')).toBeTruthy();
     expect(bagian.textContent).not.toMatch(/5\.01\.0\d/);
@@ -126,7 +124,6 @@ describe('Landing publik — realisasi per bulan', () => {
   });
 
   it('menyembunyikan bagian realisasi dan sebaran bila backend belum mengirimnya', async () => {
-    // Respons backend lama: tanpa kunci realisasi_bulanan & sebaran_capaian.
     const tanpaDataBaru: Partial<typeof landingTerisi> = { ...landingTerisi };
     delete tanpaDataBaru.realisasi_bulanan;
     delete tanpaDataBaru.sebaran_capaian;

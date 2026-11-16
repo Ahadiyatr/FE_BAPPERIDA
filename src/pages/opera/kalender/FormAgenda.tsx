@@ -32,10 +32,6 @@ const kelasInput =
 
 type Aktivitas = DetailSubkegiatan["aktifitas"][number]
 
-/**
- * Hanya aktivitas yang dipakai yang bisa dijadwalkan — server menolak 422 sisanya — dan
- * subkegiatan tanpa satu pun aktivitas terpakai tidak perlu ditawarkan.
- */
 function rencanaTerjadwalkan(rencana: DetailSubkegiatan[]) {
   return rencana
     .map((sub) => ({
@@ -58,9 +54,7 @@ export function FormAgenda({
 }: {
   terbuka: boolean
   periode: Periode
-  /** Sumber pilihan aktivitas, dikelompokkan per subkegiatan. */
   rencana: DetailSubkegiatan[]
-  /** null = buat baru. */
   agenda: AgendaKegiatan | null
   tanggalAwal: string
   onTutup: () => void
@@ -79,17 +73,11 @@ export function FormAgenda({
   const [status, setStatus] = React.useState<StatusAgenda>("RENCANA")
   const [menyimpan, setMenyimpan] = React.useState(false)
   const [galat, setGalat] = React.useState<string | null>(null)
-  // Judul terakhir yang diisikan otomatis dari nama aktivitas. Selama pengguna belum
-  // mengetik sendiri, mengganti aktivitas ikut mengganti judulnya.
   const judulOtomatis = React.useRef("")
 
-  // Isi ulang setiap kali dialog dibuka, supaya sisa isian sebelumnya tidak bocor.
   React.useEffect(() => {
     if (!terbuka) return
     setGalat(null)
-    // Tidak ada aktivitas yang dipilihkan diam-diam: pilihan bawaan yang keliru lolos
-    // tersimpan tanpa disadari. Hanya bila bidang memegang satu subkegiatan, langkah
-    // pertama sudah pasti dan langsung diisi.
     setSubId(pilihan.length === 1 ? pilihan[0].id : null)
     setAktifitasId(agenda?.aktifitasBidangId ?? null)
     judulOtomatis.current = ""
@@ -131,7 +119,6 @@ export function FormAgenda({
         id: agenda?.id ?? null,
         aktifitasBidangId: aktifitasId,
         judulAgenda: judul.trim(),
-        // Nilai <Input type="date"> sudah "YYYY-MM-DD" — dikirim apa adanya.
         tanggalMulai: mulai,
         tanggalSelesai: selesai,
         jumlahRencana: jumlah,
@@ -150,8 +137,6 @@ export function FormAgenda({
 
   return (
     <Dialog open={terbuka} onOpenChange={(v) => !v && onTutup()}>
-      {/* Kolom grid dikunci minmax(0,1fr): tanpa itu nama subkegiatan yang di-truncate
-          melebarkan kolom melewati tepi dialog. */}
       <DialogContent className="max-h-[calc(100dvh-2rem)] grid-cols-[minmax(0,1fr)] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{agenda ? "Ubah agenda" : "Tambah agenda"}</DialogTitle>
@@ -162,8 +147,6 @@ export function FormAgenda({
 
         <div className="space-y-3">
           {agenda ? (
-            // Backend menolak pemindahan aktivitas: itu sama dengan memindahkan agenda ke
-            // bidang lain. Salah aktivitas → hapus lalu buat ulang.
             <div>
               <Label>Aktivitas</Label>
               <div className="mt-1 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
@@ -207,7 +190,6 @@ export function FormAgenda({
                 id="agenda-mulai"
                 type="date"
                 value={mulai}
-                // Batas periode ditegakkan browser dulu, sebelum server perlu menolak 422.
                 min={periode.tanggalMulai}
                 max={periode.tanggalSelesai}
                 onChange={(e) => {
@@ -265,8 +247,6 @@ export function FormAgenda({
             {aktifTerpilih && (
               <RingkasTarget
                 aktivitas={aktifTerpilih}
-                // Saat mengubah, jumlah lama agenda ini sudah ada di jumlahTerjadwal — keluarkan
-                // dulu supaya tidak terhitung dua kali.
                 terjadwalLain={
                   (aktifTerpilih.jumlahTerjadwal ?? 0) -
                   (agenda && agenda.status !== "BATAL" ? agenda.jumlahRencana : 0)
@@ -319,11 +299,6 @@ export function FormAgenda({
   )
 }
 
-/**
- * Pemilih dua langkah: subkegiatan dulu (dapat dicari), lalu aktivitasnya. Satu daftar
- * datar tidak bisa dipakai — nama aktivitas pendukung ("Rapat Koordinasi", "Pembentukan
- * SK Tim") berulang di setiap subkegiatan, jadi pilihan tidak terbedakan tanpa induknya.
- */
 function PilihAktivitas({
   pilihan,
   subId,
@@ -357,8 +332,6 @@ function PilihAktivitas({
     <div className="space-y-3">
       <div>
         <Label htmlFor="agenda-subkegiatan">1. Subkegiatan</Label>
-        {/* `modal`: dialog induk mengunci scroll di luar isinya, sedangkan konten popover
-            di-portal ke body — tanpa kunci scroll milik popover sendiri daftarnya tak bisa digulir. */}
         <Popover modal open={cariTerbuka} onOpenChange={setCariTerbuka}>
           <PopoverTrigger asChild>
             <button
@@ -453,11 +426,6 @@ function PilihAktivitas({
 
 const angka = (n: number) => n.toLocaleString("id-ID", { maximumFractionDigits: 2 })
 
-/**
- * Sandingan jumlah rencana agenda dengan target aktivitas di rencana program. Hanya
- * peringatan — melebihi target sah (mis. cadangan jadwal), dan agenda tidak pernah
- * menyumbang capaian.
- */
 function RingkasTarget({
   aktivitas,
   terjadwalLain,
@@ -467,7 +435,6 @@ function RingkasTarget({
   terjadwalLain: number
   jumlahIni: number
 }) {
-  // Respons lama tanpa jumlah_terjadwal: lebih baik diam daripada menampilkan angka keliru.
   if (aktivitas.jumlahTerjadwal == null) return null
 
   const satuan = aktivitas.satuan ? ` ${aktivitas.satuan}` : ""

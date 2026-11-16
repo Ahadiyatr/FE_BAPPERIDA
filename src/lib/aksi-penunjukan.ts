@@ -1,16 +1,7 @@
 import type { BarisPenunjukan } from '@/services';
 
-/**
- * Logika penunjukan bidang, dipisah dari komponen supaya bisa diuji tanpa DOM.
- *
- * Satu subkegiatan hanya boleh dipegang satu bidang per periode
- * (UNIQUE(PERIODE_ID, SUBKEGIATAN_ID) di backend), jadi "ganti bidang" bukan
- * menambah baris kedua melainkan memindahkan baris yang ada.
- */
-
 export type AksiPenunjukan = 'tugaskan' | 'pindah' | 'cabut' | 'noop';
 
-/** `null` sebagai tujuan berarti "kembalikan ke belum ditugaskan". */
 export function aksiPenunjukan(
   baris: BarisPenunjukan,
   bidangTujuanId: number | null,
@@ -20,7 +11,6 @@ export function aksiPenunjukan(
   return baris.bidangId === null ? 'tugaskan' : 'pindah';
 }
 
-/** Baris yang tidak boleh disentuh, beserta alasannya untuk ditampilkan. */
 export function alasanTerkunci(baris: BarisPenunjukan): string | null {
   if (baris.adaRealisasi)
     return 'Sudah ada realisasi tercatat — tidak bisa dipindah atau dilepas.';
@@ -30,23 +20,12 @@ export function alasanTerkunci(baris: BarisPenunjukan): string | null {
 }
 
 export interface RencanaAksiKegiatan {
-  /** Dikirim sebagai SATU POST bulk — backend menerima array subkegiatan_ids. */
   tugaskanIds: number[];
-  /** Satu PATCH per baris; endpoint pindah-bidang memang per baris. */
   pindahIds: number[];
-  /** Satu DELETE per baris. */
   cabutIds: number[];
-  /** Baris yang dilewati beserta alasannya — supaya UI bisa memberi tahu. */
   dilewati: { kode: string; alasan: string }[];
 }
 
-/**
- * Pecah satu perubahan di header kegiatan menjadi panggilan API seminimal mungkin.
- *
- * Di katalog resmi seluruh subkegiatan dalam satu kegiatan selalu dipegang bidang
- * yang sama (0 dari 20 kegiatan campur), jadi inilah aksi utama layar penunjukan:
- * satu pilihan memindahkan seluruh isi kegiatan sekaligus.
- */
 export function rencanaAksiKegiatan(
   barisKegiatan: BarisPenunjukan[],
   bidangTujuanId: number | null,
@@ -78,7 +57,6 @@ export function rencanaAksiKegiatan(
   return hasil;
 }
 
-/** Nilai yang ditampilkan pada pemilih bidang di header kegiatan. */
 export function bidangGrup(
   barisKegiatan: BarisPenunjukan[],
 ): number | null | 'campuran' {
@@ -87,7 +65,6 @@ export function bidangGrup(
   return unik.size > 1 ? 'campuran' : barisKegiatan[0].bidangId;
 }
 
-/** Semua baris subkegiatan dari pohon program → kegiatan, diratakan. */
 export function ratakan(
   program: { kegiatan: { subkegiatan: BarisPenunjukan[] }[] }[],
 ): BarisPenunjukan[] {

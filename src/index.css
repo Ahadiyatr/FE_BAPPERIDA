@@ -4,17 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ═══════════════════════════════════════════════════════════════
-   Token asli FE BAPPERIDA — hijau/kuning, Geist, radius bawaan.
-   Berkas ini sudah berformat Tailwind v4 sejak awal; dulu ia tidak
-   pernah bekerja karena repo masih menjalankan v3, sehingga
-   tailwind.config.js membungkusnya jadi hsl(oklch(...)) yang invalid.
-   Sekarang repo memakai v4 dan blok ini berlaku apa adanya.
-
-   Skala radius SENGAJA tidak dipetakan ulang: rounded-lg/xl/2xl tetap
-   nilai bawaan Tailwind, supaya seluruh halaman lama tidak bergeser.
-   ═══════════════════════════════════════════════════════════════ */
-
 @theme inline {
     --font-sans: 'Geist Variable', sans-serif;
 
@@ -47,16 +36,8 @@
     --color-ring: var(--ring);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   Palet tema tabalong-light (portal bapperida.tabalongkab.go.id),
-   sama dengan landing publik (token --lp-* di pages/landing.css).
-   Skala emerald dan slate bawaan Tailwind didefinisikan ulang di sini,
-   sehingga seluruh kelas emerald-* / slate-* di halaman admin ikut
-   berganti tanpa menyunting className. Amber, red, sky, blue sengaja
-   dibiarkan — warna status semantik.
-   ═══════════════════════════════════════════════════════════════ */
 @theme {
-    /* Hijau Tabalong: 500 = primary situs, 600 = primary untuk teks, 950 = green-deep. */
+
     --color-emerald-50: #ebf7f0;
     --color-emerald-100: #d6efe0;
     --color-emerald-200: #b3e0c6;
@@ -69,7 +50,6 @@
     --color-emerald-900: #0b4029;
     --color-emerald-950: #052e1f;
 
-    /* Netral kehijauan: 100/200 = base-200/300, 600 = teks redup, 900 = base-content. */
     --color-slate-50: #f6faf7;
     --color-slate-100: #ecf6ef;
     --color-slate-200: #d7ebde;
@@ -83,7 +63,6 @@
     --color-slate-950: #0a2418;
 }
 
-/* ================= ROOT ================= */
 :root {
     --background: oklch(1 0 0);
     --foreground: #153d2a;
@@ -94,10 +73,10 @@
     --popover: oklch(1 0 0);
     --popover-foreground: #153d2a;
 
-    --primary: #22a86b; /* hijau Tabalong */
+    --primary: #22a86b;
     --primary-foreground: oklch(0.98 0 0);
 
-    --secondary: #eec96a; /* emas Tabalong */
+    --secondary: #eec96a;
     --secondary-foreground: #052e1f;
 
     --muted: #ecf6ef;
@@ -115,7 +94,6 @@
 
     --radius: 0.75rem;
 
-    /* Semantic/domain tokens — status dan nilai SVG/JS tidak memakai literal. */
     --color-brand: #22a86b;
     --color-brand-strong: #17864f;
     --color-status-success: #059669;
@@ -125,7 +103,7 @@
     --color-surface-subtle: #ecf6ef;
     --color-border-subtle: #d7ebde;
     --color-text-muted: #4f6f5e;
-    /* Sama dengan --lp-c1…c7 di landing: hijau, emas, mint berselang-seling. */
+
     --color-chart-1: #22a86b;
     --color-chart-2: #f3d484;
     --color-chart-3: #157a4c;
@@ -135,7 +113,6 @@
     --color-chart-7: #eec96a;
 }
 
-/* ================= DARK ================= */
 .dark {
     --background: oklch(0.15 0 0);
     --foreground: oklch(0.98 0 0);
@@ -149,10 +126,9 @@
     --border: oklch(1 0 0 / 10%);
 }
 
-/* ================= BASE ================= */
 @layer base {
   * {
-    /* var() langsung — bukan hsl(), karena nilainya oklch */
+
     border-color: var(--border);
   }
 
@@ -162,19 +138,15 @@
 
   html {
     font-family: 'Geist Variable', sans-serif;
-    /* 14,4px — seluruh ukuran rem ikut mengecil, setara zoom browser 90%. */
+
     font-size: 90%;
   }
 
-  /* Angka sejajar untuk kolom capaian. */
   .tabular {
     font-variant-numeric: tabular-nums;
   }
 }
 
-/* Tailwind v4 mengubah dua bawaan ini. Dikunci ke perilaku v3 supaya
-   99 pemakaian shadow-sm dan 48 outline-none di halaman lama tidak
-   bergeser sedikit pun. */
 @layer utilities {
   .shadow-sm {
     --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);

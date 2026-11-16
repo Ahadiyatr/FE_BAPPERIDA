@@ -116,12 +116,6 @@ const realisasi = (r: RealisasiRow): RealisasiKalender => ({
   konteks: konteks(r.konteks),
 })
 
-/**
- * Satu panggilan untuk seluruh jendela grid bulan: agenda + realisasi sekaligus.
- *
- * `bidangId` sengaja TIDAK dikirim untuk admin_bidang — server yang mengunci ke bidangnya,
- * dan mengirim bidang orang lain akan ditolak 403.
- */
 export async function getKalenderBulan(p: {
   periodeId: number
   bulan: string
@@ -129,9 +123,6 @@ export async function getKalenderBulan(p: {
   aktifitasBidangId?: number | null
 }): Promise<KalenderBulan> {
   const params: Record<string, string | number> = { periode_id: p.periodeId }
-  // Bulan kosong sengaja TIDAK dikirim: server memilih bulan bawaan (bulan hari ini bila
-  // di dalam periode, selain itu bulan awal periode). Mengirim string kosong justru gagal
-  // validasi regex TAHUN-BULAN di backend.
   if (p.bulan) params.bulan = p.bulan
   if (p.bidangId != null) params.bidang_id = p.bidangId
   if (p.aktifitasBidangId != null) params.aktifitas_bidang_id = p.aktifitasBidangId
@@ -160,10 +151,6 @@ export async function getJadwalAktifitas(aktifitasBidangId: number): Promise<Age
   ).map(agenda)
 }
 
-/**
- * Tanggal dikirim APA ADANYA. Nilai <Input type="date"> sudah berformat "YYYY-MM-DD";
- * membungkusnya dengan new Date() sebelum kirim justru menggeser tanggal satu hari di WIB.
- */
 export async function simpanAgenda(input: SimpanAgendaInput): Promise<AgendaKegiatan> {
   const body: Record<string, unknown> = {
     judul_agenda: input.judulAgenda,
@@ -175,8 +162,6 @@ export async function simpanAgenda(input: SimpanAgendaInput): Promise<AgendaKegi
   }
   if (input.status) body.status = input.status
 
-  // Aktifitas hanya boleh ditetapkan saat membuat: memindahkan agenda ke aktifitas lain
-  // sama dengan memindahkannya ke bidang lain, dan backend menolaknya.
   if (input.id == null) body.aktifitas_bidang_id = input.aktifitasBidangId
 
   return agenda(

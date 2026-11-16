@@ -17,15 +17,12 @@ export type BarisMaster = Program | Kegiatan | IndikatorUtama | AktifitasDenganB
 export interface DefTingkat {
   id: IdTingkat
   label: string
-  /** Label eyebrow di ChainNav. */
   tingkat: string
   induk: IdTingkat | null
-  /** Anak langsung — dipakai untuk kolom "turun tingkat". */
   anak: IdTingkat | null
   ambil: (indukId: number | null, opsi: OpsiMaster) => Promise<BarisMaster[]>
   setAktif: (id: number, aktif: boolean) => Promise<unknown>
   hapus: (id: number) => Promise<void>
-  /** Kapan server menolak hapus — ditampilkan di dialog konfirmasi. */
   syaratHapus: string
 }
 
@@ -57,16 +54,12 @@ export const TINGKAT: Record<IdTingkat, DefTingkat> = {
   aktifitas: {
     id: "aktifitas", label: "Aktivitas", tingkat: "Tingkat 4",
     induk: "subkegiatan", anak: null,
-    // Bobot 30%÷n hanya bermakna dalam satu subkegiatan, jadi tingkat ini
-    // selalu butuh induk. Tanpa induk daftarnya sengaja kosong.
     ambil: (i, o) => (i == null ? Promise.resolve([]) : getAktifitasByIndikatorUtama(i, o)),
     setAktif: setAktifAktifitas,
     hapus: hapusAktifitas,
     syaratHapus: "belum disalin ke rencana bidang di periode mana pun",
   },
 }
-
-/* ── pembaca kolom lintas-tingkat ───────────────────────────── */
 
 export function kodeDari(r: BarisMaster): string {
   if ("kodeProgram" in r) return r.kodeProgram

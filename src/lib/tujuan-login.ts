@@ -1,10 +1,5 @@
 const ASAL_INTERNAL = "https://opera.internal"
 
-/**
- * Menormalkan tujuan setelah login tanpa pernah mengizinkan navigasi keluar
- * origin. Nilai yang tidak aman diabaikan agar kandidat berikutnya atau
- * `/dashboard` dapat dipakai.
- */
 export function normalkanTujuanLogin(nilai: unknown): string | null {
   if (typeof nilai !== "string" || nilai === "" || nilai.trim() !== nilai) return null
   if (!nilai.startsWith("/") || nilai.startsWith("//") || nilai.includes("\\")) return null

@@ -78,8 +78,6 @@ describe('Login', () => {
     );
   }
 
-  // Sejak P0-R03 kolom email dan password tidak lagi terisi otomatis dengan kredensial dev,
-  // jadi tes harus mengisinya sendiri seperti pengguna sungguhan.
   async function isiKredensial(email = 'admin@bapperida.test', sandi = 'rahasia-sekali') {
     await userEvent.type(screen.getByLabelText('Alamat Email'), email);
     await userEvent.type(screen.getByLabelText('Password'), sandi);

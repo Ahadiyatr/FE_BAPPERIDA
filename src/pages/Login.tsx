@@ -8,15 +8,6 @@ import { DESIGN_COLOR } from '../lib/design-tokens';
 import { pathnameTujuanLogin, pilihTujuanLogin } from '../lib/tujuan-login';
 import logoOperaInk from '../assets/opera-ink-logo.png';
 
-/**
- * Akun isi-otomatis untuk pengembangan lokal saja.
- *
- * Seluruh blok yang memakainya dikurung `import.meta.env.DEV`, yang Vite ganti menjadi
- * `false` saat build produksi sehingga daftar ini ikut terbuang dari bundel. Sebelum
- * 2 Okt 2026 panel ini tampil di produksi dan kolom kata sandi terisi otomatis dengan
- * `password`, jadi siapa pun yang membuka layar login cukup menekan Masuk untuk jadi admin
- * aplikasi (P0-R03). Jangan pindahkan keluar dari pagar DEV.
- */
 const AKUN_DEV = [
   { email: 'admin@bapperida.test', label: 'Admin Aplikasi' },
   { email: 'ppm@bapperida.test', label: 'Admin PPM' },
@@ -35,7 +26,6 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, user, memuat } = usePeran();
-  // Kosong, bukan terisi kredensial. Lihat catatan pada AKUN_DEV.
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -103,7 +93,6 @@ export default function Login() {
 
   return (
     <div className="flex flex-col justify-center min-h-screen py-12 font-sans bg-linear-to-br from-emerald-50 via-slate-50 to-yellow-50 sm:px-6 lg:px-8">
-      {/* DEV ONLY: Info login akun developer */}
       {import.meta.env.DEV && (
       <div className="mb-4 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="p-4 mb-2 text-sm text-yellow-900 border border-yellow-400 shadow rounded-xl bg-yellow-50">

@@ -70,7 +70,6 @@ export default function Detail() {
 
   return (
     <KerangkaPublik nav={kembali}>
-      {/* Pembuka */}
       <section className="lp-hero" aria-labelledby="lp-h-bidang">
         <div className="lp-container lp-hero-grid">
           <div>
@@ -104,7 +103,6 @@ export default function Detail() {
         </div>
       </section>
 
-      {/* Rincian subkegiatan */}
       <section className="lp-sec lp-tint" aria-labelledby="lp-h-rincian">
         <div className="lp-container">
           <div className="lp-sec-head">

@@ -1,7 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card"
 
-/** Cangkang layar Fase 0. Tiap rute sudah punya berkas dan judulnya sendiri
- * supaya Fase 1-5 tinggal mengisi badannya, bukan membuat rutenya dulu. */
 export function LayarKosong({
   judul,
   ringkas,

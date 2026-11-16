@@ -35,7 +35,6 @@ const daftar = [
   berkas(4, 'FOTO', 'tiga.png'),
 ];
 
-/** Pembungkus stateful supaya onGanti benar-benar memindahkan foto. */
 function Galeri({ awal, isi }: { awal: RealisasiLampiran; isi: RealisasiLampiran[] }) {
   const [l, setL] = React.useState(awal);
   return (
@@ -43,14 +42,12 @@ function Galeri({ awal, isi }: { awal: RealisasiLampiran; isi: RealisasiLampiran
   );
 }
 
-/** jsdom mengabaikan `touches` di init TouchEvent; pasang manual. */
 function sentuh(
   el: Element,
   jenis: 'touchStart' | 'touchEnd',
   clientX: number,
 ) {
   const ev = createEvent[jenis](el);
-  // react-remove-scroll (dialog Radix) juga membaca changedTouches saat touchstart.
   const titik = [{ clientX, clientY: 0 }];
   Object.defineProperty(ev, 'touches', {
     value: jenis === 'touchStart' ? titik : [],
@@ -98,7 +95,6 @@ it('mendukung panah keyboard dan swipe', () => {
   sentuh(bidang, 'touchEnd', 200);
   expect(screen.getByAltText('dua.png')).toBeTruthy();
 
-  // Geser pendek di bawah ambang tidak berpindah.
   const bidangBaru = screen.getByAltText('dua.png').parentElement!;
   sentuh(bidangBaru, 'touchStart', 300);
   sentuh(bidangBaru, 'touchEnd', 280);

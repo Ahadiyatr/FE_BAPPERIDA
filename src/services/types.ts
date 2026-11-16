@@ -1,29 +1,17 @@
-// Bentuk data mengikuti docs/erd.md (ERD TUJUAN), bukan skema API lama —
-// lihat prinsip "Bentuk data dummy mengikuti ERD baru" di roadmap-refactor-ui.md.
-// Fase 6 nanti hanya mengganti ISI fungsi di src/services/*.service.ts dari
-// mock ke fetch/axios sungguhan; tipe di file ini tidak ikut berubah bentuk.
 
 export type TipeAktifitas = "UTAMA" | "PENDUKUNG"
 export type StatusPeriode = "DRAFT" | "OPEN" | "LOCKED"
 export type TipeBerkas = "FOTO" | "DOKUMEN"
 export type PeranPengguna = "publik" | "admin_bidang" | "admin_aplikasi"
 
-/**
- * MASTER_URUSAN — tingkat di atas program (Excel: label "KINERJA URUSAN",
- * mis. "5.0.1.0 PERENCANAAN"). Belum ada di docs/erd.md; untuk sekarang
- * hanya dipakai sebagai pengelompokan tampilan. Capaian per urusan BELUM
- * punya rumus — lihat docs/keputusan-terbuka.md butir 2.
- */
 export interface Urusan {
   id: number
   kodeUrusan: string
   namaUrusan: string
 }
 
-/** MASTER_PROGRAM — katalog murni, tanpa bidang/periode. */
 export interface Program {
   id: number
-  /** MASTER_DOKUMEN induk. KODE_PROGRAM unik per dokumen ini (PRD §3). */
   dokumenId: number
   urusanId: number
   kodeProgram: string
@@ -31,7 +19,6 @@ export interface Program {
   flagActive: boolean
 }
 
-/** MASTER_KEGIATAN */
 export interface Kegiatan {
   id: number
   programId: number
@@ -40,7 +27,6 @@ export interface Kegiatan {
   flagActive: boolean
 }
 
-/** MASTER_INDIKATOR_UTAMA — tingkat subkegiatan. */
 export interface IndikatorUtama {
   id: number
   kegiatanId: number
@@ -53,7 +39,6 @@ export interface IndikatorUtama {
   flagActive: boolean
 }
 
-/** MASTER_INDIKATOR — tingkat aktifitas (utama atau pendukung). */
 export interface Indikator {
   id: number
   indikatorUtamaId: number
@@ -61,13 +46,11 @@ export interface Indikator {
   namaIndikator: string
   tipeAktifitas: TipeAktifitas
   satuan: string
-  /** Nilai anjuran, disalin ke TRANS_INDIKATOR_BIDANG.target saat penyusunan rencana. */
   targetAnjuran: number
   urutan: number
   flagActive: boolean
 }
 
-/** MASTER_BIDANG */
 export interface Bidang {
   id: number
   kode: string
@@ -75,29 +58,22 @@ export interface Bidang {
   flagActive: boolean
 }
 
-/** MASTER_PERIODE */
 export interface Periode {
   id: number
-  /** Dokumen perencanaan yang dirujuk periode. Boleh null untuk periode lama yang belum dipetakan. */
   dokumenId: number | null
   namaPeriode: string
-  tanggalMulai: string // ISO date
-  tanggalSelesai: string // ISO date
+  tanggalMulai: string
+  tanggalSelesai: string
   status: StatusPeriode
-  /** Jumlah penugasan subkegiatan; dipakai untuk menentukan DRAFT kosong yang dapat dibersihkan. */
   jumlahRencana?: number
 }
 
-/** USERS. Satu user memegang SATU bidang (keputusan produk 28 Agustus 2026),
- * jadi USER_BIDANG pivot di erd.md tidak jadi dipakai. `null` untuk admin
- * aplikasi yang cakupannya seluruh perangkat daerah. */
 export interface User {
   id: number
   name: string
   email: string
   role: Exclude<PeranPengguna, "publik">
   bidangId: number | null
-  /** Padanan `deleted_at IS NULL` di ERD — nonaktifkan, bukan hapus. */
   flagActive: boolean
 }
 
@@ -107,17 +83,9 @@ export interface SimpanUserInput {
   email: string
   role: Exclude<PeranPengguna, "publik">
   bidangId: number | null
-  /** Wajib saat buat pengguna baru (min 8). Tidak dipakai saat ubah —
-   * reset lewat resetPasswordUser(). */
   password?: string
 }
 
-/**
- * TRANS_SUBKEGIATAN_BIDANG — jembatan katalog x bidang x periode.
- * Salinan beku: INDIKATOR_KINERJA/TARGET/SATUAN disalin dari master saat
- * rencana disusun, bukan direferensikan langsung, supaya arsip periode lama
- * tidak ikut bergeser kalau master diubah kemudian.
- */
 export interface SubkegiatanBidang {
   id: number
   periodeId: number
@@ -126,46 +94,34 @@ export interface SubkegiatanBidang {
   indikatorKinerja: string
   target: number
   satuan: string
-  /** Hasil rumus 70/30, maks 100. Dihitung, bukan diinput. */
   capaian: number
 }
 
-/** TRANS_INDIKATOR_BIDANG — rincian aktifitas per subkegiatan-bidang. */
 export interface IndikatorBidang {
   id: number
   subkegiatanBidangId: number
   masterIndikatorId: number
-  /** Aktivitas tambahan pada rencana; hanya jenis ini yang dapat dihapus. */
   flagAdhoc: boolean
-  /**
-   * Pendukung yang dipakai bidang pada periode ini. Yang tidak dipakai barisnya tetap ada
-   * (snapshot katalog tidak boleh putus) tetapi keluar dari pembagi 30/n dan bobotnya 0.
-   * Hanya layar penyusunan rencana yang menampilkannya; di tempat lain sudah disaring server.
-   */
   dipakai: boolean
   tipeAktifitas: TipeAktifitas
   namaAktifitas: string
-  /** Salinan beku: 70 untuk UTAMA, 30/n untuk PENDUKUNG saat rencana disusun. */
   bobotTarget: number
   target: number
   realisasi: number
-  /** (realisasi / target) x bobotTarget */
   bobotRealisasi: number
   urutan: number
 }
 
-/** TRANS_REALISASI_KEGIATAN */
 export interface RealisasiKegiatan {
   id: number
   indikatorBidangId: number
-  tanggalKegiatan: string // ISO date
+  tanggalKegiatan: string
   jumlahRealisasi: number
   keterangan: string
   createdBy: number
   logEntryName: string
 }
 
-/** TRANS_REALISASI_LAMPIRAN */
 export interface RealisasiLampiran {
   id: number
   realisasiId: number
@@ -177,8 +133,6 @@ export interface RealisasiLampiran {
   createdBy?: number | null
 }
 
-/** Rincian 70/30 siap-tayang untuk BobotMeter/BobotLedger — bukan tabel ERD,
- * ini bentuk gabungan yang dikembalikan capaian.service.ts ke komponen. */
 export interface CapaianDetail {
   subkegiatanBidang: SubkegiatanBidang
   aktifitasUtama: IndikatorBidang | null
@@ -196,16 +150,7 @@ export interface CatatRealisasiInput {
   dokumens?: File[]
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Masukan tulis untuk layar Data Master (Fase 1).
-   Tanda tangan ini sudah final: Fase 6 mengganti isi fungsinya
-   dengan POST/PUT ke opera-backend, bentuk parameternya tetap.
-   `id` kosong = tambah baru, `id` terisi = ubah.
-   ───────────────────────────────────────────────────────────── */
-
 export interface OpsiMaster {
-  /** Layar master perlu melihat baris nonaktif supaya bisa diaktifkan lagi.
-   * Layar lain memakai bawaan (hanya yang aktif). */
   termasukNonaktif?: boolean
 }
 
@@ -245,26 +190,9 @@ export interface SimpanAktifitasInput {
   targetAnjuran: number
 }
 
-/**
- * Indikator + bobot target TURUNAN.
- * Bobot sengaja tidak disimpan di MASTER_INDIKATOR: ia dihitung dari jumlah
- * pendukung yang sedang aktif (70 untuk UTAMA, 30/n untuk PENDUKUNG), supaya
- * tidak mungkin melenceng dari kenyataan saat satu pendukung dinonaktifkan.
- * Nilai beku per periode tetap hidup di TRANS_INDIKATOR_BIDANG.bobotTarget.
- */
 export interface AktifitasDenganBobot extends Indikator {
   bobotTarget: number
 }
-
-/* ─────────────────────────────────────────────────────────────
-   Penyusunan rencana (Fase 2).
-
-   CATATAN ERD: status kesiapan per bidang per periode BELUM ada di
-   docs/erd.md. Mockup memerlukannya ("Tandai bidang ini siap", dan
-   "Buka periode untuk pencatatan" baru aktif setelah semua bidang siap),
-   jadi ia hidup di lapisan mock dulu. Usulan tempat permanennya:
-   tabel TRANS_KESIAPAN_BIDANG tersendiri (aktor + waktu penandaan).
-   ───────────────────────────────────────────────────────────── */
 
 export type StatusKesiapan = "DRAFT" | "SIAP"
 
@@ -273,15 +201,10 @@ export interface KesiapanBidang {
   namaBidang: string
   periodeId: number
   status: StatusKesiapan
-  /** Jumlah subkegiatan yang dipegang bidang ini pada periode tsb. */
   jumlahSubkegiatan: number
-  /** Yang sudah lolos pemeriksaan penghalang (punya indikator + target). */
   jumlahLengkap: number
-  /** Subkegiatan yang punya minimal satu agenda kalender. Lunak — tidak menghalangi. */
   jumlahTeragenda: number
-  /** Kekurangan yang menghalangi, berbentuk "KODE: pesan." dari backend. */
   butir: string[]
-  /** ISO 8601; hanya terisi bila status SIAP. */
   ditandaiPada: string | null
 }
 
@@ -291,18 +214,15 @@ export interface ButirPemeriksaan {
   nada: NadaPemeriksaan
   judul: string
   rincian: string
-  /** `bad` menghalangi penandaan siap; `warn` hanya memberi tahu. */
   menghalangi: boolean
 }
 
 export interface HasilPemeriksaan {
   butir: ButirPemeriksaan[]
-  /** Jumlah subkegiatan yang masih menghalangi. 0 = boleh ditandai siap. */
   jumlahMenghalangi: number
   bolehTandaiSiap: boolean
 }
 
-/** Satu subkegiatan dalam rencana satu bidang, beserta aktifitasnya. */
 export interface BarisRencana {
   subkegiatanBidang: SubkegiatanBidang
   namaSubkegiatan: string
@@ -317,33 +237,20 @@ export interface RencanaBidangDetail {
   baris: BarisRencana[]
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Penunjukan bidang — layar yang memetakan katalog subkegiatan ke
-   bidang penanggung jawab untuk satu periode.
-
-   Berbeda dari KatalogTersedia (yang hanya memuat sisa yang belum
-   dipegang siapa pun): di sini SELURUH katalog ikut, lengkap dengan
-   bidang pemegangnya, supaya bisa dipindah dan dihitung progresnya.
-   ───────────────────────────────────────────────────────────── */
-
 export interface BarisPenunjukan {
   subkegiatanId: number
-  /** ID TRANS_SUBKEGIATAN_BIDANG; null berarti belum ditugaskan. */
   rencanaId: number | null
   kode: string
   nama: string
   indikatorKinerja: string
   targetAnjuran: number | null
-  /** Sering kosong — di katalog resmi hanya 3 dari 78 subkegiatan mengisinya. */
   satuan: string | null
   flagActive: boolean
   bidangId: number | null
   namaBidang: string | null
   jumlahAktifitasUtama: number
   jumlahAktifitasPendukung: number
-  /** Katalognya punya 1 UTAMA + ≥1 PENDUKUNG aktif, syarat rollup 70/30. */
   dapatDitugaskan: boolean
-  /** Sudah ada realisasi tercatat — tidak boleh dipindah atau dilepas. */
   adaRealisasi: boolean
 }
 
@@ -378,7 +285,6 @@ export interface PenunjukanPeriode {
   program: ProgramPenunjukan[]
 }
 
-/** Subkegiatan di katalog yang belum dipegang bidang mana pun pada satu periode. */
 export interface KatalogTersedia {
   indikatorUtamaId: number
   kode: string
@@ -392,12 +298,10 @@ export interface KatalogTersedia {
 export interface OpsiSalinRencana {
   dariPeriodeId: number
   kePeriodeId: number
-  /** Kosong = seluruh bidang. */
   bidangIds?: number[]
   ikutStruktur: boolean
   ikutAktifitas: boolean
   ikutTarget: boolean
-  /** Subkegiatan yang capaiannya nol di periode sumber — bawaan tidak ikut. */
   ikutCapaianNol: boolean
 }
 
@@ -407,19 +311,9 @@ export interface HasilSalinRencana {
   jumlahBidangDitimpa: number
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Rollup capaian.
-   Keputusan produk 29 Agu 2026: tidak ada bobot antarbidang. Capaian
-   Perangkat Daerah = rata-rata langsung seluruh capaian subkegiatan.
-   ───────────────────────────────────────────────────────────── */
-
-/** Baris ranking bidang di dashboard. Dihitung saat diminta, bukan disimpan —
- * lihat catatan TRANS_CAPAIAN_BIDANG di capaian.service.ts. Capaian per bidang
- * adalah informasi; tidak memengaruhi angka capaian PD. */
 export interface CapaianBidang {
   bidangId: number
   namaBidang: string
-  /** Rata-rata capaian subkegiatan yang dipegang bidang ini. */
   capaianBidang: number
   jumlahSubkegiatan: number
 }
@@ -443,7 +337,6 @@ export interface SubkegiatanTertinggal {
 
 export interface RingkasanDashboard {
   periode: Periode
-  /** Rata-rata langsung seluruh capaian subkegiatan periode ini. */
   capaianPd: number
   jumlahBidang: number
   jumlahBidangSiap: number
@@ -452,24 +345,15 @@ export interface RingkasanDashboard {
   jumlahRealisasi: number
 }
 
-/** Satu baris telusur Struktur Program: katalog + penugasan bidang + capaian
- * periode terpilih, sudah digabung di service supaya komponen tidak perlu
- * menyentuh lapisan mock. */
 export interface SubkegiatanStruktur {
   indikatorUtamaId: number
   kode: string
   nama: string
   indikatorKinerja: string
-  /** null kalau belum ditugaskan ke bidang mana pun pada periode tsb. */
   namaBidang: string | null
   capaian: number | null
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Pencatatan realisasi & bukti (Fase 4).
-   ───────────────────────────────────────────────────────────── */
-
-/** Satu aktifitas siap-catat, sudah dibawa konteks subkegiatannya. */
 export interface AktifitasPencatatan {
   indikatorBidangId: number
   subkegiatanBidangId: number
@@ -484,12 +368,9 @@ export interface AktifitasPencatatan {
   jumlahCatatan: number
   jumlahLampiran: number
   capaianSubkegiatan: number
-  /** realisasi >= target */
   selesai: boolean
 }
 
-/** Pratinjau efek sebelum simpan — dihitung di service supaya rumusnya
- * tidak diduplikasi di komponen (REFACTOR.md § 3). */
 export interface PratinjauRealisasi {
   namaAktifitas: string
   satuanTarget: number
@@ -500,8 +381,6 @@ export interface PratinjauRealisasi {
   bobotRealisasiSetelah: number
   capaianSekarang: number
   capaianSetelah: number
-  /** Realisasi melampaui target — diperbolehkan, tapi kelebihannya tidak
-   * menambah capaian karena subkegiatan dibatasi 100%. */
   melebihiTarget: boolean
 }
 
@@ -517,8 +396,6 @@ export interface CatatanBukti {
   lampirans: RealisasiLampiran[]
 }
 
-/* ── Fase 5: periode, master bidang, pengguna ───────────────── */
-
 export interface SimpanPeriodeInput {
   id?: number
   dokumenId: number | null
@@ -532,18 +409,11 @@ export interface SimpanBidangInput {
   namaBidang: string
 }
 
-/** Alasan sebuah periode belum boleh dibuka. Kosong = boleh. */
 export interface SyaratBukaPeriode {
   boleh: boolean
   bidangBelumSiap: string[]
   adaPeriodeLainTerbuka: string | null
 }
-
-/* ─────────────────────────────────────────────────────────────
-   Layar Capaian Program.
-   Angka capaian di sini memakai asumsi sementara — lihat
-   docs/keputusan-terbuka.md butir 1 di opera-ink-fe-bundle.
-   ───────────────────────────────────────────────────────────── */
 
 export interface RincianBidangProgram {
   bidangId: number
@@ -566,12 +436,10 @@ export interface ProgramBerurusan {
   namaProgram: string
   capaian: number
   jumlahSubkegiatan: number
-  /** Hanya bidang yang benar-benar memegang subkegiatan di program ini. */
   perBidang: RincianBidangProgram[]
   perKegiatan: RincianKegiatanProgram[]
 }
 
-/** Satu aktifitas dalam rincian capaian — salinan beku dari TRANS_INDIKATOR_BIDANG. */
 export interface AktifitasRinci {
   indikatorBidangId: number
   namaAktifitas: string
@@ -584,7 +452,6 @@ export interface AktifitasRinci {
   jumlahCatatan: number
 }
 
-/** Subkegiatan beserta aktifitasnya, untuk telusur capaian sampai dasar. */
 export interface SubkegiatanRinci {
   subkegiatanBidangId: number
   kode: string
@@ -598,19 +465,6 @@ export interface SubkegiatanRinci {
   capaian: number
   aktifitas: AktifitasRinci[]
 }
-
-/* ─────────────────────────────────────────────────────────────
-   MASTER_DOKUMEN — dokumen perencanaan.
-
-   PRD §3 (non-negotiable): KODE_PROGRAM unik per DOKUMEN_ID, bukan global.
-   Belum ada di docs/erd.md — perlu ditambahkan sebelum Fase 6.
-
-   Datar, persis seperti backend: nama, rentang tahun, status AKTIF/ARSIP.
-   Hirarki RPJMD → RKPD dikeluarkan dari aplikasi (keputusan 2h, 19 Okt 2026;
-   P1-12 tetap ditangguhkan). Jangan menampilkan jenis, induk, atau kode dokumen
-   sebelum kolomnya ada di backend — dulu ketiganya dikarang di sini dan
-   isian form-nya dibuang diam-diam (P2-R08).
-   ───────────────────────────────────────────────────────────── */
 
 export type StatusDokumen = "AKTIF" | "ARSIP"
 
@@ -633,29 +487,11 @@ export interface SimpanDokumenInput {
   keterangan?: string | null
 }
 
-/** Dokumen + hitungan isinya, untuk daftar di layar master. */
 export interface DokumenDenganIsi extends Dokumen {
   jumlahProgram: number
   jumlahPeriode: number
 }
 
-/* ─────────────────────────────────────────────────────────────
-   TRANS_LOG_AKTIVITAS — jejak audit.
-
-   PRD §5 mencatat modul ini ⬜ tapi menegaskan kolom CREATED_BY /
-   LOG_ENTRY_NAME di skema memang mengasumsikannya akan ada.
-   Belum ada di docs/erd.md — perlu ditambahkan sebelum Fase 6.
-
-   Pelaku diambil dari sesi (lihat src/services/sesi.ts), bukan dari
-   parameter tiap fungsi — supaya tanda tangan service tidak berubah saat
-   Fase 6 mengganti sumbernya dengan sesi login sungguhan.
-
-   `namaPengguna` adalah SALINAN BEKU, sama alasannya dengan
-   TRANS_REALISASI_KEGIATAN.LOG_ENTRY_NAME: pengguna bisa dinonaktifkan
-   atau berganti nama, jejaknya tidak boleh ikut berubah.
-   ───────────────────────────────────────────────────────────── */
-
-/** Mengikuti `TransLogAktivitas::AKSI` di backend — tambah di sana dulu. */
 export type AksiLog =
   | "BUAT" | "UBAH" | "HAPUS" | "NONAKTIFKAN" | "AKTIFKAN" | "PULIHKAN"
   | "BUKA_PERIODE" | "KUNCI_PERIODE"
@@ -663,43 +499,33 @@ export type AksiLog =
   | "CATAT_REALISASI" | "UNGGAH_BUKTI"
   | "LOGIN" | "GAGAL_LOGIN" | "LOGOUT"
 
-/** Kelompok tindakan, sama dengan `LogAktivitasController::GRUP`. */
 export type GrupLog = "master" | "rencana" | "pelaksanaan" | "sesi"
 
 export interface LogAktivitas {
   id: number
   waktu: string
   userId: number | null
-  /** Salinan beku nama pelaku saat kejadian. */
   namaPengguna: string
   peran: Exclude<PeranPengguna, "publik">
   aksi: AksiLog
-  /** Nama tabel yang disentuh, mis. "MASTER_PERIODE". */
   entitas: string
   entitasId: number | null
-  /** Kalimat siap-baca, bukan diff mentah. */
   ringkasan: string
   periodeId: number | null
   bidangId: number | null
 }
 
 export interface SaringLog {
-  /** Admin bidang hanya boleh melihat jejak bidangnya sendiri (PRD §4). */
   bidangId?: number | null
   periodeId?: number
   userId?: number
   aksi?: AksiLog
   grup?: GrupLog
-  /** Hanya tindakan yang perlu perhatian (hapus, nonaktifkan, siklus periode, bobot, gagal login). */
   perhatian?: boolean
-  /** Riwayat satu baris data: nama tabel + ID-nya. */
   entitas?: string
   entitasId?: number
-  /** Cari di ringkasan dan nama pelaku. */
   cari?: string
-  /** Ukuran halaman daftar. */
   batas?: number
-  /** Nomor halaman, mulai 1. Total halaman dihitung dari `RingkasanLog.total`. */
   halaman?: number
 }
 
@@ -708,22 +534,12 @@ export interface RingkasanLog {
   hariIni: number
   pengguna: number
   perhatian: number
-  /** Tujuh hari, hari ini paling akhir. */
   perHari: { tanggal: string; jumlah: number }[]
-  /** Mengabaikan saringan `grup`, untuk angka di tombol pemilih grup. */
   perGrup: Record<GrupLog, number>
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Kalender rencana pelaksanaan (TRANS_JADWAL_KEGIATAN)
-
-   Agenda adalah RENCANA. `jumlahRencana` tidak pernah menyumbang
-   capaian — capaian tetap murni dari realisasi yang punya bukti.
-   ───────────────────────────────────────────────────────────── */
-
 export type StatusAgenda = "RENCANA" | "SELESAI" | "BATAL"
 
-/** "Baris ini milik pekerjaan yang mana" — dipakai agenda DAN realisasi di kalender. */
 export interface KonteksAgenda {
   bidangId: number | null
   namaBidang: string | null
@@ -739,21 +555,17 @@ export interface AgendaKegiatan {
   id: number
   aktifitasBidangId: number
   judulAgenda: string
-  /** Kunci tanggal lokal "YYYY-MM-DD". Agenda satu hari mengulang tanggalMulai. */
   tanggalMulai: string
   tanggalSelesai: string
   jumlahRencana: number
   lokasi: string
   keterangan: string
   status: StatusAgenda
-  /** Sudah lewat tapi masih berstatus RENCANA. */
   terlewat: boolean
-  /** Salinan beku nama penyusun saat agenda dibuat. */
   logEntryName: string
   konteks: KonteksAgenda | null
 }
 
-/** Realisasi yang ditumpangkan di kalender — bentuk ringkas, bukan RealisasiKegiatan penuh. */
 export interface RealisasiKalender {
   id: number
   aktifitasBidangId: number
@@ -767,11 +579,8 @@ export interface RealisasiKalender {
 
 export interface KalenderBulan {
   periode: Periode
-  /** "YYYY-MM" */
   bulan: string
-  /** Jendela grid yang dikirim server (Senin…Minggu), bukan batas bulan kalender. */
   rentang: { dari: string; sampai: string }
-  /** Satu-satunya gerbang tulis — dihitung server dari peran + status periode. */
   dapatMenjadwalkan: boolean
   bidang: { id: number; namaBidang: string }[]
   ringkasan: { jumlahAgenda: number; jumlahRealisasi: number; agendaTerlewat: number }
@@ -780,7 +589,6 @@ export interface KalenderBulan {
 }
 
 export interface SimpanAgendaInput {
-  /** null = buat baru (POST); terisi = ubah (PATCH). */
   id: number | null
   aktifitasBidangId: number
   judulAgenda: string

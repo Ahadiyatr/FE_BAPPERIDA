@@ -33,7 +33,6 @@ function baris(ubah: Partial<BarisPenunjukan> = {}): BarisPenunjukan {
   };
 }
 
-/** Sudah ditugaskan ke satu bidang: rencanaId selalu ada bersama bidangId. */
 function ditugaskan(bidangId: number, ubah: Partial<BarisPenunjukan> = {}) {
   return baris({ bidangId, rencanaId: 900 + bidangId, ...ubah });
 }
@@ -105,7 +104,6 @@ describe('rencanaAksiKegiatan', () => {
 
     expect(rencana.tugaskanIds).toEqual([1]);
     expect(rencana.pindahIds).toEqual([77]);
-    // Yang sudah di bidang tujuan tidak ikut disentuh.
     expect(rencana.cabutIds).toEqual([]);
     expect(rencana.dilewati).toEqual([]);
   });

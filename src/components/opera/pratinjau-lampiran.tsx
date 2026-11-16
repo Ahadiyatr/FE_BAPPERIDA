@@ -10,11 +10,6 @@ import { apiMessage } from "@/services/api"
 import type { RealisasiLampiran } from "@/services"
 import { Toast } from "@/utils/toast"
 
-/* Pratinjau & unduh lampiran bukti (foto/dokumen). Dipakai bersama oleh
-   Bukti Kegiatan dan Detail Subkegiatan. Berkas ditarik lewat endpoint
-   ber-auth `/lampiran/:id/preview`, jadi tidak bisa dipasang langsung di
-   <img src> / <a href> — lihat komponen di @/components/AuthedMedia. */
-
 export const ekstensiBerkas = (nama: string) => nama.split(".").pop()?.toLowerCase() ?? ""
 
 export const formatUkuranBerkas = (b: number) =>
@@ -28,13 +23,8 @@ export async function unduhLampiran(l: RealisasiLampiran) {
   }
 }
 
-/** Jarak geser horizontal minimum (px) agar sentuhan dihitung sebagai swipe. */
 const AMBANG_GESER = 50
 
-/** Modal pratinjau satu lampiran — PDF & gambar tampil langsung, format lain
- * jatuh ke tombol unduh (lihat DocumentPreview). Bila `daftar` berisi lebih dari
- * satu foto, foto bisa digeser lewat tombol ‹ ›, panah keyboard, atau swipe;
- * dokumen dilewati dan navigasi berputar di ujung daftar. */
 export function PratinjauLampiran({
   lampiran, onTutup, daftar, onGanti,
 }: {
@@ -139,8 +129,6 @@ export function PratinjauLampiran({
   )
 }
 
-/** Galeri lampiran satu catatan realisasi — grid foto + daftar dokumen, tiap
- * item bisa dipratinjau atau diunduh. */
 export function GaleriLampiran({
   lampiran, onPratinjau, onHapus, className = "",
 }: {

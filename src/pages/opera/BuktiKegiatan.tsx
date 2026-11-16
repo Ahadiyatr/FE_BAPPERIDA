@@ -51,11 +51,9 @@ type Saringan = 'semua' | 'belum' | 'ada';
 
 const adaBukti = (c: CatatanBukti) => c.lampirans.length > 0;
 
-/** Keadaan awal grup: hanya grup catatan terbaru yang terbuka. */
 const grupAwal = (catatan: CatatanBukti[]) =>
   new Set(catatan[0] ? [catatan[0].kodeSubkegiatan] : []);
 
-/** Maksimal tiga lampiran tampil sebagai thumbnail di baris; sisanya "+n". */
 const SLOT_THUMBNAIL = 3;
 
 function Ringkasan({
@@ -361,8 +359,6 @@ export default function BuktiKegiatan() {
   const [saringan, setSaringan] = React.useState<Saringan>('semua');
   const [cari, setCari] = React.useState('');
   const [dipilih, setDipilih] = React.useState<number | null>(null);
-  // Hanya grup terbuka yang merender barisnya — dan thumbnail-nya. Tanpa ini
-  // satu bidang bisa memicu ratusan request foto sekaligus saat halaman dibuka.
   const [grupTerbuka, setGrupTerbuka] = React.useState<Set<string>>(
     () => new Set(),
   );
@@ -450,8 +446,6 @@ export default function BuktiKegiatan() {
     saringan === 'semua' ? true : (saringan === 'ada') === adaBukti(c),
   );
 
-  // Kelompok per subkegiatan, urutan mengikuti kemunculan pertama di respons;
-  // meter berbukti dihitung dari seluruh catatan subkegiatan, bukan hasil saring.
   const grup = React.useMemo(() => {
     const peta = new Map<
       string,
@@ -471,7 +465,6 @@ export default function BuktiKegiatan() {
   const idTerlihat = new Set(terlihat.map(c => c.realisasiId));
   const grupTerlihat = grup
     .map(g => {
-      // Jumlah berkas untuk header grup tertutup — dihitung dari data, tanpa request foto.
       const lampiran = g.semua.flatMap(c => c.lampirans);
       const foto = lampiran.filter(l => l.tipeBerkas === 'FOTO').length;
       return {
@@ -484,8 +477,6 @@ export default function BuktiKegiatan() {
     })
     .filter(g => g.items.length > 0);
 
-  // Saringan atau pencarian aktif membuka semua grup hasil saring; kembali ke
-  // "Semua" tanpa kata cari mengembalikan keadaan awal (grup pertama saja).
   function saring(saringanBaru: Saringan, cariBaru: string) {
     setSaringan(saringanBaru);
     setCari(cariBaru);

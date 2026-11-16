@@ -58,7 +58,6 @@ describe('LogAktivitas — pagination server', () => {
 
     expect(await screen.findByText('Menampilkan 26–26 dari 26 data')).toBeTruthy();
     expect(getLog).toHaveBeenLastCalledWith(expect.objectContaining({ batas: 25, halaman: 2 }));
-    // Pindah halaman tidak memuat ulang ringkasan.
     expect(getRingkasanLog).toHaveBeenCalledTimes(1);
   });
 

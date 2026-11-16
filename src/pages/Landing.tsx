@@ -38,8 +38,6 @@ import {
   type SebaranCapaianPublik,
 } from '../services/public-dashboard.service';
 
-// Palet hijau–emas tema Tabalong; kecerahan berselang-seling supaya potongan donut
-// yang bersebelahan tetap terbedakan. Nilainya hidup di landing.css.
 const WARNA_BIDANG = [
   'var(--lp-c1)',
   'var(--lp-c2)',
@@ -91,7 +89,6 @@ const RENTANG: Record<
 const TEKS_SUMBU = { fontSize: 11, fill: 'var(--lp-fg-3)', fontWeight: 500 };
 
 const angka = (n: number) => n.toLocaleString('id-ID');
-// Nama program di katalog ditulis kapital semua; tampilkan sebagai huruf judul, kata sambung tetap kecil.
 const KATA_SAMBUNG = new Set([
   'dan',
   'atau',
@@ -114,11 +111,9 @@ const hurufJudul = (teks: string) =>
           ),
     )
     .join(' ');
-// Batang hitungan bernilai 0 tidak digambar; batang bernilai kecil tetap terlihat.
 const tinggiMinimal = (nilai: number | null | undefined) =>
   Number(nilai) > 0 ? 3 : 0;
 
-/** Skala sumbu Y yang bulat: empat langkah sama besar, minimal 0–4. */
 function skalaBulat(nilaiMaks: number) {
   if (nilaiMaks <= 4) return { maks: 4, ticks: [0, 1, 2, 3, 4] };
   const pangkat = 10 ** Math.floor(Math.log10(nilaiMaks / 4));
@@ -234,7 +229,6 @@ export default function Landing() {
       null,
     );
     const skala = skalaBulat(Math.max(0, ...berjalan.map(b => b.jumlah)));
-    // Bulan yang belum berjalan digambar setinggi sumbu dengan arsiran, bukan batang nol.
     const grafik = baris.map(b => ({
       ...b,
       tinggi: b.berjalan ? b.jumlah : skala.maks,
@@ -321,8 +315,6 @@ export default function Landing() {
             </p>
           </div>
         ) : !periode || !summary ? (
-          // Backend hanya mempublikasikan periode OPEN/LOCKED. Tanpa itu jangan
-          // gambar grafik kosong dan "0,0%" — angka nol terbaca sebagai kinerja nol.
           <div className="lp-container lp-empty">
             <CalendarClock
               className="mx-auto"
@@ -340,7 +332,6 @@ export default function Landing() {
           </div>
         ) : (
           <>
-            {/* Pembuka */}
             <section
               className="lp-hero"
               id="ringkasan"
@@ -386,7 +377,6 @@ export default function Landing() {
               </div>
             </section>
 
-            {/* Porsi subkegiatan per bidang */}
             <section
               className="lp-band lp-sec"
               id="porsi"
@@ -478,7 +468,6 @@ export default function Landing() {
               </div>
             </section>
 
-            {/* Capaian per bidang */}
             <section
               className="lp-sec"
               id="capaian"
@@ -572,7 +561,6 @@ export default function Landing() {
               </div>
             </section>
 
-            {/* Capaian per program */}
             {program.length > 0 && (
               <section
                 className="lp-sec lp-tint"
@@ -632,7 +620,6 @@ export default function Landing() {
               </section>
             )}
 
-            {/* Realisasi per bulan */}
             {realisasi.baris.length > 0 && (
               <section
                 className="lp-sec"
@@ -810,7 +797,6 @@ export default function Landing() {
               </section>
             )}
 
-            {/* Profil kinerja */}
             <section
               className="lp-sec lp-tint"
               id="profil"
@@ -867,7 +853,6 @@ export default function Landing() {
                             fill: 'var(--lp-fg)',
                           }}
                         />
-                        {/* Sumbu angka di celah antara dua bidang pertama, supaya tidak menimpa label di puncak. */}
                         <PolarRadiusAxis
                           angle={90 - 180 / Math.max(bidang.length, 1)}
                           domain={[0, 100]}
@@ -919,7 +904,6 @@ export default function Landing() {
               </div>
             </section>
 
-            {/* Sebaran capaian subkegiatan */}
             {sebaran.baris.length > 0 && (
               <section
                 className="lp-sec"
@@ -1043,7 +1027,6 @@ export default function Landing() {
               </section>
             )}
 
-            {/* Daftar bidang */}
             <section
               className="lp-sec lp-tint"
               id="bidang"

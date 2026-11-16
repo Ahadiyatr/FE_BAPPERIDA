@@ -18,7 +18,6 @@ import {
 } from '@/utils/kata-sandi';
 import { Toast } from '@/utils/toast';
 
-/** Dialog ganti kata sandi sendiri — dipakai kedua peran lewat dropdown avatar. */
 export function GantiKataSandiDialog({
   terbuka,
   onTutup,
@@ -52,8 +51,6 @@ export function GantiKataSandiDialog({
     setMenyimpan(true);
     try {
       await gantiKataSandi(lama, baru);
-      // Sejak P0-R01 backend ikut mencabut sesi lain, jadi pengguna perlu diberi tahu —
-      // kalau tidak, perangkatnya yang lain tiba-tiba terlempar ke layar login tanpa sebab.
       Toast.fire({ icon: 'success', title: 'Kata sandi diperbarui. Sesi lain dikeluarkan.' });
       onTutup();
     } catch (e) {

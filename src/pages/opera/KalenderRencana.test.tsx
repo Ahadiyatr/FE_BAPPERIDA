@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import KalenderRencana from './KalenderRencana';
-// Import tipe murni — dihapus saat kompilasi, jadi tidak menyentuh modul yang di-mock.
 import type { Peran } from '@/lib/peran';
 import type { AgendaKegiatan, DetailSubkegiatan, KalenderBulan, RealisasiKalender } from '@/services';
 
@@ -145,7 +144,6 @@ function detailSubkegiatan(): DetailSubkegiatan {
   };
 }
 
-/** detailSubkegiatan() dengan jumlah agenda terjadwal per aktivitas (id → jumlah). */
 function rencanaTerjadwal(terjadwal: Record<number, number>): DetailSubkegiatan {
   const sub = detailSubkegiatan();
   return {
@@ -170,7 +168,6 @@ function kalender(ubah: Partial<KalenderBulan> = {}): KalenderBulan {
 
 const tampilkan = () => render(<MemoryRouter><KalenderRencana /></MemoryRouter>);
 
-/** Sel tanggal dikenali lewat aria-label "YYYY-MM-DD: N agenda, M realisasi". */
 const sel = (kunci: string) => screen.getByRole('button', { name: new RegExp(`^${kunci}:`) });
 
 beforeEach(() => {
@@ -247,7 +244,6 @@ describe('KalenderRencana', () => {
   });
 
   it('navigasi bulan dikunci ke rentang periode', async () => {
-    // Periode Jan–Mar, bulan tampil Februari: kedua tombol hidup.
     tampilkan();
     await waitFor(() => expect(getKalenderBulan).toHaveBeenCalled());
 
@@ -347,25 +343,20 @@ describe('KalenderRencana', () => {
     await userEvent.click(screen.getByRole('button', { name: /Agenda$/ }));
 
     expect(await screen.findByText('Tambah agenda')).toBeTruthy();
-    // Satu-satunya subkegiatan bidang langsung terisi; aktivitas tidak dipilihkan diam-diam.
     expect(screen.getByRole('combobox').textContent).toContain('Analisis Kondisi Daerah');
     const opsi = screen.getByRole('radio', { name: /^Diskusi kelompok terpumpun/ }) as HTMLInputElement;
     expect(opsi.checked).toBe(false);
     await userEvent.click(opsi);
-    // Judul kosong diisi nama aktivitas, tetapi tetap bisa ditimpa.
     const judul = screen.getByLabelText('Judul agenda') as HTMLInputElement;
     expect(judul.value).toBe('Diskusi kelompok terpumpun');
     await userEvent.clear(judul);
     await userEvent.type(judul, 'Rapat pembahasan baru');
-    // Jumlah rencana tetap 1 walau sisa target 2 — hanya disandingkan, tidak diisikan.
     expect((screen.getByLabelText('Jumlah rencana') as HTMLInputElement).value).toBe('1');
     expect(screen.getByTestId('ringkas-target').textContent).toBe(
       'Terjadwal 1 dari target 2 Kali · sisa 1',
     );
     expect(screen.queryByRole('status')).toBeNull();
     const muatRencanaSebelum = getRencanaSayaRingkas.mock.calls.length;
-    // Muat awal memanggil getKalenderBulan dua kali (sekali tanpa bulan, sekali lagi setelah
-    // bulan default server tersimpan ke state) — ambil baseline setelah stabil, bukan angka tetap.
     const panggilanSebelum = getKalenderBulan.mock.calls.length;
     await userEvent.click(screen.getByRole('button', { name: 'Simpan' }));
 
@@ -382,7 +373,6 @@ describe('KalenderRencana', () => {
         status: undefined,
       }),
     );
-    // onTersimpan memicu refresh kalender dan jumlah terjadwal di rencana.
     await waitFor(() => expect(getKalenderBulan.mock.calls.length).toBeGreaterThan(panggilanSebelum));
     await waitFor(() =>
       expect(getRencanaSayaRingkas.mock.calls.length).toBeGreaterThan(muatRencanaSebelum),
@@ -398,7 +388,6 @@ describe('KalenderRencana', () => {
     await userEvent.click(screen.getByRole('button', { name: /Agenda$/ }));
     await userEvent.click(await screen.findByRole('radio', { name: /^Diskusi kelompok terpumpun/ }));
 
-    // Target sudah habis terjadwal: jumlah bawaan 1 membuat totalnya diperingatkan.
     expect((screen.getByLabelText('Jumlah rencana') as HTMLInputElement).value).toBe('1');
     expect(screen.getByRole('status').textContent).toContain('Total agenda jadi 3, melebihi target 2');
     await userEvent.click(screen.getByRole('button', { name: 'Simpan' }));
@@ -406,7 +395,6 @@ describe('KalenderRencana', () => {
   });
 
   it('tidak menghitung dua kali jumlah agenda yang sedang diubah', async () => {
-    // Aktivitas 7 target 4; agenda 41 (jumlah 1) sudah termasuk di 4 yang terjadwal.
     getRencanaSayaRingkas.mockResolvedValue([rencanaTerjadwal({ 7: 4 })]);
     tampilkan();
     await waitFor(() => expect(getRencanaSayaRingkas).toHaveBeenCalled());
@@ -418,7 +406,6 @@ describe('KalenderRencana', () => {
       'Terjadwal 4 dari target 4 Laporan · sisa 0',
     );
     expect(screen.queryByRole('status')).toBeNull();
-    // Dibatalkan: jumlahnya keluar dari total.
     await userEvent.selectOptions(screen.getByLabelText('Status'), 'BATAL');
     expect(screen.getByTestId('ringkas-target').textContent).toBe(
       'Terjadwal 3 dari target 4 Laporan · sisa 1',

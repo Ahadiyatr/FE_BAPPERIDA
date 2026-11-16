@@ -90,7 +90,6 @@ describe('alasanCentangTerkunci', () => {
   });
 
   it('tidak memblokir pengaktifan ulang baris yang punya realisasi lama', () => {
-    // Backend hanya menolak realisasi saat MENONAKTIFKAN, jadi jangan lebih ketat di UI.
     const daftar = [utama, akt({ id: 1 }), akt({ id: 2, dipakai: false, realisasi: 5 })];
     expect(alasanCentangTerkunci(daftar[2], daftar, true)).toBeNull();
   });

@@ -10,7 +10,6 @@ type KontrolHalamanProps = Pick<
 const tombol =
   "inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 disabled:pointer-events-none disabled:opacity-40";
 
-/** "Tampilkan N data" + info rentang + navigasi halaman, di kaki tabel daftar. */
 export default function KontrolHalaman({
   halaman, ukuran, totalHalaman, total, dari, sampai, setHalaman, setUkuran,
 }: KontrolHalamanProps) {

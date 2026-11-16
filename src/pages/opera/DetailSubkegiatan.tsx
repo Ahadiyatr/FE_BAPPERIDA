@@ -55,8 +55,6 @@ function Fakta({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-/* ── Tabel datar: aktifitas + baris catatan realisasi ber-indent ─────────── */
-
 function TabelAktifitas({
   aktifitas, lampiranTerpilih, onPilihCatatan,
 }: {
@@ -158,8 +156,6 @@ function TabelAktifitas({
     </div>
   )
 }
-
-/* ── Sidebar kanan: daftar lampiran + pane pratinjau ────────────────────── */
 
 function SidebarLampiran({
   aktifitas, terpilih, onPilih, onPerbesar,
@@ -350,7 +346,6 @@ export default function DetailSubkegiatan() {
 
   return (
     <div className="space-y-6">
-      {/* ── Header ─────────────────────────────────────────────── */}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="sm" asChild className="-ml-2">
@@ -404,7 +399,6 @@ export default function DetailSubkegiatan() {
 
       {data && (
         <div className="space-y-6">
-          {/* ── Ringkasan: capaian + rincian ──────────────────── */}
           <div className="grid gap-4 lg:grid-cols-[minmax(0,15rem)_1fr]">
             <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -441,7 +435,6 @@ export default function DetailSubkegiatan() {
             </Panel>
           </div>
 
-          {/* ── Pembagian bobot 70/30 ─────────────────────────── */}
           <Panel judul="Pembagian bobot 70 / 30">
             {utama ? (
               <div className="space-y-4 p-4 xl:grid xl:grid-cols-2 xl:gap-4 xl:space-y-0">
@@ -470,7 +463,6 @@ export default function DetailSubkegiatan() {
             )}
           </Panel>
 
-          {/* ── Tabel aktifitas + sidebar lampiran, sejajar ───── */}
           <div className={`grid min-w-0 gap-6 lg:items-start ${sidebarTampil ? "lg:grid-cols-[minmax(0,1fr)_23rem]" : ""}`}>
             <div className="min-w-0 space-y-6">
               <Panel judul={`Aktivitas & realisasi (${data.aktifitas.length})`}>

@@ -121,20 +121,9 @@ function PemilihPeriode({
   );
 }
 
-/**
- * Dua tahap penyusunan rencana, berurutan:
- *
- *  1. Penunjukan — subkegiatan mana jadi tanggung jawab bidang mana.
- *  2. Papan kesiapan — target & aktivitas tiap bidang, lalu buka periode.
- *
- * Tahap 2 hanya menampilkan bidang yang sudah mendapat pembagian, jadi tahap 1
- * yang menjadi pintu masuk untuk periode yang masih kosong.
- */
 export default function PenyusunanRencana() {
   const [sp, setSp] = useSearchParams();
   const [periodes, setPeriodes] = React.useState<Periode[] | null>(null);
-  // Periode ikut disimpan di URL (?periode=) supaya kembali dari Rencana Bidang
-  // mendarat di periode yang sama, bukan di periode DRAFT bawaan.
   const [periodeId, setPeriodeId] = React.useState<number | null>(
     () => Number(sp.get('periode')) || null,
   );
@@ -162,9 +151,7 @@ export default function PenyusunanRencana() {
       setPeriodes(daftar);
       setPeriodeId(
         id =>
-          // ?periode= yang tidak ada di daftar (dihapus, salah ketik) diabaikan.
           (id !== null && daftar.some(x => x.id === id) ? id : null) ??
-          // Penyusunan dikerjakan untuk periode yang belum dibuka.
           (daftar.find(x => x.status === 'DRAFT') ??
             daftar.find(x => x.status === 'OPEN') ??
             daftar[0])?.id ??
@@ -181,7 +168,6 @@ export default function PenyusunanRencana() {
 
   const periode = periodes?.find(p => p.id === periodeId) ?? null;
 
-  // Periode tepat sebelum yang dipilih — sumber untuk salin rencana.
   const sumber = React.useMemo(() => {
     if (!periodes || periodeId == null) return null;
     const urut = [...periodes].sort((a, b) => a.id - b.id);

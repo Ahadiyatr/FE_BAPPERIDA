@@ -29,7 +29,6 @@ const log = (waktu: string, ubah: Partial<LogAktivitas> = {}): LogAktivitas => (
 
 describe("kelompokkanPerHari", () => {
   it("membaca hari dalam WITA, bukan zona browser", () => {
-    // 00.30 WITA = 16.30 UTC hari sebelumnya.
     const hari = kelompokkanPerHari([
       log("2026-10-24T00:30:00+08:00"),
       log("2026-10-23T23:50:00+08:00"),
