@@ -6,10 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores([
-    'dist', 'node_modules', 'opera-ink-fe-bundle', 'fix_pagination.ts', 'patch.ts', 'patch2.ts',
-    'src/mocks/**', 'src/pages/dashboard/**', 'src/pages/master/**', 'src/pages/Rencana/**',
-  ]),
+  globalIgnores(['dist', 'node_modules']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
