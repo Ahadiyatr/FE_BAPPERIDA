@@ -134,8 +134,12 @@ type BidangTampil = {
   jumlahSubkegiatan: number;
   capaian: number;
   porsi: number;
+  kontribusi: number;
   warna: string;
 };
+
+const poin = (n: number) =>
+  n.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 function KepalaBagian({
   ikon,
@@ -201,9 +205,19 @@ export default function Landing() {
       jumlahSubkegiatan: b.jumlah_subkegiatan,
       capaian: Number(b.capaian_bidang),
       porsi: Number(porsi.get(b.bidang_id) ?? 0),
+      kontribusi: Number(b.capaian_bidang) / data.bidang.length,
       warna: WARNA_BIDANG[i % WARNA_BIDANG.length],
     }));
   }, [data]);
+
+  const jatahBidang = bidang.length ? 100 / bidang.length : 0;
+  const irisanKontribusi = [
+    ...bidang.map(b => ({ nama: b.nama, nilai: b.kontribusi })),
+    {
+      nama: 'Belum tercapai',
+      nilai: Math.max(0, 100 - bidang.reduce((t, b) => t + b.kontribusi, 0)),
+    },
+  ];
 
   const program = useMemo(
     () =>
@@ -280,7 +294,7 @@ export default function Landing() {
               <a href="#ringkasan">Ringkasan</a>
             </li>
             <li>
-              <a href="#porsi">Porsi Bidang</a>
+              <a href="#porsi">Kontribusi Bidang</a>
             </li>
             <li>
               <a href="#capaian">Capaian</a>
@@ -365,7 +379,7 @@ export default function Landing() {
                         ? 'Sedang berjalan'
                         : 'Sudah dikunci'}
                     </span>
-                    <span>Rata-rata capaian seluruh subkegiatan</span>
+                    <span>Rata-rata capaian {summary.jumlah_bidang} bidang, bobot sama</span>
                   </div>
                 </div>
                 <ul className="lp-facts num">
@@ -396,9 +410,9 @@ export default function Landing() {
                 <KepalaBagian
                   id="lp-h-porsi"
                   ikon={<ChartPie size={12} />}
-                  eyebrow="Sebaran subkegiatan"
-                  judul="Porsi Subkegiatan Tiap Bidang"
-                  keterangan={`${summary.jumlah_bidang} bidang memegang ${angka(summary.jumlah_subkegiatan)} subkegiatan pada periode ini. Arahkan kursor ke potongan untuk melihat rinciannya.`}
+                  eyebrow="Kontribusi bidang"
+                  judul="Kontribusi Bidang ke Capaian Keseluruhan"
+                  keterangan={`Setiap bidang berbobot sama, ${poin(jatahBidang)} poin dari 100, berapa pun jumlah subkegiatannya. Sumbangan bidang = capaian bidang ÷ ${bidang.length}. Arahkan kursor ke potongan untuk melihat rinciannya.`}
                 />
                 <div className="lp-donut-grid">
                   <div className="lp-donut">
@@ -409,15 +423,17 @@ export default function Landing() {
                     >
                       <PieChart>
                         <Pie
-                          data={bidang}
-                          dataKey="porsi"
+                          data={irisanKontribusi}
+                          dataKey="nilai"
                           nameKey="nama"
                           innerRadius="71%"
                           outerRadius="100%"
                           paddingAngle={1.5}
                           stroke="none"
                           isAnimationActive={false}
-                          onMouseEnter={(_, i) => setAktif(i)}
+                          onMouseEnter={(_, i) =>
+                            setAktif(i < bidang.length ? i : null)
+                          }
                           onMouseLeave={() => setAktif(null)}
                         >
                           {bidang.map((b, i) => (
@@ -431,26 +447,27 @@ export default function Landing() {
                               }}
                             />
                           ))}
+                          <Cell key="belum" fill="var(--lp-band-hair)" />
                         </Pie>
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="lp-donut-mid">
                       {bidangAktif ? (
                         <>
-                          <b className="num">{persen1(bidangAktif.porsi)}</b>
+                          <b className="num">
+                            {poin(bidangAktif.kontribusi)}
+                          </b>
                           <span>
-                            {bidangAktif.nama} · {bidangAktif.jumlahSubkegiatan}{' '}
-                            subkegiatan
+                            dari {poin(jatahBidang)} poin · {bidangAktif.nama}{' '}
+                            capaian {persen1(bidangAktif.capaian)}
                           </span>
                         </>
                       ) : (
                         <>
                           <b className="num">
-                            {angka(summary.jumlah_subkegiatan)}
+                            {persen1(Number(summary.capaian_pd))}
                           </b>
-                          <span>
-                            subkegiatan di {summary.jumlah_bidang} bidang
-                          </span>
+                          <span>capaian keseluruhan</span>
                         </>
                       )}
                     </div>
@@ -468,11 +485,20 @@ export default function Landing() {
                         <i style={{ background: b.warna }} />
                         <span className="lp-nm">{b.nama}</span>
                         <span className="lp-sk">
-                          {b.jumlahSubkegiatan} subkegiatan
+                          capaian {persen1(b.capaian)} · {b.jumlahSubkegiatan}{' '}
+                          subkegiatan
                         </span>
-                        <span className="lp-pc">{persen1(b.porsi)}</span>
+                        <span className="lp-pc">{poin(b.kontribusi)}</span>
                       </li>
                     ))}
+                    <li>
+                      <i style={{ background: 'var(--lp-band-hair)' }} />
+                      <span className="lp-nm">Belum tercapai</span>
+                      <span className="lp-sk">dari 100 poin</span>
+                      <span className="lp-pc">
+                        {poin(irisanKontribusi[bidang.length].nilai)}
+                      </span>
+                    </li>
                   </ul>
                 </div>
               </div>

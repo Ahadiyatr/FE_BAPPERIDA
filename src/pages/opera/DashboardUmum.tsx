@@ -120,7 +120,7 @@ export default function DashboardUmum() {
             <KartuKpi
               label={peran === "admin_bidang" ? "Capaian bidang" : "Capaian perangkat daerah"}
               nilai={persen1(ringkas.capaianPd)}
-              catatan={peran === "admin_bidang" ? "Rata-rata subkegiatan bidang Anda pada periode ini" : "Rata-rata seluruh subkegiatan periode ini"}
+              catatan={peran === "admin_bidang" ? "Rata-rata subkegiatan bidang Anda pada periode ini" : `Rata-rata capaian ${ringkas.jumlahBidang} bidang, bobot sama`}
             />
             <KartuKpi
               label="Subkegiatan tersusun"

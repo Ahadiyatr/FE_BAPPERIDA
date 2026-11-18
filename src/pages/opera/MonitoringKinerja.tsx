@@ -154,15 +154,18 @@ export default function MonitoringKinerja() {
     [data, q, bidangPilih],
   );
 
-  const bukaSemua = () => {
-    const prog = new Set<string>();
-    const keg = new Set<string>();
-    (data?.program ?? []).forEach(p => {
-      prog.add(p.kodeProgram);
-      p.kegiatan.forEach(k => keg.add(k.kodeKegiatan));
-    });
-    setProgramBuka(prog);
-    setKegiatanBuka(keg);
+  const bukaHasil = (daftar: MonitoringProgram[]) => {
+    setProgramBuka(new Set(daftar.map(p => p.kodeProgram)));
+    setKegiatanBuka(
+      new Set(daftar.flatMap(p => p.kegiatan.map(k => k.kodeKegiatan))),
+    );
+  };
+  const bukaSemua = () => bukaHasil(data?.program ?? []);
+  const ubahFilter = (teks: string, bidang: string) => {
+    setCari(teks);
+    setBidangPilih(bidang);
+    const kunci = teks.trim().toLowerCase();
+    if (kunci || bidang) bukaHasil(saring(data?.program ?? [], kunci, bidang));
   };
   const tutupSemua = () => {
     setProgramBuka(new Set());
@@ -215,9 +218,9 @@ export default function MonitoringKinerja() {
               catatan="Utama & pendukung"
             />
             <KartuKpi
-              label="Rata capaian subkegiatan"
-              nilai={persen1(r?.rataCapaianSubkegiatan ?? 0)}
-              catatan="Rata-rata seluruh subkegiatan"
+              label="Capaian perangkat daerah"
+              nilai={persen1(r?.capaianPd ?? 0)}
+              catatan={`Rata-rata capaian ${r?.jumlahBidang ?? 0} bidang, bobot sama`}
             />
           </>
         )}
@@ -254,14 +257,14 @@ export default function MonitoringKinerja() {
         <div className="flex flex-col gap-3 p-4 border-b border-slate-100 sm:flex-row sm:items-center">
           <SearchInput
             value={cari}
-            onValueChange={setCari}
+            onValueChange={v => ubahFilter(v, bidangPilih)}
             placeholder="Cari program, kegiatan, subkegiatan, atau aktivitas…"
             aria-label="Cari monitoring kinerja"
             className="flex-1"
           />
           <select
             value={bidangPilih}
-            onChange={e => setBidangPilih(e.target.value)}
+            onChange={e => ubahFilter(cari, e.target.value)}
             className="px-3 py-2 text-sm bg-white border rounded-xl border-slate-200 text-slate-700 focus:border-emerald-500 focus:outline-none"
           >
             <option value="">Semua bidang</option>
@@ -289,13 +292,12 @@ export default function MonitoringKinerja() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {terlihat.map(p => {
-                const pTerbuka = memfilter || programBuka.has(p.kodeProgram);
+                const pTerbuka = programBuka.has(p.kodeProgram);
                 return (
                   <React.Fragment key={p.kodeProgram}>
                     <tr
-                      className={`bg-slate-50/70 ${memfilter ? '' : 'cursor-pointer hover:bg-slate-100'}`}
+                      className="cursor-pointer bg-slate-50/70 hover:bg-slate-100"
                       onClick={() =>
-                        !memfilter &&
                         setProgramBuka(s => toggle(s, p.kodeProgram))
                       }
                     >
@@ -332,18 +334,12 @@ export default function MonitoringKinerja() {
 
                     {pTerbuka &&
                       p.kegiatan.map(k => {
-                        const kTerbuka =
-                          memfilter || kegiatanBuka.has(k.kodeKegiatan);
+                        const kTerbuka = kegiatanBuka.has(k.kodeKegiatan);
                         return (
                           <React.Fragment key={k.kodeKegiatan}>
                             <tr
-                              className={
-                                memfilter
-                                  ? ''
-                                  : 'cursor-pointer hover:bg-slate-50'
-                              }
+                              className="cursor-pointer hover:bg-slate-50"
                               onClick={() =>
-                                !memfilter &&
                                 setKegiatanBuka(s => toggle(s, k.kodeKegiatan))
                               }
                             >
