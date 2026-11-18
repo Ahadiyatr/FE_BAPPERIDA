@@ -18,22 +18,27 @@ export default function Login() {
   const [error, setError] = useState('');
   const sudahDialihkan = React.useRef(false);
 
-  const alihkanSetelahLogin = React.useCallback((peran: Exclude<Peran, 'publik'>) => {
-    if (sudahDialihkan.current) return;
-    sudahDialihkan.current = true;
+  const alihkanSetelahLogin = React.useCallback(
+    (peran: Exclude<Peran, 'publik'>) => {
+      if (sudahDialihkan.current) return;
+      sudahDialihkan.current = true;
 
-    const dariState = (location.state as { dari?: unknown } | null)?.dari;
-    const tujuan = pilihTujuanLogin(
-      sessionStorage.getItem('opera:redirect_after_login'),
-      dariState,
-    );
-    const peranTujuan = peranYangBoleh(pathnameTujuanLogin(tujuan));
-    const tujuanBerizin = peranTujuan?.includes(peran) ? tujuan : '/dashboard';
+      const dariState = (location.state as { dari?: unknown } | null)?.dari;
+      const tujuan = pilihTujuanLogin(
+        sessionStorage.getItem('opera:redirect_after_login'),
+        dariState,
+      );
+      const peranTujuan = peranYangBoleh(pathnameTujuanLogin(tujuan));
+      const tujuanBerizin = peranTujuan?.includes(peran)
+        ? tujuan
+        : '/dashboard';
 
-    sessionStorage.removeItem('opera:redirect_after_login');
-    sessionStorage.removeItem('opera:session_expired');
-    navigate(tujuanBerizin, { replace: true });
-  }, [location.state, navigate]);
+      sessionStorage.removeItem('opera:redirect_after_login');
+      sessionStorage.removeItem('opera:session_expired');
+      navigate(tujuanBerizin, { replace: true });
+    },
+    [location.state, navigate],
+  );
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +86,13 @@ export default function Login() {
     <div className="flex flex-col justify-center min-h-screen py-12 font-sans bg-linear-to-br from-emerald-50 via-slate-50 to-yellow-50 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <img src={logoOperaInk} alt="Logo OPERA-INK" width={192} height={158} className="h-auto w-48" />
+          <img
+            src={logoOperaInk}
+            alt="Logo OPERA-INK"
+            width={192}
+            height={158}
+            className="h-auto w-48"
+          />
         </div>
         <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-center text-slate-900">
           Login ke Dashboard
@@ -137,7 +148,6 @@ export default function Login() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   className="block w-full py-3 pl-10 border focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm border-slate-300 rounded-xl bg-white/50"
-                  placeholder="admin@bapperrida.go.id"
                 />
               </div>
             </div>

@@ -55,6 +55,8 @@ export interface MonitoringRingkasan {
   jumlahSubkegiatan: number
   jumlahAktifitas: number
   rataCapaianSubkegiatan: number
+  jumlahBidang: number
+  capaianPd: number
 }
 
 export interface MonitoringPeriode {
@@ -121,6 +123,8 @@ type Root = {
     jumlah_subkegiatan: number
     jumlah_aktifitas: number
     rata_capaian_subkegiatan: number
+    jumlah_bidang: number
+    capaian_pd: number
   } | null
   program: ProgramRow[]
 }
@@ -190,6 +194,8 @@ export async function getMonitoringKinerja(periodeId?: number): Promise<Monitori
           jumlahSubkegiatan: root.ringkasan.jumlah_subkegiatan,
           jumlahAktifitas: root.ringkasan.jumlah_aktifitas,
           rataCapaianSubkegiatan: Number(root.ringkasan.rata_capaian_subkegiatan),
+          jumlahBidang: root.ringkasan.jumlah_bidang,
+          capaianPd: Number(root.ringkasan.capaian_pd),
         }
       : null,
     program: (root.program ?? []).map(program),
